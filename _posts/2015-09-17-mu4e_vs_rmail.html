@@ -1,0 +1,77 @@
+---
+layout: default
+title: Accessing Gmail via Emacs. (Japanese)
+excerpt: mu4e rather than RMail.
+---
+
+<p>
+Emacs に慣れた人は僕のように結局EメールもEmacsで読みたくなるかもしれま
+せんからこのブログ記事を書こうと思った。
+</p>
+
+<p>
+まずはEmacsの統合された主な Rmail っていうプログラムを使ってみた。でも
+なぜか分らないけどGmailと合わせられなかった。グーグルを何回検索し
+ても何の有益な情報も見付けられなかった。
+</p>
+
+<p>
+結局以下の投稿を見付けて、Gmailのメールと合わせるためには<a href="http://offlineimap.org/">offlineimap</a>
+を使って自分のパソコンにメールをダウンロードしなければならないって書い
+てあった。
+</p>
+
+<p>
+(注意英語の参照:）<a href="http://stackoverflow.com/questions/20979918/reading-email-from-gmail-in-emacs-24">stackoverflow - Reading email (from gmail) in emacs
+24</a>
+</p>
+
+<p>
+あいにくその第一の投稿を書いた人はGNUsを使おうと進めていましたが僕は
+それより使い易いプログラムを使いたかった。Rmailでも自分のパソコンにダウ
+ンロードしたメールを合わせられると思ったけどやはりそれも無理だった。
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-emacs-lisp">(setq rmail-primary-inbox-list
+  '(<span style="color: #8b2252;">"//Users/samlaf/Maildir/Gmail/"</span>))
+</pre>
+</div>
+
+<p>
+そのコードだけで順調に行くと思ったけど全然動いていません。
+</p>
+
+<p>
+ついには最近の新しいメールリーダーを見つけました。それは mu4eって言い
+ます。初心者であっても簡単にセットアップをできましたからお勧めします！
+以下は僕の.emacsのmu4eについての部分。
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-emacs-lisp">(add-to-list 'load-path <span style="color: #8b2252;">"/Users/samlaf/mu/mu4e/"</span>)
+(<span style="color: #a020f0;">require</span> '<span style="color: #008b8b;">mu4e</span>)
+
+(setq mu4e-maildir <span style="color: #8b2252;">"~/Maildir/Gmail"</span> <span style="color: #b22222;">;; </span><span style="color: #b22222;">top-level Maildir</span>
+      mu4e-sent-folder <span style="color: #8b2252;">"/sent"</span> <span style="color: #b22222;">;; </span><span style="color: #b22222;">folder for sent messages</span>
+      mu4e-drafts-folder <span style="color: #8b2252;">"/drafts"</span> <span style="color: #b22222;">;; </span><span style="color: #b22222;">unfinished messages</span>
+      mu4e-trash-folder <span style="color: #8b2252;">"/trash"</span> <span style="color: #b22222;">;; </span><span style="color: #b22222;">trashed messages</span>
+      mu4e-refile-folder <span style="color: #8b2252;">"/archive"</span>)
+
+(setq mu4e-get-mail-command <span style="color: #8b2252;">"offlineimap"</span>
+      <span style="color: #b22222;">;;</span><span style="color: #b22222;">set this to automatically run offlineimap every 300 seconds</span>
+      mu4e-update-interval 300)
+(setq mu4e-mu-binary <span style="color: #8b2252;">"/usr/local/bin/mu"</span>)
+
+<span style="color: #b22222;">;; </span><span style="color: #b22222;">here we add supercite</span>
+<span style="color: #b22222;">;; </span><span style="color: #b22222;">(load "supercite")</span>
+<span style="color: #b22222;">;; </span><span style="color: #b22222;">(autoload 'sc-cite-original "supercite" nil t)</span>
+(add-hook 'mail-citation-hook 'sc-cite-original)
+</pre>
+</div>
+
+<p>
+Emacsでメールを読んで楽しんでください！
+</p>
