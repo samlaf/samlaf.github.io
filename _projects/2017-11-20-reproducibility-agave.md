@@ -1,5 +1,4 @@
 ---
-layout: post
 title:  "Reproducing Auxiliary Guided Autoregressive Variational Autoencoder"
 description: "IFT-6269 Probabilistic Graphical Models - Final Project"
 date:   2017-11-20

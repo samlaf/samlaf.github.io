@@ -32,6 +32,13 @@ plugins:
 collections:
   projects:
     output: true
+    # This ordering isn't working...
+    order:
+      - 2020-06-12-manifold-optimization.md
+      - 2018-01-11-duckietown-slam.md
+      - 2018-05-21-reproducibility-report.md
+      - 2017-11-20-reproducibility-agave.md
+
 
 # Exclude from processing.
 # The following items will not be processed, by default. Create a custom list
@@ -45,6 +52,8 @@ collections:
 #   - vendor/gems/
 #   - vendor/ruby/
 
+# These are front matter defaults. These make it so that we don't need to add the "layout" front matter to projects and posts.
+# See https://jekyllrb.com/docs/step-by-step/09-collections/ for more details.
 defaults:
   - scope:
       path: ""

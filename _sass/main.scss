@@ -1,0 +1,18 @@
+.post-container{
+    margin: 20px 20px 0 0;  
+    border:5px solid #333;
+}
+
+.post-thumb img {
+    float: left;
+}
+
+.post-content {
+    float: left;
+}
+
+/* was trying to use this styling for projects embeddings. but not sure how to use it. */
+.project-embedding {
+  	width: 640;
+  	height: 480;
+}

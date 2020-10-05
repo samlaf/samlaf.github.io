@@ -1,5 +1,4 @@
 ---
-layout: post
 title:  "Reproducing Generalizing Hamiltonian Monte Carlo with Neural Networks"
 description: "IFT-6135 Deep Learning - Final Project"
 date:   2018-05-21
