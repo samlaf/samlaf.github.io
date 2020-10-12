@@ -191,7 +191,7 @@ which is just another way of saying $ \left\lbrack U(\sum_d a_d \cdot \phi_d) \r
 
 Using the tranpose might seem arbitrary, and it is! We define it this way so that the bottom part of the diagram matches with that of Brunton. Otherwise, his $K$ would be our $K^T$.
 
-*observations*: Observations connect the world of Koopmand and observables to the original state-space. An observation $y$ is obtained by evaluating an observable $g$ (or $\phi$!) at a given state $x$: $y = g(x)$. Note that this simultaneously explains both mappings to the observations space $\mathbb{R}^d$: $x_0 \mapsto g(x_0)$ and $g \mapsto g(x_0)$. One of them waits for an observable, while the other waits for a state.
+*observations*: Observations connect the world of Koopman and observables to the original state-space. An observation $y$ is obtained by evaluating an observable $g$ (or $\phi$!) at a given state $x$: $y = g(x)$. Note that this simultaneously explains both mappings to the observations space $\mathbb{R}^d$: $x_0 \mapsto g(x_0)$ and $g \mapsto g(x_0)$. One of them waits for an observable, while the other waits for a state.
 
 *Transpose*: The last bit of notation that is worth explaining is the relationship between $K^T$, which evolves observable coefficients (and is hence the matrix representation of the Koopman operator), and $K$, which evolves observations. A priori, there seems to be none, but the fact that they are transposes forces us to find one.
 
