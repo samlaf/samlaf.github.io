@@ -1,0 +1,12 @@
+digraph MyGraph {
+  rankdir=LR
+  {rank=same; control [shape=none]; u [shape=none]}
+  {rank=same; sysid [shape=none]; f [shape=box, label="F"]}
+  {rank=same; predict [shape=none]; x [shape=none]}
+  f -> x
+  u -> f
+  # This is just to force the position of the text to be below the sys nodes
+  u -> control [style="invis"];
+  f -> sysid [style="invis"];
+  x -> predict [style="invis"];
+}
