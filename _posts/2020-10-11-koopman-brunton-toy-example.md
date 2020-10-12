@@ -83,7 +83,7 @@ Assuming that $\phi$ is an eigenfunction of $K$, eqn $(\ref{koopman-eqn})$ becom
 
 $$ \nabla_x \phi(x) \cdot F(x) = \lambda \phi(x) $$
 
-which given dynamics $F(x)$ and an eigenvalue $\lambda$, we can solve to find the eigenvalue $\phi(x)$. Note that this requires knowing/guessing the eigenvalue! As we will see though, these are often easy to guess/deriva from the structure of the equation.
+which given dynamics $F(x)$ and an eigenvalue $\lambda$, we can solve to find the eigenvalue $\phi(x)$. Note that this requires knowing/guessing the eigenvalue! As we will see though, these are often easy to guess/derive from the structure of the equation.
 
 We now show how this can be used to find the eigenfunctions of the toy system $\ref{toy-system}$. We start by assuming that $\phi$ is an analytical function, write it using its series expansion $\phi(x) = \sum_{k=0}^\infty \sum_{l=0}^\infty c_{kl} x_1^k x_2^l$, and then play some algebraic gymnastic. Note that this is an oft-used [technique](https://en.wikipedia.org/wiki/Power_series_solution_of_differential_equations) for solving differential equations. Now 
 
