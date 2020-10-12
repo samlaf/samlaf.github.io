@@ -2,6 +2,12 @@
 title:  A Quick Tour of Koopman using Brunton's Toy System
 ---
 
+<!-- NOTES -------
+    Renaud's questions:
+    1. What is Phi? (dictionary/basis)
+    2. What's the role of the dimension d? don't you need = infinity?
+-->
+
 For a continuous-time dynamical system $\dot{x} = F(x)$ on $\mathbb{R}^n$ with flow map $F_t$, the discrete-time Koopman operators are defined as $K_t g = g \circ F_t$, where $g: \mathbb{R}^n \rightarrow \mathbb{R}$.
 The continuous-time Koopman operator is then defined as $ \lim_{t \rightarrow 0} \frac{K_t g}{t}$.
 
