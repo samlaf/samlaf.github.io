@@ -1,15 +1,16 @@
 ---
-title:  A Quick Tour of Koopman using Brunton's Toy System
+title:  A Quick Tour of Applied Koopman Theory
 ---
 
-<!-- NOTES -------
+
+For a continuous-time dynamical system $\dot{x} = F(x)$ on $\mathbb{R}^n$ with flow map $F_t$, the discrete-time Koopman operators are defined as $K_t g = g \circ F_t$, where $g: \mathbb{R}^n \rightarrow \mathbb{R}$.
+The continuous-time Koopman operator is then defined as $ \lim_{t \rightarrow 0} \frac{K_t g}{t}$.
+
+<!-- NOTES ------- We put these here otherwise excerpt in blog is empty ---
     Renaud's questions:
     1. What is Phi? (dictionary/basis)
     2. What's the role of the dimension d? don't you need = infinity?
 -->
-
-For a continuous-time dynamical system $\dot{x} = F(x)$ on $\mathbb{R}^n$ with flow map $F_t$, the discrete-time Koopman operators are defined as $K_t g = g \circ F_t$, where $g: \mathbb{R}^n \rightarrow \mathbb{R}$.
-The continuous-time Koopman operator is then defined as $ \lim_{t \rightarrow 0} \frac{K_t g}{t}$.
 
 Without getting caught up in the mathematical details, the central idea of Koopman is to look at the dynamics on observables $g$:
 
@@ -17,7 +18,9 @@ $$
 \frac{d}{dt} g = K g \tag{1} \label{koopman-eqn}
 $$
 
-Irrespective of the underlying state-dynamics, the observable-dynamics are linear! This means that their solution is $g_t = e^{Kt} g_0$. Letting $\epsilon(x) = x$ be the identity observable, we see that solving this equation with $g_0=\epsilon$ gives us a way to solve the underlying state-IVP, since given $x_0$, $$x_t = \epsilon(x_t) = \epsilon(F_t x_0) = [K_t \epsilon](x_0) = \epsilon_t(x_0)$$.
+Irrespective of the underlying state-dynamics, the observable-dynamics are linear! This means that their solution is $g_t = e^{Kt} g_0$. Letting $\epsilon(x) = x$ be the identity observable, we see that solving this equation with $g_0=\epsilon$ gives us a way to solve the underlying state-IVP, since given $x_0$, 
+
+$$x_t = \epsilon(x_t) = \epsilon(F_t x_0) = [K_t \epsilon](x_0) = \epsilon_t(x_0)$$
 
 The main approach to solving the observable-IVP is to find eigenfunctions $\phi_k$ of the continuous-time Koopman operator and their associated eigenvalues $\lambda_k$, such that $K \phi_k = \lambda_k \phi_k$. and writing $\epsilon$ in terms of them: $\epsilon = \sum_k c_k \phi_k$, since then
 
@@ -197,7 +200,7 @@ which is just another way of saying $ \left\lbrack U(\sum_d a_d \cdot \phi_d) \r
 
 Using the tranpose might seem arbitrary, and it is! We define it this way so that the bottom part of the diagram matches with that of Brunton. Otherwise, his $K$ would be our $K^T$.
 
-*observations*: Observations connect the world of Koopman and observables to the original state-space. An observation $y$ is obtained by evaluating an observable $g$ (or $\phi$!) at a given state $x$: $y = g(x)$. Note that this simultaneously explains both mappings to the observations space $\mathbb{R}^d$: $x_0 \mapsto g(x_0)$ and $g \mapsto g(x_0)$. One of them waits for an observable, while the other waits for a state.
+*Observations*: Observations connect the world of Koopman and observables to the original state-space. An observation $y$ is obtained by evaluating an observable $g$ (or $\phi$!) at a given state $x$: $y = g(x)$. Note that this simultaneously explains both mappings to the observations space $\mathbb{R}^d$: $x_0 \mapsto g(x_0)$ and $g \mapsto g(x_0)$. One of them waits for an observable, while the other waits for a state.
 
 *Transpose*: The last bit of notation that is worth explaining is the relationship between $K^T$, which evolves observable coefficients (and is hence the matrix representation of the Koopman operator), and $K$, which evolves observations. A priori, there seems to be none, but the fact that they are transposes forces us to find one.
 

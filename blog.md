@@ -13,3 +13,6 @@ permalink: /blog/
   {% endfor %}
 </ul>
 
+<video width="480" height="320" controls="controls">
+	<source src="/assets/videos/duckiebots-driving-husky.mp4" type="video/mp4">
+</video>
