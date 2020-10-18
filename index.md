@@ -29,7 +29,7 @@
 	{% assign filtered_projects = site.projects | reverse %}
 	{% for project in filtered_projects %}
 		<div style="clear: left;">
-		<img src="/assets/icons/{{project.slug}}.png" class='iconDetails'>
+        	<img src="/assets/icons/{{ project.slug }}.png" class='iconDetails'>
 		</div>	
 		<div style='margin-left:150px;'>
 			<h4> <a href="{{ project.url }}">{{ project.title }}</a> </h4>
