@@ -1,4 +1,10 @@
-.post-container{
+/*
+. - identifies a class
+# - identifies an id
+https://www.htmldog.com/guides/css/intermediate/classid/
+*/
+
+/*.post-container{
     margin: 20px 20px 0 0;  
     border:5px solid #333;
 }
@@ -9,10 +15,21 @@
 
 .post-content {
     float: left;
+}*/
+
+
+
+.iconDetails {
+	float:left; 
+	height:120px;
+	width:120px;	
+} 
+
+.iconandproject {
+	width:100%;
+	height:auto;
 }
 
-/* was trying to use this styling for projects embeddings. but not sure how to use it. */
-.project-embedding {
-  	width: 640;
-  	height: 480;
+h4 {
+    margin:0px;
 }
