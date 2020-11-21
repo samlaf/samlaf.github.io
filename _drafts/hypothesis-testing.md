@@ -27,7 +27,7 @@ Surprisingly, we will see that in many cases, these two seemingly different test
 
 # Generic Test
 
-<iframe src="/assets/hypothesis-testing/make_plots.html"></iframe>
+<iframe src="/assets/hypothesis-testing/normal_mu_hyptest.html" width="50%" height="360px"></iframe>
 
 # Most Powerful Test: Likelihood Ratio test and Neyman-Pearson Lemma
 
