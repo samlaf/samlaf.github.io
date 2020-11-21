@@ -1,0 +1,12 @@
+# Can't use latex for node labels... so use tikz in latex instead
+digraph MyGraph {
+
+	# nodes
+	pi [label="π"]
+	Y
+	lr
+
+	# edges
+	pi -> Y
+	Y -> lr
+}
