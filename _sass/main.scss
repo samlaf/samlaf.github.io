@@ -4,21 +4,8 @@
 https://www.htmldog.com/guides/css/intermediate/classid/
 */
 
-/*.post-container{
-    margin: 20px 20px 0 0;  
-    border:5px solid #333;
-}
 
-.post-thumb img {
-    float: left;
-}
-
-.post-content {
-    float: left;
-}*/
-
-
-
+/* This is for the icons in the homepage */
 .iconDetails {
 	float:left; 
 	height:120px;
@@ -31,5 +18,19 @@ https://www.htmldog.com/guides/css/intermediate/classid/
 }
 
 h4 {
-    margin:0px;
+	margin:0px;
+}
+
+
+/* These are for centering images: https://stackoverflow.com/a/43691451/4971151 */
+/* this one by using <img class="center" ...> */
+.center { 
+	display: block;
+	margin: auto;
+}
+
+/* this one for using in markdown: ![...](/img/path#center) */
+img[src*='#center'] { 
+	display: block;
+	margin: auto;
 }

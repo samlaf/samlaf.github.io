@@ -3,12 +3,10 @@
 # To modify the layout, see https://jekyllrb.com/docs/themes/#overriding-theme-defaults
 ---
 
-<link rel="stylesheet" href="/assets/css/styles.css">
-
 <!-- Blog Posts -->
 <div id="home" style="height:100%; width:100%; overflow: hidden;">
 	<div style="width:60%; float: left;">
-	    {%- if page.title -%}
+		{%- if page.title -%}
 		<h1 class="page-heading">{{ page.title }}</h1>
 		{%- endif -%}
 		<h2> <a style="color:#000000" href="blog"> Blog Posts </a> </h2>
@@ -29,7 +27,7 @@
 	{% assign filtered_projects = site.projects | reverse %}
 	{% for project in filtered_projects %}
 		<div style="clear: left;">
-        	<img src="/assets/icons/{{ project.slug }}.png" class='iconDetails'>
+			<img src="/assets/icons/{{ project.slug }}.png" class='iconDetails'>
 		</div>	
 		<div style='margin-left:150px;'>
 			<h4> <a href="{{ project.url }}">{{ project.title }}</a> </h4>

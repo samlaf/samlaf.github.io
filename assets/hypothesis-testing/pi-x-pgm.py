@@ -10,7 +10,7 @@ pgm = daft.PGM(observed_style="inner")
 pgm.add_node("theta", r"$\theta$", 1, 2)
 pgm.add_node("Xi", r"$X_i$", 1, 1, observed=True)
 pgm.add_node("ht", r'hypothesis testing', 3, 2, plot_params={"ec": "none"})
-pgm.add_node("ad", r'anomaly detection', 3, 1, plot_params={"ec": "none"})
+pgm.add_node("ad", r'anomaly testing', 3, 1, plot_params={"ec": "none"})
 
 # Add in the edges.
 pgm.add_edge("theta", "Xi")

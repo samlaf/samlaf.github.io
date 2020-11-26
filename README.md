@@ -9,3 +9,9 @@ Then view the website by visiting
 ```
 localhost:4000
 ```
+
+--------------------------
+To build nbinteract widgets,
+```
+nbinteract assets/hypothesis-testing/normal_mu_hyptest.ipynb
+```
