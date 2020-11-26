@@ -137,7 +137,7 @@ $$
 
 One last very important thing to note, is that the power of a test, unlike the significance of a test, depends on the true value of the parameter in the alternative hypothesis $H_1$. When we write $\mu > 25cm$, we are saying that our test will be valid against any alternative hypothesis. If we knew that everytime the machine breaks, it produces bolts 50cm wide, then it would be very easy to detect it: our test would have great power against this alternative hypothesis! Play with the below widget to get an intuitive feeling for the relationship between $H_1$, significance, and power.
 
-<iframe src="/assets/hypothesis-testing/normal_mu_hyptest.html" width="50%" height="410px" class="center" id="widget"></iframe>
+<iframe src="/assets/hypothesis-testing/normal_mu_hyptest.html" width="50%" height="425px" class="center" id="widget"></iframe>
 
 # Most Powerful Test: Neyman-Pearson Lemma
 
