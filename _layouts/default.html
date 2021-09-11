@@ -4,6 +4,11 @@
   <head>
 	<!-- https://jekyllrb.com/docs/step-by-step/07-assets/ -->
 	<link rel="stylesheet" href="/assets/css/styles.css">
+
+	{% if site.google_analytics and jekyll.environment == 'production' %}
+	{% include analytics.html %}
+	{% endif %}
+
   </head>
 
 {% include head.html %}
