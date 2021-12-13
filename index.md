@@ -5,25 +5,40 @@
 
 <!-- Blog Posts -->
 <div id="home" style="height:100%; width:100%; overflow: hidden;">
-	<div style="width:60%; float: left;">
+	<div style="width:50%; float: left;">
 		{%- if page.title -%}
 		<h1 class="page-heading">{{ page.title }}</h1>
 		{%- endif -%}
-		<h2> <a style="color:#000000" href="blog"> Blog Posts </a> </h2>
+		<h2> <a style="color:#000000" href="blog"> Blockchain Articles </a> </h2>
 		<ul>
 		{% for post in site.posts %}
-			<li><a href="{{ post.url }}">{{ post.title }}</a></li>
+			{% if post.category == "blockchain" %}
+				<li><a href="{{ post.url }}">{{ post.title }}</a></li>
+			{% endif %}
 		{% endfor %}
 		</ul>
 	</div>
-	<div style="width:40%; float: left;">
-		<img src="/assets/videos/duckiebots-driving-husky.gif"/>
+	<div style="width:50%; float: left;">
+		{%- if page.title -%}
+		<h1 class="page-heading">{{ page.title }}</h1>
+		{%- endif -%}
+		<h2> <a style="color:#000000" href="blog"> Other Blog Posts </a> </h2>
+		<ul>
+		{% for post in site.posts %}
+			{% if post.category != "blockchain" %}
+				<li><a href="{{ post.url }}">{{ post.title }}</a></li>
+			{% endif %}
+		{% endfor %}
+		</ul>
 	</div>
+	<!-- <div style="width:40%; float: left;">
+		<img src="/assets/videos/duckiebots-driving-husky.gif"/>
+	</div> -->
 </div>
 
 <!-- Projects -->
 <div class='iconandproject'> 
-	<h2> <a style="color:#000000" href="projects"> Projects </a> </h2>
+	<h2> <a style="color:#000000" href="projects"> Some Past Projects </a> </h2>
 	{% assign filtered_projects = site.projects | reverse %}
 	{% for project in filtered_projects %}
 		<div style="clear: left;">

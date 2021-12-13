@@ -1,5 +1,6 @@
 ---
 title:  "Graphical Depiction of Ethereum Scaling Solutions"
+category: "blockchain"
 ---
 
 Reading a few of [Vitalik](https://vitalik.ca/)'s articles, you will soon realize that there are only a handful of different scaling solutions.
