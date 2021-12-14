@@ -2,6 +2,7 @@
 title:  "Graphical Depiction of Ethereum Scaling Solutions"
 category: "blockchain"
 ---
+<!-- TODO: need to talk more about the consensus protocol, aka when is it needed? on mainchain/sidechains, but not on rollups! Because they use a centralized operator. -->
 
 Reading a few of [Vitalik](https://vitalik.ca/)'s articles, you will soon realize that there are only a handful of different scaling solutions.
 
@@ -12,6 +13,7 @@ As a newcomer, getting a mental model of how exactly each of these differ and wh
 
 <span id="full-diagram">
 ![](/assets/onchain-vs-offchain/chain-and-state-diagram-full.jpg)
+<!-- TODO: gab proposes de rajouter une ligne verticale pour separer la mainchain de la sidechain, et montrer que le consensus est different: "Pcq je m'imagine être un noob pis à voir le diagramme je dirais "ok sidechains are safer than layer 2 solutions"" -->
 
 My goal with this accompanying blog post is to describe my diagram, and present a **general**, visual framework for classifying and comparing the different ethereum scaling solutions, which to me has also proven useful in solidifying my understanding of blockchain [data structures](https://arxiv.org/pdf/2108.05513.pdf). We purposefully leave out many details, as there are other, more in depth [articles](https://mirror.xyz/dcbuilder.eth/QX_ELJBQBm1Iq45ktPsz8pWLZN1C52DmEtH09boZuo0) that compare the different implementations that have started to emerge for each solution, and the companies developing them. We also leave aside [sharding](https://vitalik.ca/general/2021/04/07/sharding.html) as it is much more involved, and harder to fit into this visual framework.
 
@@ -28,7 +30,9 @@ The different parts in this diagram already hint at the fact that there exist a 
 ||Block headers / body | State | Layer 2 | Sidechain | AWS, Cex, etc.
 ||------------------------------------------------------------
 **chain relationship**| on-chain | "on-chain" | anchored off-chain | bridged off-chain | off-chain
-**maintained / processed by** | nodes (miners, validators) | nodes (miners, validators) | operators | operators | database owner
+**maintained / processed by** | nodes (miners, validators) | nodes (miners, validators) | operators | nodes (miners, validators) | database owner
+<!-- TODO: explain the difference between nodes and operators.
+maybe add diagram that operator is often a single server, as opposed to nodes which are decentralized (hence why mainchani costs more $$$) -->
 
 The rest of this article delves deeper into the specifics of the original [diagram](#full-diagram), going into more details for each of the five parts.
 
@@ -104,6 +108,8 @@ For example, say Alice and Bob each start with an on-chain state balance of 5 et
 Hence, for state channels, both transactions and state are kept offchain, and only the very last transaction is settled onchain, updating the chain with the current state. We leave aside the dispute resolving mechanisms as they are unimportant to this article's main point.
 
 ### Plasma
+
+<!-- TODO: from gab: "Pour les plasma nodes pis les (optimistic) rollup operators ^ca pourrait être pertinent de mentionner qu'il y a 2 parties involves afaik : the "proposers" who compute/publish proofs onchain and the "validators" who verify & penalize for bad actions" -->
 
 Plasma is very similar to sidechains. Vitalik has [explained](https://vitalik.ca/general/2019/06/12/plasma_vs_sharding.html) the difference between them better than I ever will:
 
