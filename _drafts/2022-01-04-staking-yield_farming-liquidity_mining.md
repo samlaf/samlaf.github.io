@@ -33,3 +33,6 @@ What's the difference between pooling, farming, and staking? They're all "stakin
 
 ![](/assets/staking-yield_farming-liquidity_mining/sushi-yield-farming-diagram.png)
 See also the [sushi docs](https://docs.sushi.com/products/yield-farming#simple-stacking-two-types-of-yield) to compare this "simple" two-yields strategy to the full-stack three-yields strategy.
+
+## My very first strategy
+(How did I do...? maybe use zapper or zerion to figure out?)
