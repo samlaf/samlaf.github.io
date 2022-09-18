@@ -71,6 +71,31 @@ Questions:
   - batch execution
   - liquity stability pool (fair access to liquidation revenues)
 
+
+## From [Justin Drake's presentation](https://www.youtube.com/watch?v=mpRq-WFihz8&list=PLRHMe0bxkuel3w3C7P_WVvp9ShLi3HKRI&index=28)
+
+- consensus layer
+  - single secret leader election (SSLE): adding vdf to protect against randdao gamification
+  - per-slot finality using BLS aggregation: prevent time-bandit attacks
+  - rollups + shared security: prevent cross-L1 MEV
+- application layer
+  - tx lifecycle of the future: off-chain encryption + on-chain inclusion/decryption/execution
+  - how to achieve guaranteed (forced) on-chain decryption?
+    - commit-reveal: user decrypts his own tx (bad because of free option problem -> similar to HTLC)
+    - threshold: committee decrypts the tx
+    - delay: anyone can decrypt the tx after a certain delay has passed
+    - witness: snarks (?) based math shenanigans
+  - also need to protect metadata:
+    - ip address: tor
+    - sender, nonce: zk
+    - gas limit: encryption
+    - size: padding
+  - homomorphic encryption (safer than decrypting + then passing into VM?)
+    - tx clipping
+    - bundle selection
+    - state diffing
+![](../assets/mev-protection-landscape/pbs-forced-tx-decryption.png)
+
 # Brainstorming
 
 - encryption-based
