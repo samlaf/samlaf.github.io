@@ -51,6 +51,3 @@
 	{% endfor %}
 </div>
 
-<center>
-	<img src="/assets/images/sam-duckietown-montage.png" title="My montage" width="60%"/>
-</center>
