@@ -5,6 +5,8 @@ _site
 .DS_Store
 
 .ipynb_checkpoints
+.bundle
+vendor
 
 ## Core latex/pdflatex auxiliary files:
 *.aux
