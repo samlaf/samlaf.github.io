@@ -5,7 +5,7 @@ To build the site and make it available locally:
 ```
 bundle exec jekyll serve --livereload --drafts
 ```
-or just use use the `Jekyll Run` vscode extension and run `jekyll start`
+or just use the `Jekyll Run` vscode extension and run `jekyll start`
 Then view the website by visiting
 ```
 localhost:4000
