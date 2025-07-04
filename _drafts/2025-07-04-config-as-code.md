@@ -1,16 +1,14 @@
 ---
-title:  Config As DSL Code: are we there yet?
+title:  "Config As DSL Code: are we there yet?"
 category: programming
 date:   2025-07-04
 ---
-
-# Config As DSL Code: are we there yet?
 
 [![image](https://hackmd.io/_uploads/r1ibBSg9Jg.png)](https://x.com/mipsytipsy/status/1184673208491864064)
 
 The 12 factor app approach has taught a generation of programmers to maintain [strict separation of config from code](https://12factor.net/config). It even further prescribed apps to keep their config as simple env var key-value pairs!
 
-That approach might have worked for simple heroku web-apps of the day, but single namespaced flat config file is clearly not the right way to manage large scale systems.
+That approach might have worked for simple Heroku web-apps of the day, but a single namespaced flat config file is clearly not the right way to manage large scale systems.
 
 We're in 2025, and misconfiguration is still the [largest source of production large-scale bugs](https://danluu.com/postmortem-lessons/). Rust is the future of safe programming, so clearly there's a way to do similar with config languages... right?
 
@@ -20,7 +18,7 @@ As a system grows, typically so does its configuration: see google chrome's [140
 
 ![image](https://hackmd.io/_uploads/HkKvQpzmgg.png)
 
-In my experience, projects typically progress in the following manner (rules engine are not a thing in 2025):
+In my experience, projects typically progress in the following manner (rules engines are not a thing in 2025):
 1. magic numbers in code
 2. magic numbers become named consts
 3. consts turned into configurable variables, ingested via flags, env-vars, or a flat config-file
@@ -28,7 +26,7 @@ In my experience, projects typically progress in the following manner (rules eng
 5. flat config turned to json for hierarchical namespacing
 6. json converted to proper hierarchical config format ([yaml, toml, hcl](https://www.youtube.com/watch?v=PJyQRWDMlKs)) as some dev gets tired of not having comments (json is a data transport format; not a config language)
 
-Most projects would be better off stopping the pendulum at this 6 o'clock position, and spend their time on more meaningful and useful things. However, every team contains a mid-curved smarty pants engineer who doesn't have anything better to do during weekends than to typify his project's config for UlTiMaTe SaFeTy. Upon facing the 1K LoC PR on monday morning, his project lead turns to the [grug brain manifesto](https://grugbrain.dev/) for advise and a quick rebuttal, but to his big dismay realizes grug completely forgot to advise against the config complexity demon spirit. He is, begrudgingly, forced to accept the PR. And thus typically describes how most projects eventually do enter the DSL config pendulum, which we describe below. Most get forever stuck in this phase, oscillating between extremely complex solutions that each have tradeoffs, with neither having yet matured to a scale of industry wide adoption.
+Most projects would be better off stopping the pendulum at this 6 o'clock position, and spend their time on more meaningful and useful things. However, every team contains an overzealous teammate who doesn't have anything better to do during weekends than to typify his project's config for UlTiMaTe SaFeTy. Upon facing the 1K LoC PR on Monday morning, his project lead turns to the [grug brain manifesto](https://grugbrain.dev/) for advice and a quick rebuttal, but to his dismay realizes grug completely forgot to advise against the config complexity demon spirit. He is, begrudgingly, forced to accept the PR. And thus typically describes how most projects eventually do enter the DSL config pendulum, which we describe below. Most get forever stuck in this phase, oscillating between extremely complex solutions that each have trade-offs, with neither having yet matured to a scale of industry wide adoption.
 
 ## DSL Config Pendulum
 
@@ -36,14 +34,14 @@ Most projects would be better off stopping the pendulum at this 6 o'clock positi
 
 ![image](https://hackmd.io/_uploads/SkzFA6fQgx.png)
 
-The config pendulum swings back and forth, in a never ending smooth perpetual motion, driven by the incessant unpleasedness of programmers, and the search for a tool to solve all devops issues. One example progression would evolve as:
+The config pendulum swings back and forth, in a never ending smooth perpetual motion, driven by the incessant dissatisfaction of programmers, and the search for a tool to solve all DevOps issues. One example progression would evolve as:
 
-7. read borg paper, listen to [signals and threads](https://signalsandthreads.com/building-a-functional-email-server/), move config to same language as code
-8. read google SRE book's [pitfall #5](https://sre.google/workbook/configuration-specifics/#pitfall-5-using-an-existing-general-purpose-scripting-language-like-python-ruby-or-lua), realize turing-completeness is bad, move to starlark (to remain in imperative language)
+7. read Borg paper, listen to [signals and threads](https://signalsandthreads.com/building-a-functional-email-server/), move config to same language as code
+8. read Google SRE book's [pitfall #5](https://sre.google/workbook/configuration-specifics/#pitfall-5-using-an-existing-general-purpose-scripting-language-like-python-ruby-or-lua), realize Turing-completeness is bad, move to Starlark (to remain in imperative language)
 9. miss having types, move to [KCL](https://www.kcl-lang.io/docs/user_docs/getting-started/intro#vs-starlark)
 10. get bitten by inheritance; gives up on types and tries the SRE book's suggestion to use Jsonnet
-12. gets hurt by runtime misconfiguration bugs, realizes doesn't have google level of tooling and testing, move to typed [nickel](https://github.com/tweag/nickel/blob/master/RATIONALE.md#jsonnet-vs-nickel)
-13. want dependent types to encode security guarantees between code and config, move to dhall
+12. gets hurt by runtime misconfiguration bugs, realizes doesn't have Google level of tooling and testing, move to typed [nickel](https://github.com/tweag/nickel/blob/master/RATIONALE.md#jsonnet-vs-nickel)
+13. want dependent types to encode security guarantees between code and config, move to Dhall
 14. realize a very small subset of dependent types (lattices containing both values and types) might be the holy grail, move to CUE
 15. miss programming language level of tooling, return to 7
 
@@ -58,12 +56,12 @@ Following the SRE book's [configuration design](https://sre.google/workbook/conf
 
 ![image](https://hackmd.io/_uploads/BypGnemmgg.png)
 
-The languages above are all "configuration languages", which can effectively be thought of as different ways to (safely!) generate configuration data (json, yaml, )
+The config DSL languages above are all "configuration languages", which can effectively be thought of as different ways to (safely!) generate configuration data (JSON, YAML, etc.).
 
 The "Borg, Omega, and Kubernetes" paper also argues
 > [...] configuration management systems tend to invent a domain-specific configuration language that (eventually) becomes Turing complete, starting from the desire to perform computation on the data in the configuration (e.g., to adjust the amount of memory to give a server as a function of the number of shards in the service). The result is the kind of inscrutable “configuration is code” that people were trying to avoid by eliminating hard-coded parameters in the application’s source code. It doesn’t reduce operational complexity or make the configurations easier to debug or change; it just moves the computations from a real programming language to a domain-specific one, which typically has weaker development tools such as debuggers and unit test frameworks. We believe the most effective approach is to accept this need, embrace the inevitability of programmatic configuration, and maintain a clean separation between computation and data.
 
-The above quote describes option 7 in the pendulum. However, many authors of that paper have moved on from that perspective, and swung back to the config DSL approach. Marcel van Lohuizen, who was on the initial Bord team, created GCL, and more recently CUE, argues using the below diagram for why full fledged programming languages shouldn't be used to generate configuration data:
+The above quote describes option 7 in the pendulum. However, many authors of that paper have moved on from that perspective, and swung back to the config DSL approach. Marcel van Lohuizen, who was on the initial Borg team, created GCL, and more recently CUE, argues using the below diagram for why full-fledged programming languages shouldn't be used to generate configuration data:
 ![image](https://hackmd.io/_uploads/Byma4HxcJe.png)
 
 ## Cue
@@ -123,7 +121,7 @@ Surprisingly, the same typed "json with functions" DSLs can be used for differen
 > Rather than having specific builtin language constructs for these notions, the language of Nix expressions is a simple functional language for computing with sets of attributes.
 https://edolstra.github.io/pubs/nspfssd-lisa2004-final.pdf
 
-This was the theory in the original Nix paper. However in practice nowadays, what we see is (from this [article](https://www.haskellforall.com/2022/03/the-hard-part-of-type-checking-nix.html))
+This was the theory in the original Nix paper. However, in practice nowadays, what we see is (from this [article](https://www.haskellforall.com/2022/03/the-hard-part-of-type-checking-nix.html))
 ![image](https://hackmd.io/_uploads/BkRlbYzoJg.png)
 
 
