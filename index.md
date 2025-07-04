@@ -6,6 +6,11 @@
 <!-- "Programming Articles" -->
 <h2> <a style="color:#000000" href="blog"> Programming </a> </h2>
 <ul>
+{% for post in site.posts %}
+	{% if post.category == "programming" %}
+		<li><a href="{{ post.url }}">{{ post.title }}</a></li>
+	{% endif %}
+{% endfor %}
 	<!-- Adding this by hand here for now. Might want to add in posts eventually to have date ordering -->
 	<li><a href="https://hackmd.io/@samlaf/unbeknownst-pervasiveness-of-immutability"> The Unbeknownst Pervasiveness of Immutability </a></li>
 	<li><a href="https://hackmd.io/@samlaf/push-ifs-up-to-auto-vectorize-rust"> Push Ifs Up To Get Rust To Auto-Vectorize </a></li>
@@ -30,7 +35,7 @@
 <h2> <a style="color:#000000" href="blog"> Miscellaneous </a> </h2>
 <ul>
 {% for post in site.posts %}
-	{% if post.category != "blockchain" %}
+	{% if post.category != "blockchain" and post.category != "programming" %}
 		<li><a href="{{ post.url }}">{{ post.title }}</a></li>
 	{% endif %}
 {% endfor %}
