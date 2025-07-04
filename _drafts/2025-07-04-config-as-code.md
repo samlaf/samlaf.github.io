@@ -64,11 +64,21 @@ The "Borg, Omega, and Kubernetes" paper also argues
 The above quote describes option 7 in the pendulum. However, many authors of that paper have moved on from that perspective, and swung back to the config DSL approach. Marcel van Lohuizen, who was on the initial Borg team, created GCL, and more recently CUE, argues using the below diagram for why full-fledged programming languages shouldn't be used to generate configuration data:
 ![image](https://hackmd.io/_uploads/Byma4HxcJe.png)
 
-## Cue
+## CUE: A Different Approach
 
-Cue's main value proposition is outlined by its creator in [this answer](https://github.com/cue-lang/cue/discussions/669#discussioncomment-959886).
+CUE represents a fundamentally different approach to configuration management. Rather than being a traditional programming language or a simple data format, CUE is a constraint-based language where types and values exist in the same mathematical lattice.
 
-TLDR is that Cue is a logic constraint-based language, where constraints are types and are in the same lattice as values. Its the formalization of safe [config data composition](https://github.com/cue-lang/cue/discussions/669#discussioncomment-13273463).
+The key insight behind CUE is that configuration should be about declaring constraints and relationships, not imperative computation. In CUE, you define what valid configurations look like, and the language ensures your actual configuration data satisfies those constraints.
+
+This approach addresses several fundamental problems with traditional config approaches:
+
+**Type Safety**: Unlike YAML or JSON, CUE catches type errors and constraint violations at validation time, not at runtime when your service fails to start.
+
+**Composability**: CUE's lattice-based model allows you to safely merge and compose configurations from multiple sources without conflicts or ambiguity.
+
+**Gradual Typing**: You can start with loose constraints and gradually tighten them as your understanding of the system evolves, without breaking existing configurations.
+
+The creator's [main value proposition](https://github.com/cue-lang/cue/discussions/669#discussioncomment-959886) is that CUE formalizes safe [config data composition](https://github.com/cue-lang/cue/discussions/669#discussioncomment-13273463) - something that's been done ad-hoc in YAML templating and JSON merging for years, but never with mathematical rigor.
 
 ![image](https://hackmd.io/_uploads/S1uCNQ7Xex.png)
 
