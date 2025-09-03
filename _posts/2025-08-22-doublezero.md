@@ -5,11 +5,11 @@ category: blockchain
 
 In May 2022, Victor Shoup analyzed the Solana whitepaper and wrote [Proof of History: what is it good for?](https://www.shoup.net/papers/poh.pdf) His answer: not much. Three years later, Solana [no longer uses proof of history](https://www.anza.xyz/blog/alpenglow-a-new-consensus-for-solana).
 
-This blog post is an amateur attempt to follow in Shoup's footsteps, this time analyzing the DoubleZero protocol, based on their [whitepaper](https://doublezero.xyz/whitepaper.pdf), [articles](https://doublezero.xyz/journal) and public [docs](https://docs.malbeclabs.com/) (their [github](https://github.com/doublezerofoundation) is mostly empty). My conclusion after a week of reading and thinking is also not anywhere near as dire. There is definitely a lot of potential behind the project and a lot of interesting open questions. And for full disclosure, Shoup is a consensus expert, whereas I am by no means a networking expert. With that out of the way, let's dive in.
+This blog post is an amateur attempt to follow in Shoup's footsteps, this time analyzing the DoubleZero protocol, based on their [whitepaper](https://doublezero.xyz/whitepaper.pdf), [articles](https://doublezero.xyz/journal) and public [docs](https://docs.malbeclabs.com/) (their [github](https://github.com/doublezerofoundation) is mostly empty). My conclusion after a week of reading and thinking is not nearly as dire. There is definitely a lot of potential behind the project and a lot of interesting open questions. And for full disclosure, Shoup is a consensus expert, whereas I am by no means a networking expert. With that out of the way, let's dive in.
 
 ## What is DoubleZero?
 
-DoubleZero works across multiple planes, but the very succinct take is that it's a blockchain CDN, attempting to be a decentralized and marketplace driven Cloudflare alternative for blockchain content filtering and low-latency low-jitter delivery. It is developing its own IXP(s) to allow large validator and network connection providers to peer and communicate over faster multicast lanes. Its also developing its own FPGA implementation for edge filtering of transactions.
+DoubleZero works across multiple planes, but the very succinct take is that it's a blockchain CDN, attempting to be a decentralized and marketplace driven Cloudflare alternative for blockchain content filtering and low-latency low-jitter delivery. It is developing its own IXP(s) to allow large validator and network connection providers to peer and communicate over faster multicast lanes. It's also developing its own FPGA implementation for edge filtering of transactions.
 
 We will analyze these claims in more details, diving into the implementation details that are available, and questioning whether this network makes sense economically. But first, let's start by answering the five Ws.
 
@@ -53,7 +53,7 @@ If wen mainnet, its apparently [soon](https://x.com/doublezero/status/1962491982
 
 ### Why?
 
-There are a lot of why questions that come to mind when thinking of DoubleZero. Their docs are state 2 [benefits](https://docs.malbeclabs.com/#benefits):
+There are a lot of why questions that come to mind when thinking of DoubleZero. Their docs state 2 [benefits](https://docs.malbeclabs.com/#benefits):
 1. "inbound transactions can be edge-filtered in a non-discretionary way at the network contributor hardware level (i.e. removal of spam and duplicates) prior to being sent over to users (e.g., blockchain nodes) of the DoubleZero network."
 2. "outbound messages are routed more directly and prioritized to improve efficiency."
 
@@ -100,7 +100,7 @@ Another question is how large their TAM really is. If they do try to target othe
 
 On the more technical side, DoubleZero is pushing for IBRL optimality by for example routing via latency minimizing paths as opposed to turbine's stake weighted paths. This is fine in trusted environments, but goes against the principle of censorship resistance that blockchains are trying to achieve. Turbine's entire point behind stake weighted paths is that it is hard to censor at the top of the tree if each block chunk is sent following a different spanning tree. How is doublezero going to protect against malicious and/or greedy switch contributors who might decide to favor their validators? Networking monitoring for faults is a [non-trivial problem](https://engineering.fb.com/2016/02/18/core-infra/netnorad-troubleshooting-networks-via-end-to-end-probing/), and its very unclear to me that it can be made to work in a decentralized fashion.
 
-Similarly, they currently advertise as a single ASN, which means they plan to use a single routing policy throughout the DoubleZero network. That works for multicast, but it doesn't work for other [p2p primitives](https://docs.anza.xyz/validator/gossip) or unicast tx ingestion. Who will dictate the routing policy? Is it going to be controlled by the DoubleZero foundation? The internet uses BGP because it encodes business relationships instead of optimality, why should blockchain routing work differently? After all, business agreements also trump tradfi, with citadel buying robinhood's order flow in bulk. Practically BGP picks the CHEAPEST, not the shortest path (mostly because in N WLLA OMNI, "A" is way after both W and L). Can DoubleZero do better? Tim Griffin would say... [probably not](https://youtu.be/O6tCoD5c_U0?si=vR__ycr8ubk-Z9da&t=573).
+Similarly, they currently advertise as a single ASN, which means they plan to use a single routing policy throughout the DoubleZero network. That works for multicast, but it doesn't work for other [p2p primitives](https://docs.anza.xyz/validator/gossip) or unicast tx ingestion. Who will dictate the routing policy? Is it going to be controlled by the DoubleZero foundation? The internet uses BGP because it encodes business relationships instead of optimality, why should blockchain routing work differently? After all, business agreements also trump tradfi, with Citadel buying Robinhood's order flow in bulk. Practically, BGP picks the CHEAPEST, not the shortest path (mostly because in "NO WALLA OMNI," "A" is way after both "W" and "L"). Can DoubleZero do better? Tim Griffin would say... [probably not](https://youtu.be/O6tCoD5c_U0?si=vR__ycr8ubk-Z9da&t=573).
 
 
 ## Whitepaper Quotes
@@ -133,13 +133,13 @@ Also, Bitcoin has long ago moved participants running ASICs and a lot of them ag
 
 > "First, inbound transactions can be edge-filtered (i.e. removed of spam and duplicates) by specialized hardware"
 
-Unclear what they mean by "edge" here, since the diagram above shows that filtering is colocated and done on each validator. If this was truly done at the "edge" like Cloudflare does, then censorship resistance would fall. This is not what we want.
+Unclear what they mean by "edge" here, since the diagram above shows that filtering is colocated and done on each validator. If this was truly done at the "edge" like Cloudflare does, then censorship resistance would fall.
 
-So then let's assume that their "edge" actually means "colocated next to each validator". In such a case, I fail to see how this is not already the case, since any validator that wants to extract MEV effectively needs to filter the chaffe from the hay, and the highest staked validators that are getting bombarded by txs no doubt are already using specialized hardware/[services](https://github.com/helius-labs/validator-firewall) to do this filtering. Case in point, Solana's whitepaper already mentioned using GPUs for ecdsa signatures.
+So then let's assume that their "edge" actually means "colocated next to each validator". In such a case, I fail to see how this is not already the case, since any validator that wants to extract MEV effectively needs to filter the chaff from the wheat, and the highest staked validators that are getting bombarded by txs no doubt are already using specialized hardware/[services](https://github.com/helius-labs/validator-firewall) to do this filtering. Case in point, Solana's whitepaper already mentioned using GPUs for ECDSA signatures.
 
 ![image](/assets/doublezero/solana-whitepaper-gpu-ecdsa.png)
 
-Note that this is very outdated, as Solana uses ED25519 instead of ECDSA. Furthermore, afaiu GPUs have never been used in practice because of the incurred data movement latency incurred (dataflow once again showing its importance).
+Note that this is very outdated, as Solana uses ED25519 instead of ECDSA. Furthermore, as far as I understand, GPUs have never been used in practice because of the data movement latency incurred (dataflow once again showing its importance).
 
 However, FPGAs do not incur this batching cost, and firedancer's [wiredancer](https://github.com/firedancer-io/firedancer/tree/main/src/wiredancer#wd-sigverify) is already using AWS F1s to verify signatures (and a [PR](https://github.com/firedancer-io/firedancer/pull/5916) to support F2s is in the making).
 
@@ -161,7 +161,7 @@ Interesting that they don't mention tradfi trading. Probably because they know t
 
 But so do all of the other examples mentioned. Netflix and other content providers are already peered with ISPs all around the world. IPTV already uses multicast where needed (although fun fact Netflix streaming [does not](https://broadpeak.tv/blog/how-multicast-abr-could-have-knocked-out-video-freezes-during-netflixs-live-streaming-of-the-paul-tyson-match/)). LLM training, even if spanning multiple datacenters, only spans a single governance org, which no-doubt already has their own fiber to connect their different datacenters. As for gaming, let's look at this next quote.
 
-> "Some games use peer-to-peer models, whereby the end players connect directly over the public internet. [OatmealDome](https://oatmealdome.me/blog/splatoon-2s-netcode-an-in-depth-look/) offers a particularly detailed description of Splatoon as an example of this. [...] The DoubleZero network, with its dedicated links and its flexibleusage model, can deliver stability to the connections and make the games more enjoyable"
+> "Some games use peer-to-peer models, whereby the end players connect directly over the public internet. [OatmealDome](https://oatmealdome.me/blog/splatoon-2s-netcode-an-in-depth-look/) offers a particularly detailed description of Splatoon as an example of this. [...] The DoubleZero network, with its dedicated links and its flexible usage model, can deliver stability to the connections and make the games more enjoyable"
 
 As always, the devil is in the details. Taking snippets from the blog post:
 - "The game and netcode ticks at 60Hz. However, packets can only be sent every 4 ticks. This results in an artificially constrained packet send tick rate of 15Hz."
@@ -179,7 +179,7 @@ Distributed training of huge scale models requires RDMA, which currently runs on
 
 > "If we disintermediate the filter and execution rings to provide more flexibility, we can distribute ingress resources more efficiently and more resiliently"
 
-Dissagregation is a very hot topic, and is happening all over computer science. Databases are being dissagregated thanks to cloud object storages like S3. Networking has already seen it happen thanks to SDN disaggregating the control and data planes.
+Disaggregation is a very hot topic, and is happening all over computer science. Databases are being dissagregated thanks to cloud object storages like S3. Networking has already seen it happen thanks to SDN disaggregating the control and data planes.
 
 Yet, in the case of filtering and execution, there is a big elephant in the room, and that elephant is called MEV. The filtering happening here is not only dumb l4 filtering. Filtering also means having access to the txs in the first place. And in finance, order flow IS the money, and is typically kept private. Meaning that my guess is that most of the txs getting filtered are probably not very valuable. So a tragedy of the commons phenomena will likely happen, with validators running these expensive FPGAs to filter through low-value txs soon enough questioning the value they are getting out of providing this service.
 
