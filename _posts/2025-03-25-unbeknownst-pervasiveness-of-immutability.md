@@ -45,6 +45,7 @@ In the world of databases, append-only [LSM](https://en.wikipedia.org/wiki/Log-s
 And more generally in the world of storage, many modern backends have also replaced, or at least augmented, their traditional CRUD db with an event-sourced, append-only queue-based asynchronous system: SAGA, Kafka, and the Lambda architecture are some buzzwords worth googling here.
 
 ## Distributed Storage
+
 | Category            | Mutable                            | Immutable                                 |
 | ------------------- | ---------------------------------- | ----------------------------------------- |
 | Distributed Storage | Distributed databases with updates | Mutable Value Chains                      |
@@ -92,6 +93,7 @@ Modern tooling like Kubernetes has made these deployments even easier, by moving
 I don't know enough about web technologies to make a coherent paragraph explaining the above table, and prefer to not let an LLM generate it for me, so will leave this section for the reader's imagination to complete.
 
 ## Operating Systems
+
 | Category          | Mutable                   | Immutable                     |
 | ----------------- | ------------------------- | ----------------------------- |
 | Operating Systems | Traditional Linux distros | NixOS, CoreOS                 |
@@ -107,6 +109,7 @@ NixOS manages the entire system configuration declaratively and represents a com
 The above were all distro examples, but even kernel developers have now seen immutable approaches taking over their world. [Unikernels](http://unikernel.org/) were introduced in 2014 as a futher improvement on current techniques in [immutable infra][immutable-infra]. as a means to reduce the footprint of OSes on cloud VMs; unikernel application are compiled statically with only the parts of the kernel that they need (eg. tcp stack) and can be popped directly on top of a hypervisor. They can hence be much smaller than docker containers, which means safer and faster. MirageOS is the most well known Unikernel example, but there are [many others](https://github.com/cetic/unikernels) nowadays.
 
 ## Data Processing
+
 | Category          | Mutable               | Immutable                       |
 | ----------------- | --------------------- | ------------------------------- |
 | Processing Model  | Imperative processing | Functional reactive programming |
@@ -119,6 +122,7 @@ Functional reactive programming introduced in functional languages like haskell 
 On the other hand, OLAP databases have mostly always been about periodically taking an entire companies' recent data from its multiple databases and dumping it to some structured database (or nowadays also unstructured "data lakes") to then run expensive queries over them. Those databases are mostly append-only, with queries representing views over them.
 
 ## Security Models
+
 | Category         | Mutable             | Immutable                           |
 | ---------------- | ------------------- | ----------------------------------- |
 | Access Control   | Dynamic permissions | Capability-based security           |
@@ -136,6 +140,7 @@ Instead of having a system administrator mutate a global ACL, capabilities are "
 Most systems exemplifying the use of capabilities tend to be esoteric and less well known, such as Tahoe-LAFS, KeyKOS, or the [Pony](https://tutorial.ponylang.io/reference-capabilities/index.html) programming languages. However, some modern well-known systems do also make use of capabilities: [WASI](https://github.com/WebAssembly/WASI/blob/main/docs/Capabilities.md), the [cosmos-sdk](https://docs.cosmos.network/v0.46/modules/capability/), and chromium.
 
 ## Software Design Patterns
+
 | Category          | Mutable            | Immutable                       |
 | ----------------- | ------------------ | ------------------------------- |
 | Design Pattern    | Observer pattern   | Pub/sub with immutable messages |
