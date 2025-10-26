@@ -11,8 +11,6 @@
 		<li><a href="{{ post.url }}">{{ post.title }}</a></li>
 	{% endif %}
 {% endfor %}
-	<!-- Adding this by hand here for now. Might want to add in posts eventually to have date ordering -->
-	<li><a href="https://hackmd.io/@samlaf/push-ifs-up-to-auto-vectorize-rust"> Push Ifs Up To Get Rust To Auto-Vectorize </a></li>
 </ul>
 
 <!-- "Blockchain Articles" -->
