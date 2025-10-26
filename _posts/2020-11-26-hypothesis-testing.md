@@ -60,7 +60,7 @@ In this case, $X$ fall into the rejection region in red, so we reject! What exac
 
 Let's suppose you are the owner of Charlie Chaplin's factory.
 
-<iframe src="/assets/videos/charlie-chaplin-factory.gif" width="500" height="376" frameBorder="0" class="giphy-embed" allowFullScreen class="center"></iframe>
+<iframe src="/assets/hypothesis-testing/charlie-chaplin-factory.gif" width="500" height="376" frameBorder="0" class="giphy-embed" allowFullScreen class="center"></iframe>
 
 Charlie's assembly line is manufacturing bolts specified to be 25cm wide. In order to safeguard the solid reputation of your factory, you ask Charlie to reject all anomalously wide bolts, those either too small or too long. After quality controlling a day's output of bolts, you conclude that their width is well modeled by a normal distribution centered at 25cm with a 0.01cm standard deviation. Arguing that a 0.03cm error off of 25cm is invisible to the naked eye, you decide to reject only those bolts with width outside of [24.97,25.03]. According to the [3-sigma rule](https://en.wikipedia.org/wiki/68%E2%80%9395%E2%80%9399.7_rule), this entails that Charlie will be throwing away 0.3% of the bolts produced, which you deem reasonable.
 
