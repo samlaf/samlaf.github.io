@@ -1,5 +1,6 @@
 ---
 title:  "Doublezero: what is it good for?"
+date:   2025-08-22 00:00:00 +0000
 category: blockchain
 ---
 

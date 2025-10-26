@@ -1,0 +1,13 @@
+blockchain:
+  - title: "Optimism via Confusion-Resolution Devnet Explorations"
+    url: "https://hackmd.io/@samlaf/understanding-optimism-via-confusion-resolution-devnet-explorations"
+    date: 2024-09-02 00:00:00 +0000
+  - title: "Based Preconfs FAQ"
+    url: "https://hackmd.io/@samlaf/based-preconfs-faq"
+    date: 2024-03-31 00:00:00 +0000
+  - title: "MEV meets DAG: Exploring MEV in DAG-based blockchains"
+    url: "https://hackmd.io/@0xtrojan/mev_meets_dag"
+    date: 2024-02-11 00:00:00 +0000
+  - title: "Themis for the Rest of Us"
+    url: "https://www.notion.so/samlaf/Themis-For-The-Rest-Of-Us-1d543162f87445528ee3d850c2f57d0f"
+    date: 2022-12-11 00:00:00 +0000

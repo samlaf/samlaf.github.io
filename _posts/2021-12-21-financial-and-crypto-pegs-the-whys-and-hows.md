@@ -1,5 +1,6 @@
 ---
 title:  "Financial and Crypto Pegs: the Whys and Hows"
+date:   2021-12-21 00:00:00 +0000
 category: blockchain
 ---
 

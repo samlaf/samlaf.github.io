@@ -1,5 +1,6 @@
 ---
 title:  Answering Moxie's web3 piece
+date:  2022-01-09 00:00:00 +0000
 category: blockchain
 ---
 

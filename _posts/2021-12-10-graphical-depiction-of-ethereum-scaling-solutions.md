@@ -1,5 +1,6 @@
 ---
 title:  "Graphical Depiction of Ethereum Scaling Solutions"
+date:   2021-12-10 00:00:00 +0000
 category: "blockchain"
 ---
 <!-- TODO: need to talk more about the consensus protocol, aka when is it needed? on mainchain/sidechains, but not on rollups! Because they use a centralized operator. -->
