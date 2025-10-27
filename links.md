@@ -31,3 +31,7 @@ Meta links point to other similar aggregate lists of interesting articles, typic
 **Computer Networks: A Systems Approach**
 <br>&nbsp;&nbsp;&nbsp;&nbsp;
 [https://book.systemsapproach.org/index.html](https://book.systemsapproach.org/index.html)
+
+**Fragile narrow laggy asynchronous mismatched pipes kill productivity**
+<br>&nbsp;&nbsp;&nbsp;&nbsp;
+[https://thume.ca/2020/05/17/pipes-kill-productivity/](https://thume.ca/2020/05/17/pipes-kill-productivity/)
