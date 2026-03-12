@@ -308,3 +308,123 @@ category: blockchain
 </tbody>
 </table>
 </div>
+
+## Transaction Serialization Format
+
+<div class="cheat-wrap" style="max-height: none;">
+<table>
+<thead>
+<tr>
+  <th>Byte(s)</th>
+  <th>Name</th>
+  <th>Context</th>
+  <th>Wire / Signing Format</th>
+</tr>
+</thead>
+<tbody>
+
+<tr class="group-header"><td colspan="4">On-Chain Transaction Types (EIP-2718 envelope)</td></tr>
+<tr>
+  <td><code>0x00</code></td>
+  <td>Legacy (Homestead)</td>
+  <td>On-chain tx</td>
+  <td><code>RLP([nonce, gasPrice, gasLimit, to, value, data, v, r, s])</code></td>
+</tr>
+<tr>
+  <td><code>0x01</code></td>
+  <td>EIP-2930 (Berlin)</td>
+  <td>On-chain tx</td>
+  <td><code>0x01 ‖ RLP([chainId, nonce, gasPrice, gasLimit, to, value, data, accessList, v, r, s])</code></td>
+</tr>
+<tr>
+  <td><code>0x02</code></td>
+  <td>EIP-1559 (London)</td>
+  <td>On-chain tx</td>
+  <td><code>0x02 ‖ RLP([chainId, nonce, maxPriorityFee, maxFee, gasLimit, to, value, data, accessList, v, r, s])</code></td>
+</tr>
+<tr>
+  <td><code>0x03</code></td>
+  <td>EIP-4844 (Dencun)</td>
+  <td>On-chain tx</td>
+  <td><code>0x03 ‖ RLP([chainId, nonce, maxPriorityFee, maxFee, gasLimit, to, value, data, accessList, maxFeePerBlobGas, blobVersionedHashes, v, r, s])</code></td>
+</tr>
+<tr>
+  <td><code>0x04</code></td>
+  <td>EIP-7702 (Pectra)</td>
+  <td>On-chain tx</td>
+  <td><code>0x04 ‖ RLP([chainId, nonce, maxPriorityFee, maxFee, gasLimit, to, value, data, accessList, authorizationList, v, r, s])</code></td>
+</tr>
+<tr>
+  <td><code>0x06</code></td>
+  <td>EIP-8141 Frame tx (draft)</td>
+  <td>On-chain tx</td>
+  <td><code>0x06 ‖ RLP([chainId, nonce, …, frames[], v, r, s])</code></td>
+</tr>
+<tr>
+  <td><code>0x4A</code></td>
+  <td>TxSeismic</td>
+  <td>On-chain tx</td>
+  <td><code>0x4A ‖ RLP([chainId, nonce, maxFee, maxPriorityFee, gasLimit, to, value, data, accessList, encryptionPubkey, encryptionNonce, validBefore, validAfter, v, r, s])</code></td>
+</tr>
+<tr>
+  <td><code>0x4B</code></td>
+  <td>TxSeismicRead</td>
+  <td>Signed read (never in blocks)</td>
+  <td><code>0x4B ‖ RLP([…])</code> — same fields as 0x4A, different EIP-712 domain</td>
+</tr>
+<tr>
+  <td><code>0x76</code></td>
+  <td>TempoTx</td>
+  <td>On-chain tx</td>
+  <td><code>0x76 ‖ RLP([chainId, nonce, …, calls[], fee_token, …, v, r, s])</code></td>
+</tr>
+
+<tr class="group-header"><td colspan="4">Signing-Only Domains (not wire tx types)</td></tr>
+<tr>
+  <td><code>0x05</code></td>
+  <td>EIP-7702 authorization</td>
+  <td>Signing domain</td>
+  <td><code>keccak256(0x05 ‖ RLP([chainId, address, nonce]))</code></td>
+</tr>
+<tr>
+  <td><code>0x19 0x00</code></td>
+  <td>EIP-191 validator data</td>
+  <td>Off-chain sig</td>
+  <td><code>0x19 ‖ 0x00 ‖ validatorAddress ‖ data</code></td>
+</tr>
+<tr>
+  <td><code>0x19 0x01</code></td>
+  <td>EIP-712 typed data</td>
+  <td>Off-chain sig</td>
+  <td><code>0x19 ‖ 0x01 ‖ domainSeparator ‖ structHash</code></td>
+</tr>
+<tr>
+  <td><code>0x19 0x45</code></td>
+  <td>personal_sign</td>
+  <td>Off-chain sig</td>
+  <td><code>0x19 ‖ "Ethereum Signed Message:\n" ‖ len ‖ message</code></td>
+</tr>
+
+<tr class="group-header"><td colspan="4">Reserved Ranges</td></tr>
+<tr>
+  <td><code>0x05–0x7f</code></td>
+  <td>—</td>
+  <td>EIP-2718 typed tx range</td>
+  <td>Available for future tx types (except assigned above)</td>
+</tr>
+<tr>
+  <td><code>0xc0–0xfe</code></td>
+  <td>Legacy tx</td>
+  <td>RLP list prefix</td>
+  <td>Legacy txs start with RLP list byte (≥ 0xc0), which is how nodes distinguish them from typed txs</td>
+</tr>
+<tr>
+  <td><code>0xff</code></td>
+  <td>Reserved</td>
+  <td>EIP-2718</td>
+  <td>Reserved — also used as CREATE2 address prefix</td>
+</tr>
+
+</tbody>
+</table>
+</div>
