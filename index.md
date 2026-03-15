@@ -34,17 +34,17 @@
 {% endfor %}
 </ul>
 
-<!-- Projects -->
+<!-- Presentations / Videos -->
 <div class='iconandproject'> 
-	<h2> <a style="color:#000000" href="projects"> Past Projects </a> </h2>
-	{% assign filtered_projects = site.projects | reverse %}
-	{% for project in filtered_projects %}
+	<h2> Presentations </h2>
+	{% assign presentations = site.presentations | reverse %}
+	{% for p in presentations %}
 		<div style="clear: left;">
-			<img src="/assets/icons/{{ project.slug }}.png" class='iconDetails'>
-		</div>	
+			<img src="/presentations/{{ p.slug }}.png" class='iconDetails'>
+		</div>
 		<div style='margin-left:150px;'>
-			<h4> <a href="{{ project.url }}">{{ project.title }}</a> </h4>
-			<div style="font-size:.6em;"> {{ project.abstract | markdownify}} </div>
+			<h4> <a href="{% if p.external_url %}{{ p.external_url }}{% else %}{{ p.url }}{% endif %}">{{ p.title }}</a> </h4>
+			<div style="font-size:.6em;"> {{ p.abstract | markdownify}} </div>
 		</div>
 	{% endfor %}
 </div>

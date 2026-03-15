@@ -13,7 +13,7 @@
 # you will see them accessed via {{ site.title }}, {{ site.email }}, and so on.
 # You can create any custom variable you would like, and they will be accessible
 # in the templates via {{ site.myvariable }}.
-title: Samlaf's Homepage
+title: Samuel Laferriere's website
 author: Samuel Laferriere
 email: samlaf92 [at] gmail [dot] com
 description: >- # this means to ignore newlines until "baseurl:"
@@ -33,14 +33,8 @@ plugins:
 # See https://jekyllrb.com/docs/permalinks/ to change format
 permalink: /:categories/:title:output_ext
 collections:
-  projects:
+  presentations:
     output: true
-    # This ordering isn't working...
-    order:
-      - 2020-06-12-manifold-optimization.md
-      - 2018-01-11-duckietown-slam.md
-      - 2018-05-21-reproducibility-report.md
-      - 2017-11-20-reproducibility-agave.md
 
 
 # Exclude from processing.
@@ -60,9 +54,9 @@ collections:
 defaults:
   - scope:
       path: ""
-      type: "projects"
+      type: "presentations"
     values:
-      layout: "project"
+      layout: "presentation"
   - scope:
       path: ""
       type: "posts"
