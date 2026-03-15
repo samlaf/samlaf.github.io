@@ -8,7 +8,7 @@
 <ul>
 {% for post in site.posts %}
 	{% if post.category == "programming" %}
-		<li><a href="{{ post.url }}">{{ post.title }}</a></li>
+		<li><a href="{{ post.url }}">{{ post.title }}</a> <span style="color:#888; font-size:0.85em;">({{ post.date | date: "%Y-%m-%d" }})</span></li>
 	{% endif %}
 {% endfor %}
 </ul>
@@ -20,7 +20,7 @@
 <!-- external articles are listed under _data/external_posts -->
 {% assign all_posts = blockchain_posts | concat: site.data.external_posts.blockchain | sort: "date" | reverse %}
 {% for post in all_posts %}
-	<li><a href="{{ post.url }}">{{ post.title }}</a></li>
+	<li><a href="{{ post.url }}">{{ post.title }}</a> <span style="color:#888; font-size:0.85em;">({{ post.date | date: "%Y-%m-%d" }})</span></li>
 {% endfor %}
 </ul>
 
@@ -29,7 +29,7 @@
 <ul>
 {% for post in site.posts %}
 	{% if post.category != "blockchain" and post.category != "programming" %}
-		<li><a href="{{ post.url }}">{{ post.title }}</a></li>
+		<li><a href="{{ post.url }}">{{ post.title }}</a> <span style="color:#888; font-size:0.85em;">({{ post.date | date: "%Y-%m-%d" }})</span></li>
 	{% endif %}
 {% endfor %}
 </ul>
