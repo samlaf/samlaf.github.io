@@ -71,7 +71,7 @@ Regardless of which namespace you used to find or create your resource, the main
 
 Strictly speaking, an fd is "just another name in another namespace": a small integer resolved by the process' fd table. The important difference is that the fd table is a small, explicit, kernel-mediated namespace populated by previous authorization decisions. A pathname is a plain-data reference into a much larger ambient/global namespace. `open` converts the latter into the former.
 
-If I hand you the string `/tmp/foo`, I have given you a name to resolve. If I hand you an open file descriptor for `/tmp/foo`, I have given you a usable reference to a particular resource, with whatever permissions were checked at open time, which you won't have to race with other processes to access.
+If I hand you the string `/tmp/foo`, I have given you a name to resolve. If I hand you an open file descriptor for `/tmp/foo`, I have given you a usable reference to a particular resource, with whatever permissions were checked at open time.
 
 That resolved handle has several useful properties:
 - **authority**:               possession usually implies permission to use it (similar but not equivalent to [capabilities][fd-capabilities] [[^1]])
