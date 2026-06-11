@@ -98,7 +98,7 @@ This uniformity is genuinely [powerful](https://www.tedinski.com/2018/01/30/the-
 
 #### **Data Plane is about Composition**
 
-It's worth being precise about *what* is powerful here: the win is **composition** — independent tools chained through one uniform interface — not the unstructuredness of the bytes. The two are separable, and [Tedinski][tedinski-unix] argues we routinely conflate them. Structured pipelines compose just as freely, without forcing every stage to re-parse text.
+It's worth being precise about *what* is powerful here: the win is **composition** — independent tools chained through one uniform interface — not the unstructuredness of the bytes. The two are separable, and [Tedinski][tedinski-unix] argues we routinely conflate them. Structured pipelines compose just as freely, without forcing every stage to re-parse the bytes.
 
 The deeper issue is that an fd is really a *dynamic union type*. In C it is just an integer; the compiler has no idea whether it points at a file, pipe, socket, or timer, and the kernel decides at runtime whether `lseek(fd, …)` means anything. So the honest slogan is not
 
