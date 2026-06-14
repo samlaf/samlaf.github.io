@@ -1,39 +1,79 @@
 ---
-title:  "Secure Channels"
+title:  "Applied Crypto 2: Key Exchange & Secure Channels"
 category: programming
-date: 2026-06-14
+date: 2026-06-14 00:02:00
 ---
 
-How is a channel's ephemeral session key ultimately authenticated?
+This is the data-protection arm of the [identity / data-protection duality](/programming/crypto-series-intro.html): how two parties agree on a shared key and protect bytes in transit. (The identity arm — proving *who* the other party is — gets its own [Authentication](/programming/authentication.html) post; the two are usually fused in practice but conceptually separate.)
 
-![image](/assets/secure-channels/session-key-authentication-chain.png)
+Any real system has to answer two orthogonal questions for every byte that moves: who is this from (identity) and who else can see it (data protection). Both questions get answered at multiple layers, and the layers compose.
+1. Identity layers: TLS server cert (transport), mTLS client cert or app-layer login — password/passkey/OAuth (request), session token — cookie/JWT (subsequent requests in a session), workload identity for service-to-service.
+2. Data-protection layers: TLS record layer (in transit), payload encryption inside queues/caches (in motion-but-at-rest), DEK/KEK envelope encryption (storage), E2E encryption between end users (server-as-relay).
 
-## Root of Trust
+## A typical client-server session
 
-![image](/assets/secure-channels/roots-of-trust-out-of-band.png)
+A typical client-server session looks like:
+1. Wire Channel security (TLS): server's identity is authenticated via certificate, ephemeral DH establishes a shared secret, HKDF derives AEAD session keys. This happens before any application bytes flow.
+2. In-transit data protection: from here we have a secure channel protection the data in transit
+3. User authentication: inside the TLS channel, the user (or their device) proves identity — password, passkey, OAuth token. This is app-layer.
+4. (app-layer) Session establishment: server issues a short-lived token (cookie, JWT) so subsequent requests skip step 2.
+5. In-use and At-rest Data protection: now you can layer authenticated encryption for data at rest (DEK/KEK), for queue payloads, for cached blobs, or for end-to-end-encrypted content between users.
 
-Others that we could include:
+TODO: actually at both wire and app-layers, we should separate channel establishment from authentication. They are often combined, but don't have to be, and are conceptually separate:
+> Generally, session key establishment protocols perform authentication. A notable exception is Diffie-Hellman, as described below, so the terms authentication protocol and session key establishment protocol are almost synonymous.
+> https://book.systemsapproach.org/security/authentication.html
 
-**CT log keys.** Modern Chrome and Safari refuse certs that don't carry Signed Certificate Timestamps from a list of trusted Certificate Transparency logs (currently ~5-6 active). The public keys of those logs are baked into browser source code, just like the CA roots. Without them, the cert chain alone isn't sufficient for trust.
+Note that mTLS can be used to authenticate the user in step 1. See https://docs.secureauth.com/iam/blog/sender-constrained-access-tokens-mtls-vs-dpop
 
-**NTP server addresses + (optionally) NTS roots.** Cert validity windows are time-bounded, so every cert check depends on a clock that's roughly right. NTP server IPs arrive via DHCP or hardcoded fallback (`pool.ntp.org`, `time.apple.com`). Plain NTP is unauthenticated; Network Time Security adds a TLS-rooted chain on top, which means it ultimately leans on Root CAs anyway.
+## Channel Establishment
 
-**OS and package signing keys.** The browser binary itself was installed by `apt`/`dnf`/`pacman`/the Mac App Store/Windows Update, each with their own keyring (Debian release key, Apple notarization key, Microsoft Authenticode roots). Whatever signed `firefox.deb` is upstream of every Root CA decision Firefox makes.
+![image](/assets/secure-channels/channel-establishment-tiers.png)
 
-**UEFI Secure Boot Platform Key.** The firmware-level root that authorized booting the OS that's running the browser. Burned in by the OEM at manufacture, with Microsoft's KEK enrolled as the de facto standard for x86. This is the deepest software-level trust anchor on a typical machine — everything else descends from it.
 
-**Other hardware vendor roots.** AMD's SEV-SNP root, Apple's Secure Enclave root, ARM's TrustZone roots, every TPM manufacturer's EK CA. Same pattern as Intel SGX Root, just different silicon.
+Tier 1 — Symmetric only. Both parties already share a key. This is your DEK/KEK story, your in-house service-to-service encryption, anywhere the key distribution problem is already solved out-of-band. Just AEAD (AES-GCM, ChaCha20-Poly1305).
 
-And tying back to where the conversation started: **blockchain genesis hashes** are the same kind of object. Ethereum's chain is defined by a specific genesis block whose hash is hardcoded in clients; "which chain is the real chain" is answered by `apt-get install geth` shipping that constant. Self-certifying keys at the application layer, sure, but the *configuration* that picks one chain over a fork lives in the same out-of-band place as the Root CA bundle.
+Tier 2 — Non-interactive PKE. Sender knows the recipient's public key and produces a sealed message with no handshake. Recipient doesn't need to be online. This is the email-style model. HPKE lives here. So do older constructions like libsodium's crypto_box_seal, age, and PGP.
+
+Tier 3 — Interactive channel, fixed ciphersuite. Both parties online, simple handshake, no negotiation — the algorithms are baked into the protocol design. Noise lives here. WireGuard, Signal's underlying X3DH, the Lightning Network, WhatsApp's transport — all built on Noise patterns.
+
+Tier 4 — Interactive channel, full negotiation. TLS. Versioned, ciphersuite-agile, extension-rich, certificate-based PKI integration. The Swiss Army knife when you need to talk to arbitrary clients on the open internet.
+
+TODO: The arrow direction is the wrong message. "More interactive = more advanced" is the implicit story the 1D axis tells, and modern crypto thinking is largely the opposite. The history of TLS is the history of negotiation-driven attacks: FREAK, Logjam, POODLE, BEAST, CRIME, ROBOT, downgrade-dance variants — most of those exploit version or ciphersuite negotiation, not the underlying primitives. Cryptographic agility is now widely seen as a footgun. WireGuard's whole pitch is "we ripped out the negotiation." Trevor Perrin designed Noise so the ciphersuite is part of the protocol name (e.g. Noise_IK_25519_ChaChaPoly_BLAKE2s), never negotiated. DJB has written at length about why he considers algorithm agility harmful. So the honest reading of that axis is: rightward = more flexible at the cost of more attack surface and a harder security proof. Not better — more compatible with the open internet, which is a different thing.
+
+![image](/assets/secure-channels/protocol-property-matrix.png)
+
+#### Noise-Style Protocol Composition Recipes
+
+![image](/assets/secure-channels/kem-composition-hpke-vs-tls12.png)
+
+Both HPKE base mode and TLS 1.2 with an RSA cipher suite are instantiations of the same composition: static-recipient KEM → KDF → AEAD. The sender contributes fresh randomness, the recipient contributes a long-term static private key, and the KEM lets both ends up with a shared key K that seeds the symmetric key schedule. Only what fills the KEM slot differs. Forward secrecy is impossible here because `sk_R` is reused across all senders — compromising it tomorrow decrypts every HPKE message anyone has ever sent to that recipient. That's a deliberate trade for async usability, not a bug. age and libsodium sealed boxes have the same shape.
+
+
+
+![image](/assets/secure-channels/tls13-key-exchange.png)
+
+TLS 1.3's whole forward-secrecy story lives in those two ephemerals: both sides erase them after the handshake, so even a future compromise of `cert_priv` doesn't decrypt past sessions. The certificate key never participates in the DH — it only signs the transcript, which is exactly why this composition can't be expressed as a Noise pattern. Noise authenticates with static-key DH; TLS authenticates with signatures. Different primitive choice, different proof structure.
+
+![image](/assets/secure-channels/wireguard-noise-ik.png)
+
+WireGuard is the cleanest example of a Noise pattern in production. The four DHs cover every combination of {ephemeral, static} across both sides; mixing them in order into BLAKE2s gives mutual identity authentication (`ss`), forward secrecy (`ee`), and identity binding (`es`, `se`) all at once — with no signatures, no negotiation, and a ciphersuite literally baked into the protocol name. The 2-minute forced rekey is what gives the partial post-compromise security from the matrix: a stolen session state ages out within 120 seconds.
+
+![image](/assets/secure-channels/signal-x3dh.png)
+
+Signal's choreography is denser because it has to be async. Alice can't ECDH against a freshly-generated Bob ephemeral — Bob is offline. Instead she ECDHs against keys Bob uploaded to the server earlier, and the *combination of which DH involves which key* is what does the work: `DH1` uses Alice's identity (so Bob knows it's her), `DH2` uses Bob's identity (so Alice knows it's him), `DH3` and `DH4` inject freshness from Alice's ephemeral and Bob's one-time prekey. Mixing all four into HKDF means an attacker would have to compromise *every* key type to break the session. The output seeds the Double Ratchet, which is where the per-message forward secrecy and the round-trip-driven post-compromise security come from. PQXDH adds an ML-KEM encapsulation in parallel — same shape, hybrid KEM.
+
+## AEAD
+
+Once a handshake has produced session keys, the bytes themselves are protected with an AEAD (AES-GCM, ChaCha20-Poly1305). The mechanics — how an AEAD fuses a stream-cipher mode with a MAC so you can't forget the integrity half — live in the MACs & Signatures section of [Cryptographic Primitives](/programming/crypto-primitives.html).
 
 ## Rootless unauthorized nameless stale brittle leaky replayable pairwise oracular misusable pipes kill productivity
 
 Analogously to https://thume.ca/2020/05/17/pipes-kill-productivity/, we can describe cryptographic pipes (secure channels) as:
-- Rootless. A secure channel reduces "trust the network" to "trust a key" but never eliminates trust — somebody has to anchor the key out of band. PKI, TOFU, hardcoded fingerprints, DNSSEC, blockchain registries, key transparency logs. This is the exact same bootstrap problem Kademlia has, just shifted into crypto-space. Every system reinvents it.
+- Rootless. A secure channel reduces "trust the network" to "trust a key" but never eliminates trust — somebody has to anchor the key out of band. PKI, TOFU, hardcoded fingerprints, DNSSEC, blockchain registries, key transparency logs. This is the exact same bootstrap problem Kademlia has, just shifted into crypto-space. Every system reinvents it. (This bootstrap problem is the whole subject of [Keys & Roots of Trust](/programming/keys-and-roots-of-trust.html).)
 - Unauthorized. Authentication answers "who"; it doesn't answer "may they". You will write the authz layer. Every time. Capabilities (macaroons, biscuits), ACLs, role tables, OPA — all of it lives above the channel.
 - Nameless. Public keys aren't names. You will build, or import, a naming layer (Zooko's triangle applies: secure / human-meaningful / decentralized — pick two). Petnames, ENS, DNS-over-something, .onion vanity, GPG WoT. All ad hoc, none portable.
 - Stale. Keys leak, certs expire, devices get lost, employees quit. You need rotation, revocation, and a story for "this was Alice and now isn't." CRL/OCSP, short-lived certs (SPIFFE), key transparency, ratchets. The state machine for "current trust" is its own distributed system.
-- Brittle (cryptographically). Algorithms get deprecated faster than your dependency tree updates. SHA-1, RC4, MD5, soon RSA-2048 and ECDH against a quantum adversary. Cipher agility is the "Mismatched" problem on hard mode — you can't just add a JSON field, you have to renegotiate primitives without opening a downgrade attack.
+- Brittle (cryptographically). Algorithms get deprecated faster than your dependency tree updates. SHA-1, RC4, MD5, soon RSA-2048 and ECDH against a quantum adversary. Cipher agility is the "Mismatched" problem on hard mode — you can't just add a JSON field, you have to renegotiate primitives without opening a downgrade attack. (See the negotiation-as-footgun discussion under Channel Establishment above — agility is exactly the attack surface TLS keeps getting burned by.)
 - Leaky. The channel encrypts content but not envelope: who talks to whom, when, how often, how much. Traffic analysis, timing, sizes, fingerprintable handshakes (JA3/JA4). Padding, cover traffic, mixnets — and each of those is its own pile of work.
 - Replayable. A single channel handles ordering inside its lifetime, but the moment your message escapes the channel (queued, logged, persisted, cross-session) freshness becomes your problem again. Nonces, timestamps, sequence numbers, idempotency keys — all rebuilt at the app layer.
 - Pairwise. Secure channels are 2-party by construction. Groups need entirely different primitives (MLS, Signal Sender Keys, fan-out + per-member channels). Naively gluing N pairwise channels together gets you O(N) keys and zero forward secrecy guarantees as a group.
@@ -76,4 +116,8 @@ We're back to a Lowe-style world where the dangerous actor is a legitimate parti
 
 ## References
 
-https://opentitan.org/
+https://neilmadden.blog/2021/04/08/from-kems-to-protocols/
+https://rlc.vlinder.ca/ecdh-kem/
+https://book.systemsapproach.org/security/authentication.html
+https://docs.secureauth.com/iam/blog/sender-constrained-access-tokens-mtls-vs-dpop
+https://thume.ca/2020/05/17/pipes-kill-productivity/

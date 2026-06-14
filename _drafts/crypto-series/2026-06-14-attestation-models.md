@@ -1,8 +1,10 @@
 ---
-title:  "Attestation Models"
+title:  "Applied Crypto 5: Attestation Models"
 category: programming
-date: 2026-06-14
+date: 2026-06-14 00:05:00
 ---
+
+The last post in the series. [Keys & Roots of Trust](/programming/keys-and-roots-of-trust.html) ended on a question: how do you *prove* a key really lives behind a hardware root, rather than just claiming it does? Attestation is the answer — and Red Hat's REMITS model is a clean lens for reading any attestation scheme, hardware or cloud.
 
 Redhat's REMITS model:
 ![image](/assets/attestation-models/remits-model.png)
