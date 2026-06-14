@@ -4,15 +4,13 @@ category: programming
 date: 2026-06-14
 ---
 
-sdfsd
-
 ## Where Keys Live
 
-![image](https://hackmd.io/_uploads/Bk1pvxs1ze.png)
+![image](/assets/encryption-primitives/where-keys-live-device-vs-server.png)
 
 ## Entropy Stack
 
-![image](https://hackmd.io/_uploads/SkiEBlikGx.png)
+![image](/assets/encryption-primitives/entropy-stack.png)
 
 
 The middle track (blue) — the "normal" case for DH, session keys, random salts, IVs, any key you generate at runtime on a general-purpose computer. Your question "where does DH's seed entropy come from?" lands here. A Diffie–Hellman exchange starts when each party picks a random scalar — their ephemeral private key — and for Curve25519 that's just 32 random bytes. Those bytes come from the OS CSPRNG, which on Linux is the ChaCha20-based generator behind getrandom() and /dev/urandom (on macOS it's similar; Windows has CryptGenRandom / BCryptGenRandom). A CSPRNG is deterministic — given the same seed it produces the same output — so it's only as good as its seed. Which sends the question one level deeper.
@@ -29,7 +27,7 @@ The left track (coral) — passwords. The entropy source here is human cognition
 
 Long-term trend: the PRP era (DES, AES) is being supplemented by a PRF era (ChaCha, BLAKE3) where the primitive matches the way we actually use it. The diagram I drew has two roots today — HMAC and AES — but in fifteen years the dominant root might just be a single fast PRF that does everything.
 
-![image](https://hackmd.io/_uploads/Hylg8vAu1Mx.png)
+![image](/assets/encryption-primitives/prf-vs-prp-tree.png)
 
 The bottom row is the punchline I want to drive home. A stream cipher, a CSPRNG, and a KDF's expand step are all the same machine — a PRF run in counter mode, producing a long pseudorandom output stream. They differ only in where the key comes from and what you do with the output:
 - Stream cipher: key from user/handshake → output XORed with plaintext to encrypt
@@ -41,7 +39,7 @@ Once you see that, you stop memorizing them as separate things. They're all "PRF
 
 ### Block vs Stream Cipher
 
-![image](https://hackmd.io/_uploads/S1RID0u1Ml.png)
+![image](/assets/encryption-primitives/block-vs-stream-cipher.png)
 
 The vocabulary is genuinely overloaded. Four terms, two axes.
 
@@ -65,7 +63,7 @@ The trend over the last decade has been to abandon the upper-left quadrant (bloc
 
 Freshness is the goal. Nonces were the first clean formalization of how to deliver it, by surfacing a uniqueness contract at the mode-level API. Tweaks then provided a richer primitive that makes mode construction easier, by letting the mode designer derive freshness from context however they want rather than imposing a contract on the caller. XTS is the extreme case — pure position-derived tweaks, no nonce at all, freshness fully internal — accepted because disk encryption can't fit nonces anywhere. SIV is the other extreme — freshness from the plaintext itself, defending against the failure mode where nonces get reused — accepted because that failure mode keeps happening in real systems. Deoxys-II combines both ideas, using a tweakable primitive to build a nonce-based AEAD that's also misuse-resistant.
 
-![image](https://hackmd.io/_uploads/BJIVd0uJfx.png)
+![image](/assets/encryption-primitives/freshness-vs-primitive-grid.png)
 
 Progression for how this came about (not exactly historical, but at least useful mental model):
 1. Probabilistic encryption (Goldwasser-Micali, 1984): caller must supply randomness (formally hidden, practically not).

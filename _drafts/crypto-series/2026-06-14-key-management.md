@@ -1,4 +1,8 @@
-# Key Generation / Exchange / Management
+---
+title:  "Key Management"
+category: programming
+date: 2026-06-14
+---
 
 Any real system has to answer two orthogonal questions for every byte that moves: who is this from (identity) and who else can see it (data protection). Both questions get answered at multiple layers, and the layers compose.
 1. Identity layers: TLS server cert (transport), mTLS client cert or app-layer login — password/passkey/OAuth (request), session token — cookie/JWT (subsequent requests in a session), workload identity for service-to-service.
@@ -7,12 +11,12 @@ Any real system has to answer two orthogonal questions for every byte that moves
 ## Meta-Map
 
 First the secrets/data:
-![image](https://hackmd.io/_uploads/S1pQzlskMg.png)
+![image](/assets/key-management/meta-map-secrets-data.png)
 
 > The middle-right cell is the one that rewards reading carefully, because it's the universal grammar of what any proof can claim: who (identity — aud, iss, sub, rpId), when (freshness — iat, exp, jti, nonces), what (content — the bytes the proof commits to, like the TLS transcript or DPoP's htm/htu/ath), what-for (scope — OAuth scopes, X.509 key-usage extensions), and bound-to-what (chaining — cnf claims that tie one proof to another's key). Any new auth scheme you encounter, you can read it by asking which of these five it covers and which it omits. Bearer access tokens cover identity + freshness + scope, but skip chaining and content — which is exactly the gap DPoP fills by adding cnf to the token and htm/htu/ath/jti to the per-request proof. mTLS-bound tokens fill the same gap differently, by using the TLS-layer client cert as the chaining anchor. Same problem, two solutions, both visible in the grid.
 
 And then the people:
-![image](https://hackmd.io/_uploads/B1rPfxjJze.png)
+![image](/assets/key-management/meta-map-people.png)
 
 ## Client-Server Session
 
@@ -31,7 +35,7 @@ Note that mTLS can be used to authenticate the user in step 1. See https://docs.
 
 ## 1. Channel Establishment
 
-![image](https://hackmd.io/_uploads/SyQLVA8p-g.png)
+![image](/assets/key-management/channel-establishment-tiers.png)
 
 
 Tier 1 — Symmetric only. Both parties already share a key. This is your DEK/KEK story, your in-house service-to-service encryption, anywhere the key distribution problem is already solved out-of-band. Just AEAD (AES-GCM, ChaCha20-Poly1305).
@@ -44,31 +48,31 @@ Tier 4 — Interactive channel, full negotiation. TLS. Versioned, ciphersuite-ag
 
 TODO: The arrow direction is the wrong message. "More interactive = more advanced" is the implicit story the 1D axis tells, and modern crypto thinking is largely the opposite. The history of TLS is the history of negotiation-driven attacks: FREAK, Logjam, POODLE, BEAST, CRIME, ROBOT, downgrade-dance variants — most of those exploit version or ciphersuite negotiation, not the underlying primitives. Cryptographic agility is now widely seen as a footgun. WireGuard's whole pitch is "we ripped out the negotiation." Trevor Perrin designed Noise so the ciphersuite is part of the protocol name (e.g. Noise_IK_25519_ChaChaPoly_BLAKE2s), never negotiated. DJB has written at length about why he considers algorithm agility harmful. So the honest reading of that axis is: rightward = more flexible at the cost of more attack surface and a harder security proof. Not better — more compatible with the open internet, which is a different thing.
 
-![image](https://hackmd.io/_uploads/H1laCxNyGx.png)
+![image](/assets/key-management/protocol-property-matrix.png)
 
 #### Noise-Style Protocol Composition Recipes
 
-![image](https://hackmd.io/_uploads/rJ7anGEkGx.png)
+![image](/assets/key-management/kem-composition-hpke-vs-tls12.png)
 
 Both HPKE base mode and TLS 1.2 with an RSA cipher suite are instantiations of the same composition: static-recipient KEM → KDF → AEAD. The sender contributes fresh randomness, the recipient contributes a long-term static private key, and the KEM lets both ends up with a shared key K that seeds the symmetric key schedule. Only what fills the KEM slot differs. Forward secrecy is impossible here because `sk_R` is reused across all senders — compromising it tomorrow decrypts every HPKE message anyone has ever sent to that recipient. That's a deliberate trade for async usability, not a bug. age and libsodium sealed boxes have the same shape.
 
 
 
-![image](https://hackmd.io/_uploads/S1wqNz4yGe.png)
+![image](/assets/key-management/tls13-key-exchange.png)
 
 TLS 1.3's whole forward-secrecy story lives in those two ephemerals: both sides erase them after the handshake, so even a future compromise of `cert_priv` doesn't decrypt past sessions. The certificate key never participates in the DH — it only signs the transcript, which is exactly why this composition can't be expressed as a Noise pattern. Noise authenticates with static-key DH; TLS authenticates with signatures. Different primitive choice, different proof structure.
 
-![image](https://hackmd.io/_uploads/BykjVzNkGg.png)
+![image](/assets/key-management/wireguard-noise-ik.png)
 
 WireGuard is the cleanest example of a Noise pattern in production. The four DHs cover every combination of {ephemeral, static} across both sides; mixing them in order into BLAKE2s gives mutual identity authentication (`ss`), forward secrecy (`ee`), and identity binding (`es`, `se`) all at once — with no signatures, no negotiation, and a ciphersuite literally baked into the protocol name. The 2-minute forced rekey is what gives the partial post-compromise security from the matrix: a stolen session state ages out within 120 seconds.
 
-![image](https://hackmd.io/_uploads/H1Ai4MVyzl.png)
+![image](/assets/key-management/signal-x3dh.png)
 
 Signal's choreography is denser because it has to be async. Alice can't ECDH against a freshly-generated Bob ephemeral — Bob is offline. Instead she ECDHs against keys Bob uploaded to the server earlier, and the *combination of which DH involves which key* is what does the work: `DH1` uses Alice's identity (so Bob knows it's her), `DH2` uses Bob's identity (so Alice knows it's him), `DH3` and `DH4` inject freshness from Alice's ephemeral and Bob's one-time prekey. Mixing all four into HKDF means an attacker would have to compromise *every* key type to break the session. The output seeds the Double Ratchet, which is where the per-message forward secrecy and the round-trip-driven post-compromise security come from. PQXDH adds an ML-KEM encapsulation in parallel — same shape, hybrid KEM.
 
 ## 2. AEAD
 
-TODO: link to cipher modes, AEAD material, etc. in https://hackmd.io/_I_ShulgRTCr2rmJwvh2JA
+TODO: link to cipher modes, AEAD material, etc. in [encryption primitives](./2026-06-14-encryption-primitives.md)
 
 ## 3. History of User Authentication
 

@@ -1,12 +1,16 @@
-# Secure Channels Root of Trust
+---
+title:  "Secure Channels"
+category: programming
+date: 2026-06-14
+---
 
 How is a channel's ephemeral session key ultimately authenticated?
 
-![image](https://hackmd.io/_uploads/Sy490U4yMl.png)
+![image](/assets/secure-channels/session-key-authentication-chain.png)
 
 ## Root of Trust
 
-![image](https://hackmd.io/_uploads/Hy_iWvNkzx.png)
+![image](/assets/secure-channels/roots-of-trust-out-of-band.png)
 
 Others that we could include:
 
