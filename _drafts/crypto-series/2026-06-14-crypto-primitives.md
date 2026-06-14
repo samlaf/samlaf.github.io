@@ -6,21 +6,6 @@ date: 2026-06-14 00:01:00
 
 Cryptographic primitives are the atoms everything else is built from. The same machinery serves confidentiality, authentication, key derivation, and randomness alike — the recurring punchline below is that a single primitive (a PRF) is hiding behind most of them.
 
-## Entropy Stack
-
-![image](/assets/crypto-primitives/entropy-stack.png)
-
-
-The middle track (blue) — the "normal" case for DH, session keys, random salts, IVs, any key you generate at runtime on a general-purpose computer. Your question "where does DH's seed entropy come from?" lands here. A Diffie–Hellman exchange starts when each party picks a random scalar — their ephemeral private key — and for Curve25519 that's just 32 random bytes. Those bytes come from the OS CSPRNG, which on Linux is the ChaCha20-based generator behind getrandom() and /dev/urandom (on macOS it's similar; Windows has CryptGenRandom / BCryptGenRandom). A CSPRNG is deterministic — given the same seed it produces the same output — so it's only as good as its seed. Which sends the question one level deeper.
-
-The OS seed comes from physical entropy harvested by the kernel from several sources mixed together: CPU hardware RNG instructions (RDRAND/RDSEED on Intel/AMD, which internally use thermal noise in the silicon), timing jitter from interrupts and disk operations, keystrokes and mouse movements on desktop systems, clock skew between oscillators, and on some platforms, dedicated on-board TRNGs. The kernel hashes all of this together into an entropy pool and uses it to seed (and periodically reseed) the CSPRNG. The CSPRNG's job is whitening — taking whatever biased, potentially-correlated physical noise got sampled and producing uniformly distributed output indistinguishable from random.
-
-So DH's seed ultimately comes from thermal motion of electrons (in CPU hardware RNGs), quantum tunneling noise (in some dedicated TRNGs), and the chaotic timing of physical events (interrupts, user input). The security of every DH handshake on the internet reduces, at bottom, to "thermodynamics makes the future unpredictable." Which is a genuinely beautiful fact if you sit with it.
-
-The right track (purple) — keys that live in hardware. Your second question: Secure Enclaves and HSMs have their own TRNGs, distinct from the OS's. These are dedicated silicon circuits — typically ring oscillators whose phase drift is sampled, or avalanche noise from biased diodes, or quantum effects in some high-end HSMs — running a hardware-entropy-driven CSPRNG entirely inside the secure boundary. When your Secure Enclave generates a new passkey, the private key is created using the Enclave's internal TRNG and never exists anywhere else. Same for the root KEK in an HSM: generated internally, never emitted. The OS isn't involved because the whole point is that even a compromised OS can't influence the key. This is why FIPS 140-3 certification requires HSMs to have their own certified entropy source. (Where those hardware-held keys live, and how envelope encryption is built on them, is the subject of [Keys & Roots of Trust](/programming/keys-and-roots-of-trust.html).)
-
-The left track (coral) — passwords. The entropy source here is human cognition, which is terrible at randomness. A user-chosen password might have 20–50 bits of actual entropy despite having 60+ bits of notional key length, because humans cluster around dictionary words, common patterns, and familiar dates. No amount of post-processing can add entropy that wasn't there — information theory forbids it. What Argon2 and friends do is add work factor: a low-entropy secret is still low-entropy, but now each guess takes 100ms and 64 MB of RAM, which multiplies the attacker's cost by a billion or so. The salt alone is uniformly random (from the middle track), so the stored hash looks high-entropy from the outside, but the secret itself is still constrained by what fit in someone's head.
-
 ## Primitives: PRFs vs PRPs
 
 Long-term trend: the PRP era (DES, AES) is being supplemented by a PRF era (ChaCha, BLAKE3) where the primitive matches the way we actually use it. The diagram I drew has two roots today — HMAC and AES — but in fifteen years the dominant root might just be a single fast PRF that does everything.

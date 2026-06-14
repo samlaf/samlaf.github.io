@@ -14,13 +14,29 @@ Two columns by location, three rows by role — every key, proof, verifier, and 
 
 > The middle-right cell is the one that rewards reading carefully, because it's the universal grammar of what any proof can claim: who (identity — aud, iss, sub, rpId), when (freshness — iat, exp, jti, nonces), what (content — the bytes the proof commits to, like the TLS transcript or DPoP's htm/htu/ath), what-for (scope — OAuth scopes, X.509 key-usage extensions), and bound-to-what (chaining — cnf claims that tie one proof to another's key). Any new auth scheme you encounter, you can read it by asking which of these five it covers and which it omits. Bearer access tokens cover identity + freshness + scope, but skip chaining and content — which is exactly the gap DPoP fills by adding cnf to the token and htm/htu/ath/jti to the per-request proof. mTLS-bound tokens fill the same gap differently, by using the TLS-layer client cert as the chaining anchor. Same problem, two solutions, both visible in the grid.
 
+## The Entropy Stack
+
+Before a key can be custodied or anchored, it has to be *generated* — and a key is only as unpredictable as the entropy that seeded it. Three sources feed three kinds of secret.
+
+![image](/assets/keys-and-roots-of-trust/entropy-stack.png)
+
+The middle track (blue) — the "normal" case for DH, session keys, random salts, IVs, any key you generate at runtime on a general-purpose computer. Your question "where does DH's seed entropy come from?" lands here. A Diffie–Hellman exchange starts when each party picks a random scalar — their ephemeral private key — and for Curve25519 that's just 32 random bytes. Those bytes come from the OS CSPRNG, which on Linux is the ChaCha20-based generator behind getrandom() and /dev/urandom (on macOS it's similar; Windows has CryptGenRandom / BCryptGenRandom). A CSPRNG is deterministic — given the same seed it produces the same output — so it's only as good as its seed. Which sends the question one level deeper. (That a CSPRNG is itself just a PRF run in counter mode is the [Cryptographic Primitives](/programming/crypto-primitives.html) view; here the question is where its *seed* comes from.)
+
+The OS seed comes from physical entropy harvested by the kernel from several sources mixed together: CPU hardware RNG instructions (RDRAND/RDSEED on Intel/AMD, which internally use thermal noise in the silicon), timing jitter from interrupts and disk operations, keystrokes and mouse movements on desktop systems, clock skew between oscillators, and on some platforms, dedicated on-board TRNGs. The kernel hashes all of this together into an entropy pool and uses it to seed (and periodically reseed) the CSPRNG. The CSPRNG's job is whitening — taking whatever biased, potentially-correlated physical noise got sampled and producing uniformly distributed output indistinguishable from random.
+
+So DH's seed ultimately comes from thermal motion of electrons (in CPU hardware RNGs), quantum tunneling noise (in some dedicated TRNGs), and the chaotic timing of physical events (interrupts, user input). The security of every DH handshake on the internet reduces, at bottom, to "thermodynamics makes the future unpredictable." Which is a genuinely beautiful fact if you sit with it.
+
+The right track (purple) — keys that live in hardware. Your second question: Secure Enclaves and HSMs have their own TRNGs, distinct from the OS's. These are dedicated silicon circuits — typically ring oscillators whose phase drift is sampled, or avalanche noise from biased diodes, or quantum effects in some high-end HSMs — running a hardware-entropy-driven CSPRNG entirely inside the secure boundary. When your Secure Enclave generates a new passkey, the private key is created using the Enclave's internal TRNG and never exists anywhere else. Same for the root KEK in an HSM: generated internally, never emitted. The OS isn't involved because the whole point is that even a compromised OS can't influence the key. This is why FIPS 140-3 certification requires HSMs to have their own certified entropy source. (Those hardware-held keys are exactly the "Where keys live" story below.)
+
+The left track (coral) — passwords. The entropy source here is human cognition, which is terrible at randomness. A user-chosen password might have 20–50 bits of actual entropy despite having 60+ bits of notional key length, because humans cluster around dictionary words, common patterns, and familiar dates. No amount of post-processing can add entropy that wasn't there — information theory forbids it. What Argon2 and friends do is add work factor: a low-entropy secret is still low-entropy, but now each guess takes 100ms and 64 MB of RAM, which multiplies the attacker's cost by a billion or so. The salt alone is uniformly random (from the middle track), so the stored hash looks high-entropy from the outside, but the secret itself is still constrained by what fit in someone's head. (The full password-hashing arc — crypt, bcrypt, Argon2 — is the subject of [Authentication](/programming/authentication.html).)
+
 ## Where keys live
 
 The first question for any key is *who holds it and can it be extracted*. The split is between your device (user inputs + a hardware root) and the server (public records + a KMS), and within each, between software-reachable material and keys that never leave a hardware boundary.
 
 ![image](/assets/keys-and-roots-of-trust/where-keys-live-device-vs-server.png)
 
-The hardware boundary on each side — the Secure Enclave on the device, the HSM/KMS on the server — is where the non-extractable root keys live. Those keys are generated by the secure element's own TRNG and never emitted (the entropy story behind that is in [Cryptographic Primitives](/programming/crypto-primitives.html)). Everything else is wrapped under them.
+The hardware boundary on each side — the Secure Enclave on the device, the HSM/KMS on the server — is where the non-extractable root keys live. Those keys are generated by the secure element's own TRNG and never emitted (that's the purple track of the entropy stack above). Everything else is wrapped under them.
 
 ## Envelope encryption: DEK / KEK
 

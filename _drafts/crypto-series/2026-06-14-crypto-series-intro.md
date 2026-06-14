@@ -19,7 +19,7 @@ They're **orthogonal**. You can have one without the other: raw Diffie–Hellman
 
 ## Three pillars
 
-**Mechanism — the atoms.** The cryptographic primitives everything else is built from, and where their randomness comes from.
+**Mechanism — the atoms.** The cryptographic primitives everything else is built from.
 
 **Composition — the two arms of the duality.** How you establish a shared key and protect data in transit (the data-protection arm), and how a party proves who they are (the identity arm).
 
@@ -27,10 +27,10 @@ They're **orthogonal**. You can have one without the other: raw Diffie–Hellman
 
 ## The articles
 
-1. **[Cryptographic Primitives](/programming/crypto-primitives.html)** — PRFs vs PRPs, block vs stream ciphers, AEAD, MACs and signatures, and the entropy stack that seeds them all. The recurring punchline: one primitive (a PRF) underlies encryption, authentication, key derivation, and randomness alike.
+1. **[Cryptographic Primitives](/programming/crypto-primitives.html)** — PRFs vs PRPs, block vs stream ciphers, AEAD, and MACs and signatures. The recurring punchline: one primitive (a PRF) underlies encryption, authentication, key derivation, and randomness alike.
 2. **[Key Exchange & Secure Channels](/programming/secure-channels.html)** — the four tiers of channel establishment, from a shared symmetric key up to fully-negotiated TLS, with HPKE / TLS 1.3 / WireGuard / Signal as worked examples — and a closing look at everything a secure channel *doesn't* give you.
 3. **[Authentication](/programming/authentication.html)** — the 50-year arc from plaintext passwords to passkeys, read as one long story of moving the root of trust out of the server's hands.
-4. **[Keys & Roots of Trust](/programming/keys-and-roots-of-trust.html)** — where secret material actually lives (device vs server, Secure Enclave vs HSM), envelope encryption, and the out-of-band anchors that every chain of trust terminates in.
+4. **[Keys & Roots of Trust](/programming/keys-and-roots-of-trust.html)** — the full life of a key: the entropy stack that seeds it, where it lives (device vs server, Secure Enclave vs HSM), envelope encryption, and the out-of-band anchors that every chain of trust terminates in.
 5. **[Attestation Models](/programming/attestation-models.html)** — the hardware mechanism that *proves* a key lives behind a real root of trust: TPMs, confidential VMs, vTPMs, and cloud attestation, all read through Red Hat's REMITS framework.
 
 ## A theme to watch
