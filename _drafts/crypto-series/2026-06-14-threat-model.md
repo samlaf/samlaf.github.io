@@ -40,6 +40,8 @@ Arkko's draft predates the two developments that have since made its point unden
 
 **The counterparty is now your dependencies.** The malicious-but-authenticated party Lowe described no longer needs to be at the other end of a session — it can be code running *inside* your own process, installed deliberately, signed, and trusted. The [XZ Utils backdoor][xz-backdoor] (CVE-2024-3094) is the purest example: a maintainer spent roughly two years building legitimate trust in an upstream project, then shipped a hidden backdoor — a textbook Lowe attack at the scale of the global software supply chain. Package registries have made this routine rather than exceptional: typosquatted and malicious packages on npm and PyPI, and [malware smuggled through the Arch User Repository][aur-malware], all exploit the fact that "I installed it from the official source" was never the same as "it is safe." Your dependency manifest is a list of authenticated counterparties you've chosen to trust.
 
+The subversion can run deeper than any code you could in principle read. An *algorithm substitution attack* swaps a correct primitive for a look-alike that behaves identically but leaks secrets to whoever planted it — the backdoored [Dual_EC_DRBG][dual-ec] random-number generator, shipped as the default in RSA's BSAFE library, is the canonical real-world case. The thing you trusted to produce randomness *was* the adversary. (There's a whole research literature on these "kleptographic" attacks; the engineering takeaway is that "the implementation is honest" is itself a trust assumption, not a given.)
+
 **And the attacker got cheap.** LLMs are collapsing the cost and skill floor of the very attacks whose rarity used to bound the threat model. Automated vulnerability discovery, convincing spear-phishing at scale, and machine-generated malware turn what were once rare, expert capabilities into commodities — so the quiet "is this attacker realistic?" assumption behind every out-of-scope stipulation needs revisiting. And AI agents are themselves a new kind of authenticated counterparty: an agent acting with your credentials, steered by a prompt-injected instruction, is *exactly* Lowe's legitimate-participant-gone-rogue — now running inside your own tooling.
 
 ## Coming full circle
@@ -57,6 +59,7 @@ This is the lens for the rest of the series: as you read about channels, keys, a
 5. [An Internet Threat Model (draft-arkko) - Jari Arkko][arkko]
 6. [XZ Utils Backdoor (CVE-2024-3094) - Wikipedia][xz-backdoor]
 7. [Preliminary Analysis of AUR Malware - ioctl.fail][aur-malware]
+8. [Dual_EC_DRBG (the backdoored RNG) - Wikipedia][dual-ec]
 
 [dolev-yao]: https://en.wikipedia.org/wiki/Dolev%E2%80%93Yao_model "Dolev–Yao model - Wikipedia"
 [ns-lowe]: https://en.wikipedia.org/wiki/Needham%E2%80%93Schroeder_protocol "Needham–Schroeder protocol & Lowe's attack - Wikipedia"
@@ -65,3 +68,4 @@ This is the lens for the rest of the series: as you read about channels, keys, a
 [arkko]: https://datatracker.ietf.org/doc/html/draft-arkko-arch-internet-threat-model-01 "An Internet Threat Model (draft-arkko-arch-internet-threat-model-01) - Jari Arkko"
 [xz-backdoor]: https://en.wikipedia.org/wiki/XZ_Utils_backdoor "XZ Utils backdoor (CVE-2024-3094) - Wikipedia"
 [aur-malware]: https://ioctl.fail/preliminary-analysis-of-aur-malware/ "Preliminary analysis of AUR malware - ioctl.fail"
+[dual-ec]: https://en.wikipedia.org/wiki/Dual_EC_DRBG "Dual_EC_DRBG (the backdoored RNG) - Wikipedia"
