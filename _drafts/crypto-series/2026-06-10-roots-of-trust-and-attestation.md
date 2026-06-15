@@ -1,7 +1,9 @@
 ---
-title:  "Applied Crypto 5: Roots of Trust & Attestation"
+title:  "Roots of Trust & Attestation"
+series: "Applied Crypto, Part 5"
+series_url: "/programming/crypto-series-intro.html"
 category: programming
-date: 2026-06-14 00:01:00
+date: 2026-06-10
 ---
 
 The last post, and where the *right-party* arm of the series bottoms out. Every chain of trust we've followed — a TLS cert, a passkey, a session key — terminates at some anchor you trusted *before* the connection began. This post is about those anchors (roots of trust), the mechanism that proves a key really lives behind one (attestation), and it closes with a series capstone: everything a secure channel still doesn't give you.

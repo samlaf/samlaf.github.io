@@ -1,7 +1,8 @@
 ---
 layout: default
 ---
-<h1>{{ page.title }}</h1>
+<h1 style="margin-bottom:0.1em;">{{ page.title }}</h1>
+{% if page.series %}<p style="color:#666; font-size:1.05em; margin-top:0; font-style:italic;">({% if page.series_url %}<a href="{{ page.series_url }}">{{ page.series }}</a>{% else %}{{ page.series }}{% endif %})</p>{% endif %}
 <p style="color:#888; font-size:0.9em;">{{ page.date | date: "%B %-d, %Y" }}</p>
 
 {{ content }}

@@ -1,7 +1,9 @@
 ---
-title:  "Applied Crypto 1: Cryptographic Primitives"
+title:  "Cryptographic Primitives"
+series: "Applied Crypto, Part 1"
+series_url: "/programming/crypto-series-intro.html"
 category: programming
-date: 2026-06-14 00:05:00
+date: 2026-06-06
 ---
 
 Cryptographic primitives are the atoms everything else is built from. The same machinery serves confidentiality, authentication, key derivation, and randomness alike — the recurring punchline below is that a single primitive (a PRF) is hiding behind most of them.

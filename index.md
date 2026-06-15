@@ -8,7 +8,7 @@
 <ul>
 {% for post in site.posts %}
 	{% if post.category == "programming" %}
-		<li><a href="{{ post.url }}">{{ post.title }}</a> <span style="color:#888; font-size:0.85em;">({{ post.date | date: "%Y-%m-%d" }})</span></li>
+		<li><a href="{{ post.url }}">{{ post.title }}{% if post.series %} ({{ post.series }}){% endif %}</a> <span style="color:#888; font-size:0.85em;">({{ post.date | date: "%Y-%m-%d" }})</span></li>
 	{% endif %}
 {% endfor %}
 </ul>

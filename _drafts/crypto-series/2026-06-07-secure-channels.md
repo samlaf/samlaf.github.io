@@ -1,7 +1,9 @@
 ---
-title:  "Applied Crypto 2: Key Exchange & Secure Channels"
+title:  "Key Exchange & Secure Channels"
+series: "Applied Crypto, Part 2"
+series_url: "/programming/crypto-series-intro.html"
 category: programming
-date: 2026-06-14 00:04:00
+date: 2026-06-07
 ---
 
 This is the data-protection arm of the [identity / data-protection duality](/programming/crypto-series-intro.html): how two parties agree on a shared key and protect bytes in transit. (The identity arm — proving *who* the other party is — gets its own [Authentication](/programming/authentication.html) post; the two are usually fused in practice but conceptually separate.)
@@ -11,6 +13,13 @@ The whole post rests on one observation: **once two parties share a secret, an A
 Any real system has to answer two orthogonal questions for every byte that moves: who is this from (identity) and who else can see it (data protection). Both questions get answered at multiple layers, and the layers compose.
 1. Identity layers: TLS server cert (transport), mTLS client cert or app-layer login — password/passkey/OAuth (request), session token — cookie/JWT (subsequent requests in a session), workload identity for service-to-service.
 2. Data-protection layers: TLS record layer (in transit), payload encryption inside queues/caches (in motion-but-at-rest), DEK/KEK envelope encryption (storage), E2E encryption between end users (server-as-relay).
+
+## The bootstrap: which channel do you start with?
+
+Symmetric crypto needs both parties to *already* share a key — so the real question is what channel you use to establish it in the first place.
+
+- A **private channel** — historically a courier with a briefcase handcuffed to his wrist, a face-to-face meeting, or a [trusted carrier pigeon][histcrypto]. If you have one, you've essentially won: send a key over it once and AEAD handles everything after. Pre-shared keys, your DEK/KEK setup, and hardcoded fingerprints are the modern versions.
+- A **public channel** — the open internet, where the adversary sees the bootstrap message too. This is the hard case, and the one that *created* modern cryptography: Diffie–Hellman and public-key encryption exist precisely to establish a shared secret over a channel the attacker fully controls. Every tier below is a way to win that bootstrap over a public channel.
 
 ## A typical client-server session
 
@@ -26,6 +35,8 @@ TODO: actually at both wire and app-layers, we should separate channel establish
 > https://book.systemsapproach.org/security/authentication.html
 
 Note that mTLS can be used to authenticate the user in step 1. See https://docs.secureauth.com/iam/blog/sender-constrained-access-tokens-mtls-vs-dpop
+
+A *session* and a *channel* aren't the same thing, and the walkthrough above spans both. A **channel** is a transport-level construct that protects bytes between two endpoints — one TLS connection. A **session** is the application's notion of a *continuing relationship* ("you're still logged in"), carried by a cookie or token, outliving any single channel and surviving reconnects. The old [OSI session layer][osi-session] tried to standardize this and never cleanly fit TCP/IP, but the split is real: channels protect data *in transit*; sessions maintain *identity over time*.
 
 ## Channel Establishment
 
@@ -70,14 +81,26 @@ Once a handshake has produced session keys, the bytes themselves are protected w
 
 Establishing the key is the easy, well-understood part. Everything a secure channel *doesn't* give you — naming, authorization, revocation, replay protection across sessions, group keying — is surveyed in the series capstone at the end of [Roots of Trust & Attestation](/programming/roots-of-trust-and-attestation.html).
 
+## Side channels
+
+Everything above secures the *logical* channel — the bytes an attacker sees on the wire. But a cryptographically flawless implementation can still leak the key through a **side channel**: timing differences, power draw ([differential power analysis][dpa]), electromagnetic emanations, acoustic noise, or shared-microarchitecture effects like cache timing and speculative execution (Spectre/Meltdown). The secret escapes through a channel the protocol never modelled. Defenses are their own discipline — constant-time code, masking, blinding, physical shielding — and they live *below* the API you call, which is why "the math is sound" and "the deployed system doesn't leak the key" are very different claims. This really deserves its own article; the [side-channel literature][sidechannel-survey] and [NIST's physical-security testing][dpa] are good entry points.
+
 ## References <!-- omit in toc -->
 
 1. [From KEMs to Protocols - Neil Madden][madden-kems]
 2. [ECDH as a KEM - Vlinder][vlinder-ecdh-kem]
 3. [Authentication - Computer Networks: A Systems Approach][sysapproach-auth]
 4. [Sender-Constrained Access Tokens: mTLS vs DPoP - SecureAuth][secureauth-mtls-dpop]
+5. [History of Cryptography (the "secure channel" courier) - Wikipedia][histcrypto]
+6. [OSI Session Layer - Wikipedia][osi-session]
+7. [Hardware-Based Side-Channel Attacks (survey) - ACM][sidechannel-survey]
+8. [A Testing Methodology for Side-Channel Resistance - NIST][dpa]
 
 [madden-kems]: https://neilmadden.blog/2021/04/08/from-kems-to-protocols/ "From KEMs to Protocols - Neil Madden"
 [vlinder-ecdh-kem]: https://rlc.vlinder.ca/ecdh-kem/ "ECDH as a KEM - Vlinder"
 [sysapproach-auth]: https://book.systemsapproach.org/security/authentication.html "Authentication - Computer Networks: A Systems Approach"
 [secureauth-mtls-dpop]: https://docs.secureauth.com/iam/blog/sender-constrained-access-tokens-mtls-vs-dpop "Sender-Constrained Access Tokens: mTLS vs DPoP - SecureAuth"
+[histcrypto]: https://en.wikipedia.org/wiki/History_of_cryptography "History of cryptography - Wikipedia"
+[osi-session]: https://en.wikipedia.org/wiki/Session_layer "Session layer (OSI) - Wikipedia"
+[sidechannel-survey]: https://dl.acm.org/doi/10.1145/3357613.3357627 "Hardware-based side-channel attacks (survey) - ACM"
+[dpa]: https://csrc.nist.gov/csrc/media/events/physical-security-testing-workshop/documents/papers/physecpaper19.pdf "A testing methodology for side-channel resistance - NIST"

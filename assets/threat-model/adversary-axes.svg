@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 492" font-family="-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">
+<defs>
+<marker id="arr" markerWidth="9" markerHeight="9" refX="4" refY="4" orient="auto"><path d="M0,0 L9,4 L0,8 z" fill="#94a3b8"/></marker>
+</defs>
+<rect x="0" y="0" width="980" height="492" fill="#ffffff"/>
+<text x="20" y="30" font-size="18" font-weight="700" fill="#0f172a">One adversary, many axes — where Dolev–Yao sits</text>
+<text x="20" y="50" font-size="13" fill="#475569">Each feature is its own axis (parallel coordinates); a polyline crossing high = a stronger adversary.</text>
+
+<!-- ===== panel ===== -->
+<rect x="40" y="66" width="900" height="300" rx="10" fill="#f8fafc" stroke="#e2e8f0"/>
+<text x="56" y="90" font-size="13" font-weight="700" fill="#0f172a">The adversary as a polyline — every axis applies to the wire OR to a corrupted node</text>
+
+<!-- "stronger" direction arrow -->
+<line x1="118" y1="300" x2="118" y2="132" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
+<text x="104" y="216" transform="rotate(-90 104 216)" font-size="11" fill="#94a3b8" text-anchor="middle">stronger</text>
+
+<!-- axes -->
+<g stroke="#cbd5e1" stroke-width="2">
+<line x1="200" y1="130" x2="200" y2="300"/>
+<line x1="410" y1="130" x2="410" y2="300"/>
+<line x1="620" y1="130" x2="620" y2="300"/>
+<line x1="830" y1="130" x2="830" y2="300"/>
+</g>
+<!-- rung ticks -->
+<g stroke="#cbd5e1" stroke-width="2">
+<line x1="196" y1="135" x2="204" y2="135"/><line x1="196" y1="190" x2="204" y2="190"/><line x1="196" y1="243" x2="204" y2="243"/><line x1="196" y1="295" x2="204" y2="295"/>
+<line x1="406" y1="135" x2="414" y2="135"/><line x1="406" y1="215" x2="414" y2="215"/><line x1="406" y1="295" x2="414" y2="295"/>
+<line x1="616" y1="135" x2="624" y2="135"/><line x1="616" y1="295" x2="624" y2="295"/>
+<line x1="826" y1="135" x2="834" y2="135"/><line x1="826" y1="295" x2="834" y2="295"/>
+</g>
+
+<!-- polyline: passive eavesdropper (wire) -->
+<polyline points="200,302 410,302 620,302 830,302" fill="none" stroke="#64748b" stroke-width="2" stroke-dasharray="5,4"/>
+<g fill="#64748b"><circle cx="200" cy="302" r="3.5"/><circle cx="410" cy="302" r="3.5"/><circle cx="620" cy="302" r="3.5"/><circle cx="830" cy="302" r="3.5"/></g>
+<!-- polyline: quantum harvest-now-decrypt-later (wire) -->
+<polyline points="200,292.5 410,212.5 620,292.5 830,292.5" fill="none" stroke="#7c3aed" stroke-width="2.25"/>
+<g fill="#7c3aed"><circle cx="200" cy="292.5" r="3.5"/><circle cx="410" cy="212.5" r="3.5"/><circle cx="620" cy="292.5" r="3.5"/><circle cx="830" cy="292.5" r="3.5"/></g>
+<!-- polyline: Dolev–Yao (wire) -->
+<polyline points="200,137.5 410,297.5 620,297.5 830,297.5" fill="none" stroke="#2563eb" stroke-width="2.75"/>
+<g fill="#2563eb"><circle cx="200" cy="137.5" r="4"/><circle cx="410" cy="297.5" r="4"/><circle cx="620" cy="297.5" r="4"/><circle cx="830" cy="297.5" r="4"/></g>
+<!-- polyline: mobile Byzantine (node) -->
+<polyline points="200,128 410,288 620,128 830,128" fill="none" stroke="#b45309" stroke-width="2.5"/>
+<g fill="#b45309"><circle cx="200" cy="128" r="4"/><circle cx="410" cy="288" r="4"/><circle cx="620" cy="128" r="4"/><circle cx="830" cy="128" r="4"/></g>
+
+<!-- rung labels (right of axis, with halo) -->
+<g font-size="12" stroke="#f8fafc" stroke-width="3" paint-order="stroke" text-anchor="start">
+<!-- behavior -->
+<text x="212" y="139" font-weight="700" fill="#dc2626">Byzantine</text>
+<text x="212" y="194" fill="#475569">omission</text>
+<text x="212" y="247" fill="#475569">crash</text>
+<text x="212" y="299" fill="#94a3b8">passive</text>
+<!-- compute -->
+<text x="422" y="139" font-weight="700" fill="#0f172a">unbounded</text>
+<text x="422" y="219" font-weight="700" fill="#7c3aed">quantum</text>
+<text x="422" y="299" fill="#94a3b8">bounded</text>
+<!-- adaptivity -->
+<text x="632" y="139" font-weight="700" fill="#0f172a">adaptive</text>
+<text x="632" y="299" fill="#94a3b8">static</text>
+<!-- mobility -->
+<text x="842" y="139" font-weight="700" fill="#0f172a">mobile</text>
+<text x="842" y="299" fill="#94a3b8">non-mobile</text>
+</g>
+
+<!-- category names + sub-notes -->
+<g text-anchor="middle">
+<g font-size="12" font-weight="700" fill="#334155">
+<text x="200" y="328">behaviour</text><text x="410" y="328">compute</text><text x="620" y="328">targeting</text><text x="830" y="328">mobility</text>
+</g>
+<g font-size="10" font-style="italic" fill="#64748b">
+<text x="200" y="345">active = Byzantine</text>
+<text x="410" y="345">quantum: breaks EC/RSA (Shor)</text>
+<text x="620" y="345">new targets / nodes over time</text>
+<text x="830" y="345">⇒ proactive recovery</text>
+</g>
+</g>
+
+<!-- ===== legend ===== -->
+<g font-size="12">
+<line x1="56" y1="392" x2="86" y2="392" stroke="#64748b" stroke-width="2" stroke-dasharray="5,4"/>
+<text x="94" y="396" fill="#334155">passive eavesdropper <tspan fill="#64748b">(wire)</tspan></text>
+<line x1="500" y1="392" x2="530" y2="392" stroke="#2563eb" stroke-width="2.75"/>
+<text x="538" y="396" fill="#334155">Dolev–Yao  ≈ IND-CPA/CCA <tspan fill="#64748b">(wire)</tspan></text>
+<line x1="56" y1="416" x2="86" y2="416" stroke="#7c3aed" stroke-width="2.25"/>
+<text x="94" y="420" fill="#334155">quantum — harvest-now, decrypt-later <tspan fill="#64748b">(wire)</tspan></text>
+<line x1="500" y1="416" x2="530" y2="416" stroke="#b45309" stroke-width="2.5"/>
+<text x="538" y="420" fill="#334155">mobile Byzantine — proactive recovery <tspan fill="#b45309">(node)</tspan></text>
+</g>
+
+<!-- ===== caption ===== -->
+<g font-size="11.5" fill="#475569">
+<text x="20" y="450">One axis per feature, higher = stronger — and each applies to the wire OR to a corrupted node, not just the network.</text>
+<text x="20" y="467">Behaviour on the wire: Byzantine = active MITM injection (Dolev–Yao); crash &amp; omission ≈ benign drops and noise.</text>
+<text x="20" y="484">On nodes: the classic crash &lt; omission &lt; Byzantine fault ladder — and adaptive, mobile corruption is what motivates proactive recovery.</text>
+</g>
+</svg>

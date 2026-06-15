@@ -1,7 +1,7 @@
 ---
-title:  "Applied Crypto: A Field Map"
+title:  "Applied Crypto"
 category: programming
-date: 2026-06-14 00:07:00
+date: 2026-06-04
 ---
 
 This is the intro to a short series on applied cryptography — not the math, but the engineering: which primitives exist, how they compose into channels and authentication, and where all the trust ultimately bottoms out.
@@ -35,7 +35,3 @@ Here's the way to *feel* the split: **once two parties share a secret, an AEAD t
 4. **[Authentication](/programming/authentication.html)** — knowing it's the right party: the 50-year arc from plaintext passwords to passkeys (and OAuth's parallel 1.0 → 2.0 → GNAP arc), read as one long story of moving the root of trust out of the server's hands.
 5. **[Keys](/programming/keys.html)** — the life of a key: the entropy stack that seeds it, where it lives (device vs server, Secure Enclave vs HSM), and envelope encryption.
 6. **[Roots of Trust & Attestation](/programming/roots-of-trust-and-attestation.html)** — where every chain of trust terminates: out-of-band anchors, then the hardware mechanism that *proves* a key lives behind one (TPMs, confidential VMs, vTPMs, cloud attestation, via Red Hat's REMITS lens). Ends with a series capstone — everything a secure channel still *doesn't* give you.
-
-## A theme to watch
-
-Several of these tell the *same story from different angles*: the trust anchor keeps moving. The prologue's threat model moves the adversary from the wire to the authenticated counterparty. Authentication moves the root of trust from the server to the client (and OAuth from bearer tokens to key-bound ones). And the final post shows it all bottoming out in out-of-band, hardware-rooted anchors. Read in order, the series descends from the primitives at the top to the silicon at the bottom — and finds the same shape at every layer.
