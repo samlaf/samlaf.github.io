@@ -1,10 +1,12 @@
 ---
 title:  "Applied Crypto 2: Key Exchange & Secure Channels"
 category: programming
-date: 2026-06-14 00:02:00
+date: 2026-06-14 00:04:00
 ---
 
 This is the data-protection arm of the [identity / data-protection duality](/programming/crypto-series-intro.html): how two parties agree on a shared key and protect bytes in transit. (The identity arm — proving *who* the other party is — gets its own [Authentication](/programming/authentication.html) post; the two are usually fused in practice but conceptually separate.)
+
+The whole post rests on one observation: **once two parties share a secret, an AEAD turns it into a secure channel almost trivially.** So the entire difficulty is *safely establishing that shared secret* — which is what everything below is about. (The other half of the problem, knowing the secret is shared with the *right* party, is [Authentication](/programming/authentication.html) and [Roots of Trust & Attestation](/programming/roots-of-trust-and-attestation.html).)
 
 Any real system has to answer two orthogonal questions for every byte that moves: who is this from (identity) and who else can see it (data protection). Both questions get answered at multiple layers, and the layers compose.
 1. Identity layers: TLS server cert (transport), mTLS client cert or app-layer login — password/passkey/OAuth (request), session token — cookie/JWT (subsequent requests in a session), workload identity for service-to-service.
@@ -66,58 +68,16 @@ Signal's choreography is denser because it has to be async. Alice can't ECDH aga
 
 Once a handshake has produced session keys, the bytes themselves are protected with an AEAD (AES-GCM, ChaCha20-Poly1305). The mechanics — how an AEAD fuses a stream-cipher mode with a MAC so you can't forget the integrity half — live in the MACs & Signatures section of [Cryptographic Primitives](/programming/crypto-primitives.html).
 
-## Rootless unauthorized nameless stale brittle leaky replayable pairwise oracular misusable pipes kill productivity
+Establishing the key is the easy, well-understood part. Everything a secure channel *doesn't* give you — naming, authorization, revocation, replay protection across sessions, group keying — is surveyed in the series capstone at the end of [Roots of Trust & Attestation](/programming/roots-of-trust-and-attestation.html).
 
-Analogously to https://thume.ca/2020/05/17/pipes-kill-productivity/, we can describe cryptographic pipes (secure channels) as:
-- Rootless. A secure channel reduces "trust the network" to "trust a key" but never eliminates trust — somebody has to anchor the key out of band. PKI, TOFU, hardcoded fingerprints, DNSSEC, blockchain registries, key transparency logs. This is the exact same bootstrap problem Kademlia has, just shifted into crypto-space. Every system reinvents it. (This bootstrap problem is the whole subject of [Keys & Roots of Trust](/programming/keys-and-roots-of-trust.html).)
-- Unauthorized. Authentication answers "who"; it doesn't answer "may they". You will write the authz layer. Every time. Capabilities (macaroons, biscuits), ACLs, role tables, OPA — all of it lives above the channel.
-- Nameless. Public keys aren't names. You will build, or import, a naming layer (Zooko's triangle applies: secure / human-meaningful / decentralized — pick two). Petnames, ENS, DNS-over-something, .onion vanity, GPG WoT. All ad hoc, none portable.
-- Stale. Keys leak, certs expire, devices get lost, employees quit. You need rotation, revocation, and a story for "this was Alice and now isn't." CRL/OCSP, short-lived certs (SPIFFE), key transparency, ratchets. The state machine for "current trust" is its own distributed system.
-- Brittle (cryptographically). Algorithms get deprecated faster than your dependency tree updates. SHA-1, RC4, MD5, soon RSA-2048 and ECDH against a quantum adversary. Cipher agility is the "Mismatched" problem on hard mode — you can't just add a JSON field, you have to renegotiate primitives without opening a downgrade attack. (See the negotiation-as-footgun discussion under Channel Establishment above — agility is exactly the attack surface TLS keeps getting burned by.)
-- Leaky. The channel encrypts content but not envelope: who talks to whom, when, how often, how much. Traffic analysis, timing, sizes, fingerprintable handshakes (JA3/JA4). Padding, cover traffic, mixnets — and each of those is its own pile of work.
-- Replayable. A single channel handles ordering inside its lifetime, but the moment your message escapes the channel (queued, logged, persisted, cross-session) freshness becomes your problem again. Nonces, timestamps, sequence numbers, idempotency keys — all rebuilt at the app layer.
-- Pairwise. Secure channels are 2-party by construction. Groups need entirely different primitives (MLS, Signal Sender Keys, fan-out + per-member channels). Naively gluing N pairwise channels together gets you O(N) keys and zero forward secrecy guarantees as a group.
-- Oracular. Composing crypto creates oracles. Padding oracles, downgrade oracles, error-message oracles, timing oracles at trust boundaries. Hume's "untrusted" said validate your inputs; crypto pipes say also don't let your error messages distinguish failure modes, which is much harder to remember.
-- Misusable. The APIs are foot-guns. Reuse a GCM nonce → catastrophic. Use ECB → meme. Roll your own → don't. "Misuse-resistant cryptography" exists as a research area precisely because of how much code paying the crypto tax still gets it wrong.
-- Side-channeled. Even a correct implementation leaks through cache timing, branch prediction, power, EM. Constant-time code is a discipline most app developers never learn and most languages don't help with.
-- Metadata-stateful. Sessions, ratchets, resumption tickets, 0-RTT early-data caches — they all carry state that has to survive crashes, sync across replicas, and not get rolled back (else replay). Your "stateless web service" has a stateful crypto layer underneath whether you want it or not.
+## References <!-- omit in toc -->
 
-Secure channel ≈ "I know who you are and nobody else is listening." Everything that gives that fact operational meaning — multiplexing, negotiating, routing, budgeting, naming, authorizing, scoring, recovering — lives above it.
+1. [From KEMs to Protocols - Neil Madden][madden-kems]
+2. [ECDH as a KEM - Vlinder][vlinder-ecdh-kem]
+3. [Authentication - Computer Networks: A Systems Approach][sysapproach-auth]
+4. [Sender-Constrained Access Tokens: mTLS vs DPoP - SecureAuth][secureauth-mtls-dpop]
 
-> Hume's was "try really hard not to write a distributed system." Yours could be "try really hard not to build your own crypto layer — but also notice that even using a great off-the-shelf one (TLS, Noise, libp2p, Signal) only pays down maybe three of these dimensions. The rest are yours, forever, and the industry pretends they aren't." That framing — "the secure channel is the easy part; the productivity tax is everything around it" — would land hard.
-
-## The Changing Internet Threat Model
-
-The history of internet security can be read as a steady migration of *where* the threat is assumed to live — from the wire, to identity binding, to the authenticated counterparty itself. Four moments mark the transitions.
-
-### Dolev-Yao (1983): the saboteur on the wire
-
-Dolev and Yao start in a world where public-key cryptography exists in principle but nobody knows how to *use* it safely. Their saboteur is on the network, can read everything passing through it, and can act as a legitimate participant in protocols. The open question of the era is foundational: can any protocol built from these primitives preserve secrecy at all, given an adversary with these capabilities? The threat model is maximally pessimistic about the channel and treats the protocol logic itself as the thing under test.
-
-### Lowe's attack on Needham-Schroeder (1995): the punctuation mark
-
-Lowe's attack is the result that reframes what "security" even means. He shows that even with perfect cryptography and perfect key binding, a *legitimate* participant — Mallory, with his own real key pair — can exploit the protocol's role structure to impersonate Alice to Bob, just by relaying messages Alice willingly sent him. The attack isn't about broken crypto or stolen identities; it's about the protocol logic failing to bind a message to the *role* its sender was playing. The lesson: the channel and the keys can be perfect, and the protocol can still be broken. Dangerous actors don't need to be on the wire; they can be sitting at the other end of an authenticated session.
-
-### PKI deployment (1990s–2000s): operationalizing identity
-
-The PKI wave operationalizes identity binding at scale — X.509, certificate authorities, the Web PKI. This closes the "is this really Bob's key" gap that Dolev-Yao had left as an exercise for protocol designers. In practice, this is the moment when "who am I talking to" stops being something each protocol has to solve from scratch and becomes infrastructure. Crucially, PKI solves *impersonation* — Mallory can no longer claim to be Alice — but it says nothing about whether the correctly-identified party at the other end is honest. The Lowe-style threat, where Mallory is genuinely Mallory and exploits the protocol from a legitimate role, is entirely untouched by PKI. The cost of PKI's success is that subsequent threat models start to *assume* identity binding works and turn their attention elsewhere, leaving the question of malicious-but-authenticated counterparties largely unaddressed.
-
-### RFC 3552 (2003): codifying the channel attacker
-
-By the time the IETF codifies its working threat model, the assumed adversary has migrated almost entirely onto the channel. RFC 3552 explicitly stipulates that *endpoints are not compromised* and worries about an attacker who can read, drop, modify, and inject on the wire. The document's whole architecture of passive vs. active attacks, confidentiality vs. integrity, is organized around a wire-level adversary. It's worth being precise about what this assumption is doing: PKI did not eliminate the malicious-counterparty threat — it only eliminated impersonation. RFC 3552 handles the residual threat by *declaring it out of scope*, not by defending against it. PKI made that stipulation feel reasonable — if you know exactly who you're talking to, the residual worry shifts to the wire — but the stipulation itself is doing the work, not the cryptography. The Lowe-style threat never went away; it was simply set aside.
-
-### Arkko's proposal (2019): the threat moves inside the session
-
-Arkko's draft argues that the stipulation was always a stipulation, not a theorem, and it's no longer tenable. TLS, QUIC, and HTTPS have largely defeated the channel attacker. Meanwhile, the threat has moved fully *inside* the authenticated session — to counterparties who are correctly identified, correctly authenticated, and correctly behaving cryptographically, but who are malicious, coerced, or commercially misaligned with the user. PKI tells you Google is really Google; it doesn't tell you Google won't sell your data. The proposed rewrite of RFC 3552's core assumption is the formal acknowledgment: instead of "end-systems have not been compromised," the new baseline is "the *implementing* end-system has not been compromised, but the other parties may be."
-
-### Coming full circle
-
-We're back to a Lowe-style world where the dangerous actor is a legitimate participant — except now at the scale of cloud providers, BFT leaders, and centralized infrastructure, rather than a single Mallory in a three-message protocol. The cryptographic identity is impeccable, the channel is encrypted, the signatures all verify, and the threat is still real. Forty years of threat-model evolution have brought the field back to the realization Lowe forced on it in 1995: the protocol's role structure, not the channel, is where the adversary lives.
-
-## References
-
-https://neilmadden.blog/2021/04/08/from-kems-to-protocols/
-https://rlc.vlinder.ca/ecdh-kem/
-https://book.systemsapproach.org/security/authentication.html
-https://docs.secureauth.com/iam/blog/sender-constrained-access-tokens-mtls-vs-dpop
-https://thume.ca/2020/05/17/pipes-kill-productivity/
+[madden-kems]: https://neilmadden.blog/2021/04/08/from-kems-to-protocols/ "From KEMs to Protocols - Neil Madden"
+[vlinder-ecdh-kem]: https://rlc.vlinder.ca/ecdh-kem/ "ECDH as a KEM - Vlinder"
+[sysapproach-auth]: https://book.systemsapproach.org/security/authentication.html "Authentication - Computer Networks: A Systems Approach"
+[secureauth-mtls-dpop]: https://docs.secureauth.com/iam/blog/sender-constrained-access-tokens-mtls-vs-dpop "Sender-Constrained Access Tokens: mTLS vs DPoP - SecureAuth"

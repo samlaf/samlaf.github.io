@@ -1,7 +1,7 @@
 ---
 title:  "Applied Crypto 1: Cryptographic Primitives"
 category: programming
-date: 2026-06-14 00:01:00
+date: 2026-06-14 00:05:00
 ---
 
 Cryptographic primitives are the atoms everything else is built from. The same machinery serves confidentiality, authentication, key derivation, and randomness alike — the recurring punchline below is that a single primitive (a PRF) is hiding behind most of them.
@@ -68,11 +68,14 @@ The same primitives that encrypt also authenticate — which is the whole reason
 
 **AEAD = encryption + MAC, fused.** This is where the two halves of this article meet. An authenticated-encryption mode runs a stream-cipher mode for confidentiality *and* a MAC for integrity under one key schedule, so you can't forget the integrity half (the classic mistake that breaks "encrypt-only" designs). AES-GCM = AES-CTR + GMAC. ChaCha20-Poly1305 = ChaCha20 keystream + Poly1305. The tweakable modes from the previous section (Deoxys-II, SIV) are AEADs too, just with stronger freshness guarantees. Whenever an application reaches for "encryption," it almost always wants an AEAD, not raw confidentiality — which is why the [channel](/programming/secure-channels.html) post treats AEAD as the default once a handshake has produced session keys.
 
-**Signatures (asymmetric authentication).** A MAC's limitation is that verifying requires the same secret used to sign — so the verifier can also forge. Signatures break that symmetry: a private key signs, and a *public* key verifies, so anyone can check authenticity without being able to forge. That asymmetry is what makes signatures the backbone of identity at a distance — certificates, software signing, the passkey login in the [Authentication](/programming/authentication.html) post, the quote-signing keys in the [Attestation](/programming/attestation-models.html) post. RSA, ECDSA (NIST curves), and EdDSA (Ed25519) are the workhorses; the deterministic-nonce trick in EdDSA / RFC 6979 is, again, just a PRF over `(private_key, message)` — the same "PRF in counter mode" idea from the diagram above, reused to avoid catastrophic nonce reuse.
+**Signatures (asymmetric authentication).** A MAC's limitation is that verifying requires the same secret used to sign — so the verifier can also forge. Signatures break that symmetry: a private key signs, and a *public* key verifies, so anyone can check authenticity without being able to forge. That asymmetry is what makes signatures the backbone of identity at a distance — certificates, software signing, the passkey login in the [Authentication](/programming/authentication.html) post, the quote-signing keys in the [Attestation](/programming/roots-of-trust-and-attestation.html) post. RSA, ECDSA (NIST curves), and EdDSA (Ed25519) are the workhorses; the deterministic-nonce trick in EdDSA / RFC 6979 is, again, just a PRF over `(private_key, message)` — the same "PRF in counter mode" idea from the diagram above, reused to avoid catastrophic nonce reuse.
 
 The throughline: a MAC is the integrity twin of symmetric encryption, and a signature is the integrity twin of asymmetric encryption. Confidentiality hides content; authentication binds it to a holder of a key. Real protocols always want both — which is why AEAD fuses them, and why the channel and authentication posts lean on these primitives constantly.
 
-## References
+## References <!-- omit in toc -->
 
-https://joyofcryptography.com/pdf/chap11.pdf
-https://blog.trailofbits.com/2025/01/28/best-practices-for-key-derivation/
+1. [The Joy of Cryptography (ch. 11) - Mike Rosulek][joc-ch11]
+2. [Best Practices for Key Derivation - Trail of Bits][tob-kdf]
+
+[joc-ch11]: https://joyofcryptography.com/pdf/chap11.pdf "The Joy of Cryptography (ch. 11) - Mike Rosulek"
+[tob-kdf]: https://blog.trailofbits.com/2025/01/28/best-practices-for-key-derivation/ "Best Practices for Key Derivation - Trail of Bits"
