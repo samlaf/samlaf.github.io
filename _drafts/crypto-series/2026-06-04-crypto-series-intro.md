@@ -6,14 +6,14 @@ date: 2026-06-04
 
 This is the intro to a short series on applied cryptography — not the math, but the engineering: which primitives exist, how they compose into channels and authentication, and where all the trust ultimately bottoms out.
 
-## The duality that runs through everything
+## The split that runs through everything
 
 Every byte that moves over a network forces two independent questions:
 
 1. **Who is this from?** — *identity / authentication.* Certs, passkeys, signatures, tokens.
 2. **Who else can see or change it?** — *data protection.* Confidentiality + integrity: TLS records, AEAD, envelope encryption, end-to-end encryption.
 
-They're **orthogonal**. You can have one without the other: raw Diffie–Hellman gives you a confidential channel with no idea who's on the other end; a bare signature proves origin while hiding nothing. Real systems answer both, at several layers that stack on top of each other — and almost every topic in this series is one half of that duality, pointed at one layer.
+They're **orthogonal**. You can have one without the other: raw Diffie–Hellman gives you a confidential channel with no idea who's on the other end; a bare signature proves origin while hiding nothing. Real systems answer both, at several layers that stack on top of each other — and almost every topic in this series is one half of that split, pointed at one layer.
 
 Here's the way to *feel* the split: **once two parties share a secret, an AEAD turns it into a secure channel almost for free.** So nearly all the real difficulty reduces to the two sub-problems of getting that shared secret in the first place — **(a) establishing it safely**, and **(b) knowing it's shared with the *right* party.** (a) is the data-protection arm (key exchange, plus the key material itself); (b) is the identity arm (authentication, plus the roots of trust that make any identity believable).
 

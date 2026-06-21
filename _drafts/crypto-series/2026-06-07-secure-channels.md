@@ -6,7 +6,7 @@ category: programming
 date: 2026-06-07
 ---
 
-This is the data-protection arm of the [identity / data-protection duality](/programming/crypto-series-intro.html): how two parties agree on a shared key and protect bytes in transit. (The identity arm — proving *who* the other party is — gets its own [Authentication](/programming/authentication.html) post; the two are usually fused in practice but conceptually separate.)
+This is the data-protection arm of the [identity / data-protection split](/programming/crypto-series-intro.html): how two parties agree on a shared key and protect bytes in transit. (The identity arm — proving *who* the other party is — gets its own [Authentication](/programming/authentication.html) post; the two are usually fused in practice but conceptually separate.)
 
 The whole post rests on one observation: **once two parties share a secret, an AEAD turns it into a secure channel almost trivially.** So the entire difficulty is *safely establishing that shared secret* — which is what everything below is about. (The other half of the problem, knowing the secret is shared with the *right* party, is [Authentication](/programming/authentication.html) and [Roots of Trust & Attestation](/programming/roots-of-trust-and-attestation.html).)
 

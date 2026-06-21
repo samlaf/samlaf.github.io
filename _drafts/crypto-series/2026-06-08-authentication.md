@@ -6,7 +6,7 @@ category: programming
 date: 2026-06-08
 ---
 
-This is the identity arm of the [duality](/programming/crypto-series-intro.html): proving *who* a party is, as opposed to protecting *what* they send (that's [Key Exchange & Secure Channels](/programming/secure-channels.html)). The two are usually fused in a handshake, but they're separable — and authentication has its own 50-year story worth telling on its own.
+This is the identity arm of the [split](/programming/crypto-series-intro.html): proving *who* a party is, as opposed to protecting *what* they send (that's [Key Exchange & Secure Channels](/programming/secure-channels.html)). The two are usually fused in a handshake, but they're separable — and authentication has its own 50-year story worth telling on its own.
 
 ## The actors
 
