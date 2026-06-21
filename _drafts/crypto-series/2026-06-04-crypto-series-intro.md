@@ -11,9 +11,15 @@ This is the intro to a short series on applied cryptography — not the math, bu
 Every byte that moves over a network forces two independent questions:
 
 1. **Who is this from?** — *identity / authentication.* Certs, passkeys, signatures, tokens.
-2. **Who else can see or change it?** — *data protection.* Confidentiality + integrity: TLS records, AEAD, envelope encryption, end-to-end encryption.
+2. **Who else can see or change it?** — *data protection.* Confidentiality + *data* integrity: TLS records, AEAD, envelope encryption, end-to-end encryption.
 
 They're **orthogonal**. You can have one without the other: raw Diffie–Hellman gives you a confidential channel with no idea who's on the other end; a bare signature proves origin while hiding nothing. Real systems answer both, at several layers that stack on top of each other — and almost every topic in this series is one half of that split, pointed at one layer.
+
+In CIA-triad terms, the data-protection arm is *confidentiality + integrity*, and the identity arm is integrity aimed at origin — *authenticity*. The third leg, **availability**, is deliberately not in this series: it isn't a property cryptography provides. If anything, crypto *subtracts* from it — ransomware is confidentiality turned against you, an expensive handshake is a denial-of-service vector, a lost key is permanent unavailability. And the properties people bolt onto the triad — non-repudiation, deniability, authenticity — aren't a fourth pillar either; they're refinements of integrity (precisely the [MAC-vs-signature](/programming/crypto-primitives.html) split), so everything here really does reduce to those two arms.
+
+![Two ways to partition the same three guarantees — confidentiality, data integrity, and authentication (origin integrity). The C/I "property" split groups data and origin integrity together as integrity, cutting after confidentiality. This series' "difficulty" split instead groups confidentiality with data integrity as data protection, cutting after data integrity and leaving authentication as identity. Data integrity is the swing cell — it lands on a different side depending on which split you use.](/assets/crypto-series-intro/two-splits.svg)
+
+Same three atoms, cut two ways: the C / I split divides by *property*, this series by *engineering difficulty* — with data integrity the swing that lands on either side depending on which cut you take.
 
 Here's the way to *feel* the split: **once two parties share a secret, an AEAD turns it into a secure channel almost for free.** So nearly all the real difficulty reduces to the two sub-problems of getting that shared secret in the first place — **(a) establishing it safely**, and **(b) knowing it's shared with the *right* party.** (a) is the data-protection arm (key exchange, plus the key material itself); (b) is the identity arm (authentication, plus the roots of trust that make any identity believable).
 

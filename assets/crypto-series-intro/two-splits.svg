@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 818 440" font-family="-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">
+<rect x="0" y="0" width="818" height="440" fill="#ffffff"/>
+
+<!-- title -->
+<text x="60" y="34" font-size="18" font-weight="700" fill="#0f172a">Two ways to cut the same three guarantees</text>
+<text x="60" y="56" font-size="13" fill="#475569">The same three atoms, partitioned by <tspan font-weight="700">property</tspan> (C / I) and by <tspan font-weight="700">engineering difficulty</tspan> (what this series does).</text>
+
+<!-- ===== TOP partition: by property (C / I) ===== -->
+<text x="60" y="86" font-size="12" font-weight="700" fill="#2563eb">By property — the C / I split · primitives view</text>
+<!-- Confidentiality segment (col 1) -->
+<rect x="60" y="96" width="222" height="48" rx="9" fill="#dbeafe" stroke="#93c5fd"/>
+<text x="171" y="125" font-size="14" font-weight="700" fill="#1e3a8a" text-anchor="middle">Confidentiality</text>
+<!-- Integrity segment (cols 2+3) -->
+<rect x="298" y="96" width="460" height="48" rx="9" fill="#dbeafe" stroke="#93c5fd"/>
+<text x="528" y="120" font-size="14" font-weight="700" fill="#1e3a8a" text-anchor="middle">Integrity</text>
+<text x="528" y="137" font-size="10.5" fill="#3b82f6" text-anchor="middle">data + origin</text>
+
+<!-- ===== three atom cells ===== -->
+<!-- col1: Confidentiality -->
+<rect x="60" y="168" width="222" height="104" rx="10" fill="#f8fafc" stroke="#cbd5e1"/>
+<text x="171" y="212" font-size="15" font-weight="700" fill="#0f172a" text-anchor="middle">Confidentiality</text>
+<text x="171" y="234" font-size="11.5" fill="#64748b" text-anchor="middle">who can read it</text>
+<!-- col2: Data integrity (the swing) -->
+<rect x="298" y="168" width="222" height="104" rx="10" fill="#fffbeb" stroke="#f59e0b" stroke-width="2"/>
+<rect x="370" y="180" width="78" height="18" rx="9" fill="#f59e0b"/>
+<text x="409" y="193" font-size="10.5" font-weight="700" fill="#ffffff" text-anchor="middle">the swing</text>
+<text x="409" y="226" font-size="15" font-weight="700" fill="#0f172a" text-anchor="middle">Data integrity</text>
+<text x="409" y="248" font-size="11.5" fill="#92400e" text-anchor="middle">unchanged in transit</text>
+<!-- col3: Authentication -->
+<rect x="536" y="168" width="222" height="104" rx="10" fill="#f8fafc" stroke="#cbd5e1"/>
+<text x="647" y="212" font-size="15" font-weight="700" fill="#0f172a" text-anchor="middle">Authentication</text>
+<text x="647" y="234" font-size="11.5" fill="#64748b" text-anchor="middle">origin integrity — who it's from</text>
+
+<!-- ===== BOTTOM partition: by difficulty (data protection / identity) ===== -->
+<text x="60" y="300" font-size="12" font-weight="700" fill="#16a34a">By engineering difficulty — what this series does</text>
+<!-- Data protection segment (cols 1+2) -->
+<rect x="60" y="308" width="460" height="48" rx="9" fill="#dcfce7" stroke="#86efac"/>
+<text x="290" y="332" font-size="14" font-weight="700" fill="#166534" text-anchor="middle">Data protection</text>
+<text x="290" y="349" font-size="10.5" fill="#16a34a" text-anchor="middle">confidentiality + data integrity — fuse into an AEAD</text>
+<!-- Identity segment (col 3) -->
+<rect x="536" y="308" width="222" height="48" rx="9" fill="#dcfce7" stroke="#86efac"/>
+<text x="647" y="332" font-size="14" font-weight="700" fill="#166534" text-anchor="middle">Identity</text>
+<text x="647" y="349" font-size="10.5" fill="#16a34a" text-anchor="middle">authenticate the peer</text>
+
+<!-- ===== the two cuts (dashed guides in the column gaps) ===== -->
+<!-- property cut: between col1 and col2 -->
+<line x1="290" y1="96" x2="290" y2="272" stroke="#2563eb" stroke-width="1.5" stroke-dasharray="4,4"/>
+<!-- difficulty cut: between col2 and col3 -->
+<line x1="528" y1="168" x2="528" y2="356" stroke="#16a34a" stroke-width="1.5" stroke-dasharray="4,4"/>
+
+<!-- ===== caption ===== -->
+<g font-size="11.5" fill="#475569">
+<text x="60" y="388">Data integrity is the swing — “integrity” by property, part of “data protection” by difficulty.</text>
+<text x="60" y="408">Once a key is shared, confidentiality + data integrity fuse into an AEAD; the hard, separable problem is the last column.</text>
+</g>
+</svg>
