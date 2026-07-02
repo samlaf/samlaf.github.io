@@ -1,12 +1,34 @@
 ---
-title:  "Cryptographic Primitives"
-series: "Applied Crypto, Part 1"
+title:  "Algorithms: Public Crypto Mechanisms"
+series: "Applied Crypto, Part 3"
 series_url: "/programming/crypto-series-intro.html"
 category: programming
-date: 2026-06-06
+date: 2026-06-07
 ---
 
-Cryptographic primitives are the atoms everything else is built from. The same machinery serves confidentiality, authentication, key derivation, and randomness alike — the recurring punchline below is that a single primitive (a PRF) is hiding behind most of them.
+Kerckhoffs's principle splits crypto into **secret key material** and **public algorithms**. The previous post covered the keys; this one covers the public machinery that turns keys into confidentiality, integrity, origin, attribution, derivation, and randomness.
+
+```text
+public algorithm + secret key + usage contract = crypto mechanism
+```
+
+These primitives are the atoms everything else is built from. The recurring punchline below is that a single shape — a PRF — hides behind stream encryption, MACs, key derivation, CSPRNGs, and deterministic signing nonces.
+
+## Cube coordinates
+
+```text
+Concerns:
+  secrecy, correctness, origin, attribution, freshness, partial unlinkability
+
+Data states:
+  at rest | in transit | in use
+
+Reasoning layer:
+  mechanism
+
+Control modality:
+  technology
+```
 
 ## Primitives: PRFs vs PRPs
 
@@ -74,7 +96,9 @@ In the formal vocabulary: bare confidentiality only buys you IND-CPA (security a
 
 **What plain AEAD still doesn't give you: robustness.** Two gaps bite real systems, and neither is implied by "authenticated encryption." First, **[misuse-resistance][ae-wiki]**: vanilla AES-GCM fails *catastrophically* if a nonce ever repeats — a single reuse can leak the authentication key — so misuse-resistant AE (SIV, AES-GCM-SIV; the [tweakable modes](#tweakable-encryption) above) was designed to degrade gracefully instead, leaking at worst that two identical messages were sent. It was a headline goal of the [CAESAR competition][caesar] (2014–2019), the open AEAD bake-off that, like the AES competition before it, pushed the field past "GCM is fine." Second, **key-commitment**: AEAD guarantees a ciphertext wasn't tampered with, but *not* that it's bound to a single key — AES-GCM and ChaCha20-Poly1305 are *non-committing*, so an attacker can craft one ciphertext that decrypts and verifies under several different keys. That's the engine behind **partitioning-oracle attacks** (which broke Shadowsocks proxies and speed up password/PAKE guessing), and it bites password-based encryption, multi-recipient and key-rotation schemes, JWE, and age; the fix is a **committing AEAD**, an active area only in the last few years. (A related sharp edge: **RUP** — release of unverified plaintext — emit decrypted bytes *before* the tag verifies and you've handed plaintext to exactly the active attacker AEAD was meant to stop.) The lesson is the same either way: "authenticated encryption" is a precise guarantee — confidentiality and integrity, full stop — not a general-purpose seal of safety.
 
-**Signatures (asymmetric authentication).** A MAC's limitation is that verifying requires the same secret used to sign — so the verifier can also forge. Signatures break that symmetry: a private key signs, and a *public* key verifies, so anyone can check authenticity without being able to forge. That asymmetry is what makes signatures the backbone of identity at a distance — certificates, software signing, the passkey login in the [Authentication](/programming/authentication.html) post, the quote-signing keys in the [Attestation](/programming/roots-of-trust-and-attestation.html) post. RSA, ECDSA (NIST curves), and EdDSA (Ed25519) are the workhorses; the deterministic-nonce trick in EdDSA / RFC 6979 is, again, just a PRF over `(private_key, message)` — the same "PRF in counter mode" idea from the diagram above, reused to avoid catastrophic nonce reuse.
+**Signatures (asymmetric authentication).** A MAC's limitation is that verifying requires the same secret used to sign — so the verifier can also forge. Signatures break that symmetry: a private key signs, and a *public* key verifies, so anyone can check authenticity without being able to forge. That asymmetry is what makes signatures the backbone of identity at a distance — certificates, software signing, the passkey login in the [Authentication](/programming/authentication.html) post, the quote-signing keys in the [Data in Use / Attestation](/programming/data-in-use-isolation-measurement-and-attestation.html) post. RSA, ECDSA (NIST curves), and EdDSA (Ed25519) are the workhorses; the deterministic-nonce trick in EdDSA / RFC 6979 is, again, just a PRF over `(private_key, message)` — the same "PRF in counter mode" idea from the diagram above, reused to avoid catastrophic nonce reuse.
+
+That same asymmetry decides a property protocols care about on its own: **non-repudiation**. Only the private-key holder could have produced a signature, so a *third party* can be convinced who signed — the signer can't later deny it. A MAC gives the mirror image: since either party could have forged the tag, neither can prove to anyone else who made it. Usually that's a limitation — but sometimes it's the point, and Signal and OTR authenticate with symmetric MACs precisely so messages stay **deniable**.
 
 The throughline: a MAC is the integrity twin of symmetric encryption, and a signature is the integrity twin of asymmetric encryption. Confidentiality hides content; authentication binds it to a holder of a key. Real protocols always want both — which is why AEAD fuses them, and why the channel and authentication posts lean on these primitives constantly.
 
