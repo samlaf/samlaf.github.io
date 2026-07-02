@@ -1,18 +1,56 @@
 ---
-title:  "Key Exchange & Secure Channels"
-series: "Applied Crypto, Part 2"
+title:  "Data in Transit: Key Exchange & Secure Channels"
+series: "Applied Crypto, Part 6"
 series_url: "/programming/crypto-series-intro.html"
 category: programming
-date: 2026-06-07
+date: 2026-06-10
 ---
 
-This is the data-protection arm of the [identity / data-protection split](/programming/crypto-series-intro.html): how two parties agree on a shared key and protect bytes in transit. (The identity arm — proving *who* the other party is — gets its own [Authentication](/programming/authentication.html) post; the two are usually fused in practice but conceptually separate.)
+This is the **data-in-transit** chapter: how two parties establish keys over a hostile network and use those keys to protect bytes in motion.
 
-The whole post rests on one observation: **once two parties share a secret, an AEAD turns it into a secure channel almost trivially.** So the entire difficulty is *safely establishing that shared secret* — which is what everything below is about. (The other half of the problem, knowing the secret is shared with the *right* party, is [Authentication](/programming/authentication.html) and [Roots of Trust & Attestation](/programming/roots-of-trust-and-attestation.html).)
+The whole post rests on one observation: **once two parties share a secret, an AEAD turns it into a secure channel almost trivially.** So the hard part is not record protection; it is establishing the shared secret, binding it to the right peer, and preventing replay/downgrade/misbinding during setup.
 
-Any real system has to answer two orthogonal questions for every byte that moves: who is this from (identity) and who else can see it (data protection). Both questions get answered at multiple layers, and the layers compose.
-1. Identity layers: TLS server cert (transport), mTLS client cert or app-layer login — password/passkey/OAuth (request), session token — cookie/JWT (subsequent requests in a session), workload identity for service-to-service.
-2. Data-protection layers: TLS record layer (in transit), payload encryption inside queues/caches (in motion-but-at-rest), DEK/KEK envelope encryption (storage), E2E encryption between end users (server-as-relay).
+## Cube coordinates
+
+```text
+Concerns:
+  secrecy, correctness, origin, freshness, partial unlinkability
+
+Data state:
+  in transit
+
+Reasoning layers:
+  threat → property → capability → policy → mechanism
+
+Control modality:
+  mostly technology, with process around roots/cert lifecycle
+```
+
+The in-transit ladder looks like:
+
+```text
+Threat:
+  eavesdropping, tampering, replay, MITM, downgrade, wrong-party key binding
+
+Property:
+  confidentiality, integrity, peer authentication, freshness, forward secrecy
+
+Capability:
+  key establishment + secure channel + endpoint authentication
+
+Policy:
+  which roots, peer names, ciphers, protocol versions, 0-RTT rules, client-auth rules?
+
+Mechanism:
+  DH/KEM, HKDF, AEAD, certificates, TLS, HPKE, Noise, WireGuard, Signal
+```
+
+Any real system answers identity and data-protection questions at multiple layers:
+
+1. **Identity layers** — TLS server cert, mTLS client cert, app-layer login, OAuth token, session cookie/JWT, workload identity.
+2. **Data-protection layers** — TLS records in transit, payload encryption inside queues/caches, envelope encryption for storage, E2E encryption between users.
+
+This article is about the transport/channel layer. Authentication, authorization, storage, and in-use protections get their own posts.
 
 ## The bootstrap: which channel do you start with?
 
@@ -30,13 +68,9 @@ A typical client-server session looks like:
 4. (app-layer) Session establishment: server issues a short-lived token (cookie, JWT) so subsequent requests skip step 2.
 5. In-use and At-rest Data protection: now you can layer authenticated encryption for data at rest (DEK/KEK), for queue payloads, for cached blobs, or for end-to-end-encrypted content between users.
 
-TODO: actually at both wire and app-layers, we should separate channel establishment from authentication. They are often combined, but don't have to be, and are conceptually separate:
-> Generally, session key establishment protocols perform authentication. A notable exception is Diffie-Hellman, as described below, so the terms authentication protocol and session key establishment protocol are almost synonymous.
-> https://book.systemsapproach.org/security/authentication.html
+Key establishment and authentication are usually fused, but conceptually separate. Raw Diffie–Hellman establishes a shared key while authenticating nobody. TLS 1.3 establishes an ephemeral shared key and authenticates the server by signing the transcript with a certificate key. WireGuard authenticates with static-key DH instead of signatures. mTLS can authenticate the client in the transport layer; OAuth or passkeys can authenticate the user later inside the already-secure channel.
 
-Note that mTLS can be used to authenticate the user in step 1. See https://docs.secureauth.com/iam/blog/sender-constrained-access-tokens-mtls-vs-dpop
-
-A *session* and a *channel* aren't the same thing, and the walkthrough above spans both. A **channel** is a transport-level construct that protects bytes between two endpoints — one TLS connection. A **session** is the application's notion of a *continuing relationship* ("you're still logged in"), carried by a cookie or token, outliving any single channel and surviving reconnects. The old [OSI session layer][osi-session] tried to standardize this and never cleanly fit TCP/IP, but the split is real: channels protect data *in transit*; sessions maintain *identity over time*.
+A *session* and a *channel* also aren't the same thing. A **channel** is a transport-level construct that protects bytes between two endpoints — one TLS connection. A **session** is the application's notion of a continuing relationship ("you're still logged in"), carried by a cookie or token, outliving any single channel and surviving reconnects. The old [OSI session layer][osi-session] tried to standardize this and never cleanly fit TCP/IP, but the split is real: channels protect data *in transit*; sessions maintain identity over time.
 
 ## Channel Establishment
 
@@ -51,7 +85,7 @@ Tier 3 — Interactive channel, fixed ciphersuite. Both parties online, simple h
 
 Tier 4 — Interactive channel, full negotiation. TLS. Versioned, ciphersuite-agile, extension-rich, certificate-based PKI integration. The Swiss Army knife when you need to talk to arbitrary clients on the open internet.
 
-TODO: The arrow direction is the wrong message. "More interactive = more advanced" is the implicit story the 1D axis tells, and modern crypto thinking is largely the opposite. The history of TLS is the history of negotiation-driven attacks: FREAK, Logjam, POODLE, BEAST, CRIME, ROBOT, downgrade-dance variants — most of those exploit version or ciphersuite negotiation, not the underlying primitives. Cryptographic agility is now widely seen as a footgun. WireGuard's whole pitch is "we ripped out the negotiation." Trevor Perrin designed Noise so the ciphersuite is part of the protocol name (e.g. Noise_IK_25519_ChaChaPoly_BLAKE2s), never negotiated. DJB has written at length about why he considers algorithm agility harmful. So the honest reading of that axis is: rightward = more flexible at the cost of more attack surface and a harder security proof. Not better — more compatible with the open internet, which is a different thing.
+The tiers are not a progress axis. Rightward means more interactivity and flexibility, not "more secure." TLS needs negotiation because arbitrary clients meet arbitrary servers on the open internet. Noise and WireGuard deliberately avoid that flexibility because negotiation is attack surface: FREAK, Logjam, POODLE, BEAST, CRIME, ROBOT, and downgrade-dance variants exploited version/ciphersuite flexibility more than primitive weakness. The modern bias is: bake in the suite when you can; negotiate only when interoperability forces you.
 
 ![image](/assets/secure-channels/protocol-property-matrix.png)
 
@@ -77,9 +111,9 @@ Signal's choreography is denser because it has to be async. Alice can't ECDH aga
 
 ## AEAD
 
-Once a handshake has produced session keys, the bytes themselves are protected with an AEAD (AES-GCM, ChaCha20-Poly1305). The mechanics — how an AEAD fuses a stream-cipher mode with a MAC so you can't forget the integrity half — live in the MACs & Signatures section of [Cryptographic Primitives](/programming/crypto-primitives.html).
+Once a handshake has produced session keys, the bytes themselves are protected with an AEAD (AES-GCM, ChaCha20-Poly1305). The mechanics — how an AEAD fuses a stream-cipher mode with a MAC so you can't forget the integrity half — live in the MACs & Signatures section of [Algorithms: Public Crypto Mechanisms](/programming/crypto-primitives.html).
 
-Establishing the key is the easy, well-understood part. Everything a secure channel *doesn't* give you — naming, authorization, revocation, replay protection across sessions, group keying — is surveyed in the series capstone at the end of [Roots of Trust & Attestation](/programming/roots-of-trust-and-attestation.html).
+Establishing the key is the easy, well-understood part. Everything a secure channel *doesn't* give you — naming, authorization, revocation, replay protection across sessions, group keying, storage, in-use secrecy, metadata privacy — is surveyed in the series capstone, [What Crypto Still Doesn't Give You](/programming/what-crypto-still-doesnt-give-you.html).
 
 ## Side channels
 

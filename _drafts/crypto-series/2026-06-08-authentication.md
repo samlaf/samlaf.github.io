@@ -1,14 +1,58 @@
 ---
-title:  "Authentication"
-series: "Applied Crypto, Part 3"
+title:  "Authentication, Certificates, Roots, and Delegation"
+series: "Applied Crypto, Part 5"
 series_url: "/programming/crypto-series-intro.html"
 category: programming
-date: 2026-06-08
+date: 2026-06-09
 ---
 
-This is the identity arm of the [split](/programming/crypto-series-intro.html): proving *who* a party is, as opposed to protecting *what* they send (that's [Key Exchange & Secure Channels](/programming/secure-channels.html)). The two are usually fused in a handshake, but they're separable — and authentication has its own 50-year story worth telling on its own.
+Authentication is the **origin** concern: proving which principal, key, device, workload, service, or code environment a statement comes from. It is not the same as authorization. Authentication says **who**; policy decides **may they**.
 
-Authentication runs in two directions, and they arrived in the opposite order you'd guess. **Server authentication** — your browser proving it's really talking to `google.com` and not an impostor — is the older problem and the one that runs silently on *every* HTTPS connection, login or not; it's the job of the Web PKI. **User (client) authentication** — a human or device proving identity *to* the server — is the visible login step, and its 50-year arc fills most of this post. **Mutual authentication** (mTLS) is just both at once. The [threat-model post](/programming/threat-model.html) named server authentication as "the identity binding" — layer 2, *is this key really Bob's?* — but left the mechanism for here.
+In the cube, authentication appears in every data state:
+
+```text
+in transit:  server certs, mTLS, passkeys, signed requests
+at rest:     signed artifacts, package provenance, KMS caller identity
+in use:      workload identity, device identity, enclave/TEE identity
+```
+
+## Cube coordinates
+
+```text
+Concerns:
+  origin, attribution, access bridge
+
+Data states:
+  at rest | in transit | in use
+
+Reasoning layers:
+  capability → policy → mechanism
+
+Control modality:
+  technology + process/human roots and recovery
+```
+
+Authentication runs in two directions, and they arrived in the opposite order you'd guess. **Server authentication** — your browser proving it's really talking to `google.com` and not an impostor — is the older problem and the one that runs silently on *every* HTTPS connection, login or not; it's the job of the Web PKI. **User (client) authentication** — a human or device proving identity *to* the server — is the visible login step, and its 50-year arc fills most of this post. **Mutual authentication** (mTLS) is just both at once. The [threat-model post](/programming/threat-model.html) named server authentication as "the identity binding" — *is this key really Bob's?* — but left the mechanism for here.
+
+## The authentication stack
+
+Every authentication system has the same shape:
+
+```text
+proof of possession
+  + binding statement
+  + trust anchor
+  + verifier policy
+```
+
+| Piece | Example |
+|---|---|
+| **Proof of possession** | signature over a challenge, TLS transcript signature, WebAuthn assertion, DPoP proof |
+| **Binding statement** | certificate, account registration record, OIDC token, attestation quote, signed package metadata |
+| **Trust anchor** | CA root, IdP signing key, hardware vendor root, pinned SSH host key, package maintainer key |
+| **Verifier policy** | which issuers, audiences, origins, roots, algorithms, expiry windows, scopes, or measurements are acceptable |
+
+A signature only proves possession of a private key. Authentication requires a binding from that key to a principal and a policy saying the binding is acceptable for this purpose.
 
 ## The actors
 
@@ -22,7 +66,7 @@ Authentication is a conversation between a handful of parties — a client, the 
 
 The user-auth story below is about moving the root of trust *out of the server's hands*. Server authentication has the mirror-image arc: moving it *out of any single CA's hands*. A public key is not a name — nothing in the bytes of `google.com`'s public key says "google.com" — so something has to vouch for the binding, and the whole history is about who that voucher is and how much you're forced to trust them.
 
-You can read an X.509 certificate through the same five-part grammar as any other proof: **who** (the `subject` / Subject Alternative Names — the domains), **when** (the `notBefore`/`notAfter` validity window), **what-for** (key-usage and extended-key-usage extensions — "this key may sign TLS handshakes, not mint other certs"), and **bound-to-what** (the issuer's signature, chaining the leaf upward). The leaf binds a domain to a key, an intermediate signs the leaf, a root CA signs the intermediate — and the root's public key was baked into your browser or OS out of band, which is the [Roots of Trust](/programming/roots-of-trust-and-attestation.html) story, the anchor every chain terminates at.
+You can read an X.509 certificate through the same five-part grammar as any other proof: **who** (the `subject` / Subject Alternative Names — the domains), **when** (the `notBefore`/`notAfter` validity window), **what-for** (key-usage and extended-key-usage extensions — "this key may sign TLS handshakes, not mint other certs"), and **bound-to-what** (the issuer's signature, chaining the leaf upward). The leaf binds a domain to a key, an intermediate signs the leaf, a root CA signs the intermediate — and the root's public key was baked into your browser or OS out of band. That baked-in root is not derived by crypto; it is verifier policy shipped as software.
 
 #### Phase 1: Self-signed & TOFU (pre-PKI)
 
@@ -42,7 +86,7 @@ Blind global trust broke exactly as you'd expect: the Comodo and DigiNotar compr
 
 #### Phase 5: Shrinking the trust window — short-lived certs
 
-Revocation is PKI's chronic weak spot — the "stale" problem from the [capstone](/programming/roots-of-trust-and-attestation.html). CRLs (download every revoked serial) grew too big; OCSP (ask the CA live, per connection) leaked your browsing history to the CA and added latency; OCSP stapling (the *server* fetches and attaches a fresh signed status) fixed privacy and latency but was never reliably deployed. The blunt answer that won was to make certs so short-lived that revocation barely matters: maximum lifetimes have ratcheted from 825 days to 398 (Sept 2020), and the CA/Browser Forum has voted to reach 47 days by 2029. A cert that expires in weeks is its own revocation.
+Revocation is PKI's chronic weak spot — the "stale" problem from the [capstone](/programming/what-crypto-still-doesnt-give-you.html). CRLs (download every revoked serial) grew too big; OCSP (ask the CA live, per connection) leaked your browsing history to the CA and added latency; OCSP stapling (the *server* fetches and attaches a fresh signed status) fixed privacy and latency but was never reliably deployed. The blunt answer that won was to make certs so short-lived that revocation barely matters: maximum lifetimes have ratcheted from 825 days to 398 (Sept 2020), and the CA/Browser Forum has voted to reach 47 days by 2029. A cert that expires in weeks is its own revocation.
 
 #### The alternatives: who else can vouch?
 
@@ -51,15 +95,37 @@ Hierarchical CAs aren't the only way to bind a key to an identity. Each alternat
 - **Web of Trust (PGP, 1991).** No CAs — users sign each other's keys, and trust propagates through whoever you've personally chosen as "introducers" (Zimmermann's "decentralized fault-tolerant web of confidence"). Decentralized and human-meaningful, but it never scaled: key-signing parties are friction, and trust paths between strangers are rarely short or legible.
 - **SPKI/SDSI (RFC 2693, 1999).** Grew out of frustration with X.509's complexity, and made a radical move: *the key is the principal* — don't bind keys to global real-world identities at all, bind them to **authorizations** and **local names**, with the verifier often also the issuer (an "authorization loop"). Closer in spirit to today's capability tokens (macaroons, biscuits) than to the Web PKI.
 - **DANE (RFC 6698, 2012).** Anchor certs in DNSSEC instead of CAs — publish the cert's fingerprint in a DNS record signed up the DNS hierarchy. Trades the CA cartel for the DNS root; browsers never adopted it.
-- **Decentralized PKI / key transparency.** Blockchain naming (Namecoin, ENS) and W3C DIDs let each entity act as its own root authority, anchored in a distributed ledger rather than a CA — and the [roots-of-trust](/programming/roots-of-trust-and-attestation.html) post notes a blockchain genesis hash is just one more out-of-band anchor. Meanwhile key transparency (CONIKS, then Google / WhatsApp / iMessage key transparency) applies CT's "log everything" idea to *end-user* keys, so an E2EE provider can't swap in a wiretap key without leaving a public, auditable trace.
+- **Decentralized PKI / key transparency.** Blockchain naming (Namecoin, ENS) and W3C DIDs let each entity act as its own root authority, anchored in a distributed ledger rather than a CA — though a blockchain genesis hash is still one more out-of-band anchor. Meanwhile key transparency (CONIKS, then Google / WhatsApp / iMessage key transparency) applies CT's "log everything" idea to *end-user* keys, so an E2EE provider can't swap in a wiretap key without leaving a public, auditable trace.
 
-These map cleanly onto Zooko's triangle (secure / human-meaningful / decentralized — pick two, from the [capstone](/programming/roots-of-trust-and-attestation.html)): the Web PKI takes human-meaningful + secure and sacrifices decentralization (you trust the CA cartel); Web of Trust reaches for human-meaningful + decentralized and gives up reliable security at scale; self-certifying names (a Tor `.onion` address, a raw public-key fingerprint) are secure + decentralized but not human-meaningful; and blockchain naming is the bet that a global ledger can finally square all three.
+These map cleanly onto Zooko's triangle (secure / human-meaningful / decentralized — pick two, revisited in the [capstone](/programming/what-crypto-still-doesnt-give-you.html)): the Web PKI takes human-meaningful + secure and sacrifices decentralization (you trust the CA cartel); Web of Trust reaches for human-meaningful + decentralized and gives up reliable security at scale; self-certifying names (a Tor `.onion` address, a raw public-key fingerprint) are secure + decentralized but not human-meaningful; and blockchain naming is the bet that a global ledger can finally square all three.
 
 Notice the throughline — the same one the user-auth arc has below: every step after Phase 2 (CT, CAA, multi-perspective validation, short lifetimes, and every decentralized alternative) pushes the root of trust *out of any single CA's hands*. Server auth and user auth are one de-trusting trajectory pointed in opposite directions.
 
 #### Mutual TLS
 
 Everything above authenticates the *server* to the client. mTLS makes it symmetric: the client also presents a cert, and the server validates it against its own trust anchor. On the open web this is rare (users don't carry certs), but it's the backbone of *service-to-service* authentication inside infrastructure — a workload's identity *is* an X.509 cert (SPIFFE/SPIRE issue exactly these), and possession of the matching private key is the proof. Same possession anchor as a passkey, just with no human in the loop — which reconnects to the service-to-service tier of the [security hierarchy](#picking-an-auth-method-security-hierarchy) below.
+
+## Roots as verifier policy
+
+A root of trust is just the top of an authentication chain that the verifier accepts without deriving it from another proof.
+
+```text
+leaf proof → intermediate binding → root anchor → verifier policy says root is acceptable
+```
+
+Examples:
+
+- browser CA bundle for Web PKI
+- pinned SSH host key for TOFU
+- IdP signing key for OIDC tokens
+- package maintainer or registry signing key
+- CT log keys accepted by browser policy
+- hardware vendor roots for TPM/TEE attestation
+- blockchain genesis hash shipped in a client
+
+Crypto verifies signatures along the chain. Policy chooses which roots are in the trust store, what purposes they are valid for, when they expire, and how they are removed. That is why roots belong in authentication but are not themselves "cryptographic magic": they are out-of-band configuration made operational by signatures.
+
+Hardware attestation uses the same structure, but the authenticated principal is a computation environment rather than a person or domain. A quote says "this key/session/report is bound to code measurement M under hardware root R"; the verifier policy still decides whether R and M are acceptable. The mechanics are in [Data in Use: Isolation, Measurement, and Attestation](/programming/data-in-use-isolation-measurement-and-attestation.html).
 
 ## History of User Authentication
 
@@ -130,7 +196,7 @@ For anything with real consequences (email, cloud storage, financial, health) �
 
 For administrative or high-privilege access (cloud root, code signing, DB admin, infrastructure) — hardware tokens with attestation (YubiKey, Titan, smartcard) become appropriate. The key property isn't just stronger crypto; it's that a lost-or-compromised laptop doesn't compromise the token. You want the possession factor to live on a separate device you can physically inventory.
 
-For server-held secrets (database encryption keys, service signing keys, pepper, OAuth client secrets) — KMS/HSM-backed envelope encryption becomes the appropriate architecture. The tradeoff is operational complexity: every service call that needs to read encrypted data has to make a KMS call, which costs latency and money, and you need to think about failure modes if KMS is unreachable. For data that isn't genuinely sensitive, plain AES with a key in config is still sometimes the right call. (The envelope-encryption mechanics are covered in [Keys](/programming/keys.html).)
+For server-held secrets (database encryption keys, service signing keys, pepper, OAuth client secrets) — KMS/HSM-backed envelope encryption becomes the appropriate architecture. The tradeoff is operational complexity: every service call that needs to read encrypted data has to make a KMS call, which costs latency and money, and you need to think about failure modes if KMS is unreachable. For data that isn't genuinely sensitive, plain AES with a key in config is still sometimes the right call. (The key hierarchy is covered in [Keys](/programming/keys.html); the storage architecture is covered in [Data at Rest](/programming/data-at-rest-storage-kms-and-recovery.html).)
 
 For service-to-service authentication (backend APIs calling each other) — no human factors apply. You want mutual TLS with client certificates, or signed JWTs where the signing key lives in the HSM. Again, possession is the anchor — a workload identity tied to hardware or to a short-lived credential from a workload identity service.
 
