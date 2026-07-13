@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="660" viewBox="0 0 960 660" font-family="system-ui, -apple-system, 'Segoe UI', 'Helvetica Neue', sans-serif">
+<rect width="960" height="660" fill="#fcfcfb"/>
+<text paint-order="stroke" stroke="#fcfcfb" stroke-width="4" stroke-linejoin="round" x="64" y="34" font-size="19" font-weight="700" fill="#0b0b0b">Roofline — AES-128-CTR on one Zen 5 core (~4.4 GHz)</text>
+<text paint-order="stroke" stroke="#fcfcfb" stroke-width="4" stroke-linejoin="round" x="64" y="56" font-size="13" fill="#52514e">Diagonals: per-core bandwidth of each memory level (1:1 read:write stream). Horizontals: AES compute roofs.</text>
+<text paint-order="stroke" stroke="#fcfcfb" stroke-width="4" stroke-linejoin="round" x="64" y="74" font-size="13" fill="#52514e">Zero reuse pins the cipher to one intensity — it can only ever move vertically.</text>
+<clipPath id="plot"><rect x="64" y="96" width="866" height="476"/></clipPath>
+<line x1="100.5" y1="96" x2="100.5" y2="572" stroke="#e1e0d9" stroke-width="1"/>
+<text paint-order="stroke" stroke="#fcfcfb" stroke-width="4" stroke-linejoin="round" x="100.5" y="590" font-size="11.5" fill="#898781" text-anchor="middle">0.05</text>
+<line x1="213.8" y1="96" x2="213.8" y2="572" stroke="#e1e0d9" stroke-width="1"/>
+<text paint-order="stroke" stroke="#fcfcfb" stroke-width="4" stroke-linejoin="round" x="213.8" y="590" font-size="11.5" fill="#898781" text-anchor="middle">0.1</text>
+<line x1="327.1" y1="96" x2="327.1" y2="572" stroke="#e1e0d9" stroke-width="1"/>
+<text paint-order="stroke" stroke="#fcfcfb" stroke-width="4" stroke-linejoin="round" x="327.1" y="590" font-size="11.5" fill="#898781" text-anchor="middle">0.2</text>
+<line x1="476.8" y1="96" x2="476.8" y2="572" stroke="#e1e0d9" stroke-width="1"/>
+<text paint-order="stroke" stroke="#fcfcfb" stroke-width="4" stroke-linejoin="round" x="476.8" y="590" font-size="11.5" fill="#898781" text-anchor="middle">0.5</text>
+<line x1="590.1" y1="96" x2="590.1" y2="572" stroke="#e1e0d9" stroke-width="1"/>
+<text paint-order="stroke" stroke="#fcfcfb" stroke-width="4" stroke-linejoin="round" x="590.1" y="590" font-size="11.5" fill="#898781" text-anchor="middle">1</text>
+<line x1="703.4" y1="96" x2="703.4" y2="572" stroke="#e1e0d9" stroke-width="1"/>
+<text paint-order="stroke" stroke="#fcfcfb" stroke-width="4" stroke-linejoin="round" x="703.4" y="590" font-size="11.5" fill="#898781" text-anchor="middle">2</text>
+<line x1="853.2" y1="96" x2="853.2" y2="572" stroke="#e1e0d9" stroke-width="1"/>
+<text paint-order="stroke" stroke="#fcfcfb" stroke-width="4" stroke-linejoin="round" x="853.2" y="590" font-size="11.5" fill="#898781" text-anchor="middle">5</text>
+<line x1="64" y1="528.5" x2="930" y2="528.5" stroke="#e1e0d9" stroke-width="1"/>
+<text paint-order="stroke" stroke="#fcfcfb" stroke-width="4" stroke-linejoin="round" x="56" y="532.5" font-size="11.5" fill="#898781" text-anchor="end">5</text>
+<line x1="64" y1="469.4" x2="930" y2="469.4" stroke="#e1e0d9" stroke-width="1"/>
+<text paint-order="stroke" stroke="#fcfcfb" stroke-width="4" stroke-linejoin="round" x="56" y="473.4" font-size="11.5" fill="#898781" text-anchor="end">10</text>
+<line x1="64" y1="410.3" x2="930" y2="410.3" stroke="#e1e0d9" stroke-width="1"/>
+<text paint-order="stroke" stroke="#fcfcfb" stroke-width="4" stroke-linejoin="round" x="56" y="414.3" font-size="11.5" fill="#898781" text-anchor="end">20</text>
+<line x1="64" y1="332.3" x2="930" y2="332.3" stroke="#e1e0d9" stroke-width="1"/>
+<text paint-order="stroke" stroke="#fcfcfb" stroke-width="4" stroke-linejoin="round" x="56" y="336.3" font-size="11.5" fill="#898781" text-anchor="end">50</text>
+<line x1="64" y1="273.2" x2="930" y2="273.2" stroke="#e1e0d9" stroke-width="1"/>
+<text paint-order="stroke" stroke="#fcfcfb" stroke-width="4" stroke-linejoin="round" x="56" y="277.2" font-size="11.5" fill="#898781" text-anchor="end">100</text>
+<line x1="64" y1="214.1" x2="930" y2="214.1" stroke="#e1e0d9" stroke-width="1"/>
+<text paint-order="stroke" stroke="#fcfcfb" stroke-width="4" stroke-linejoin="round" x="56" y="218.1" font-size="11.5" fill="#898781" text-anchor="end">200</text>
+<line x1="64" y1="136.1" x2="930" y2="136.1" stroke="#e1e0d9" stroke-width="1"/>
+<text paint-order="stroke" stroke="#fcfcfb" stroke-width="4" stroke-linejoin="round" x="56" y="140.1" font-size="11.5" fill="#898781" text-anchor="end">500</text>
+<line x1="64" y1="572" x2="930" y2="572" stroke="#c3c2b7" stroke-width="1.5"/>
+<line x1="64" y1="96" x2="64" y2="572" stroke="#c3c2b7" stroke-width="1.5"/>
+<text paint-order="stroke" stroke="#fcfcfb" stroke-width="4" stroke-linejoin="round" x="497" y="614" font-size="13" fill="#52514e" text-anchor="middle">bytes encrypted per byte of memory traffic (arithmetic intensity)</text>
+<text paint-order="stroke" stroke="#fcfcfb" stroke-width="4" stroke-linejoin="round" x="20" y="334" font-size="13" fill="#52514e" text-anchor="middle" transform="rotate(-90 20 334)">ciphertext GiB/s</text>
+<g clip-path="url(#plot)">
+<line x1="64.0" y1="406.3" x2="930.0" y2="-45.2" stroke="#86b6ef" stroke-width="2"/>
+<line x1="64.0" y1="465.3" x2="930.0" y2="13.8" stroke="#3987e5" stroke-width="2"/>
+<line x1="64.0" y1="524.4" x2="930.0" y2="72.9" stroke="#256abf" stroke-width="2"/>
+<line x1="64.0" y1="612.6" x2="930.0" y2="161.1" stroke="#184f95" stroke-width="2"/>
+<line x1="64.0" y1="730.7" x2="930.0" y2="279.3" stroke="#0d366b" stroke-width="2"/>
+</g>
+<text paint-order="stroke" stroke="#fcfcfb" stroke-width="4" stroke-linejoin="round" x="135.6" y="361.9" font-size="12" fill="#52514e" transform="rotate(-27.54 135.6 361.9)">L1D ≈ 524 GiB/s</text>
+<text paint-order="stroke" stroke="#fcfcfb" stroke-width="4" stroke-linejoin="round" x="196.5" y="389.2" font-size="12" fill="#52514e" transform="rotate(-27.54 196.5 389.2)">L2 ≈ 262 GiB/s</text>
+<text paint-order="stroke" stroke="#fcfcfb" stroke-width="4" stroke-linejoin="round" x="256.6" y="417.0" font-size="12" fill="#52514e" transform="rotate(-27.54 256.6 417.0)">L3 ≈ 131 GiB/s</text>
+<text paint-order="stroke" stroke="#fcfcfb" stroke-width="4" stroke-linejoin="round" x="213.8" y="527.5" font-size="12" fill="#52514e" transform="rotate(-27.54 213.8 527.5)">DRAM · 1 core ≈ 47 GiB/s</text>
+<line x1="64" y1="328.2" x2="930" y2="328.2" stroke="#0b0b0b" stroke-width="2"/>
+<text paint-order="stroke" stroke="#fcfcfb" stroke-width="4" stroke-linejoin="round" x="924" y="321.2" font-size="12.5" font-weight="600" fill="#0b0b0b" text-anchor="end">VAES-512 roof · 52.4 GiB/s</text>
+<line x1="64" y1="387.2" x2="930" y2="387.2" stroke="#898781" stroke-width="1.5" stroke-dasharray="7 5"/>
+<text paint-order="stroke" stroke="#fcfcfb" stroke-width="4" stroke-linejoin="round" x="924" y="380.2" font-size="12" fill="#898781" text-anchor="end">VAES-256 · 26.2 GiB/s</text>
+<line x1="64" y1="446.3" x2="930" y2="446.3" stroke="#898781" stroke-width="1.5" stroke-dasharray="7 5"/>
+<text paint-order="stroke" stroke="#fcfcfb" stroke-width="4" stroke-linejoin="round" x="924" y="439.3" font-size="12" fill="#898781" text-anchor="end">AES-NI 128-bit · 13.1 GiB/s</text>
+<line x1="476.8" y1="96" x2="476.8" y2="572" stroke="#0b0b0b" stroke-width="1.5" stroke-dasharray="5 4"/>
+<text paint-order="stroke" stroke="#fcfcfb" stroke-width="4" stroke-linejoin="round" x="468.8" y="112" font-size="12.5" font-weight="600" fill="#0b0b0b" text-anchor="end">AES-CTR lives here: ½</text>
+<text paint-order="stroke" stroke="#fcfcfb" stroke-width="4" stroke-linejoin="round" x="468.8" y="128" font-size="11.5" fill="#52514e" text-anchor="end">(1 read + 1 write per byte)</text>
+<line x1="410.6" y1="96" x2="410.6" y2="572" stroke="#898781" stroke-width="1" stroke-dasharray="2 4"/>
+<text paint-order="stroke" stroke="#fcfcfb" stroke-width="4" stroke-linejoin="round" x="404.6" y="562" font-size="11" fill="#898781" text-anchor="end">⅓ with write-allocate stores</text>
+<circle cx="476.8" cy="333.8" r="6" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"/>
+<text paint-order="stroke" stroke="#fcfcfb" stroke-width="4" stroke-linejoin="round" x="488.8" y="349.8" font-size="12.5" font-weight="600" fill="#0b0b0b">measured: 49.1 — 93% of roof (1 MiB, L3-resident)</text>
+<circle cx="476.8" cy="397.4" r="6" fill="#fcfcfb" stroke="#eb6834" stroke-width="2.5"/>
+<text paint-order="stroke" stroke="#fcfcfb" stroke-width="4" stroke-linejoin="round" x="488.8" y="415.4" font-size="12.5" fill="#52514e">predicted: ~23 — 1 core, cold data</text>
+<circle cx="476.8" cy="515.5" r="6" fill="#fcfcfb" stroke="#eb6834" stroke-width="2.5"/>
+<text paint-order="stroke" stroke="#fcfcfb" stroke-width="4" stroke-linejoin="round" x="488.8" y="531.5" font-size="12.5" fill="#52514e">predicted: ~5.9 — per core, 8 cores sharing the ~100 GB/s CCD link</text>
+</svg>
