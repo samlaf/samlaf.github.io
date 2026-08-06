@@ -1,71 +1,245 @@
 ---
-title:  "The Changing Internet Threat Model"
-series: "Applied Crypto, Prologue"
+title:  "Threat Models Across Data States"
+series: "Applied Crypto, Part 1"
 series_url: "/programming/crypto-series-intro.html"
 category: programming
 date: 2026-06-05
 ---
 
-All the machinery in this series — keys, channels, authentication, attestation — exists to defend against an adversary. The interesting question is *where* you assume that adversary lives, and over forty years the frontier has moved.
+All the machinery in this series — keys, algorithms, authorization, channels, authentication, storage encryption, and attestation — exists to defend against an adversary. The interesting question is not just *how strong* the adversary is, but **where the adversary lives**.
 
-There are three places a threat can live:
+McCumber's data-state axis gives the clean split:
 
-1. **On the wire** — the network between two endpoints. *(Now largely solved.)*
-2. **In the identity binding** — *is this key really Bob's?* *(Now infrastructure.)*
-3. **Inside the authenticated session** — Bob is provably Bob, and Bob is hostile. *(The open frontier.)*
+```text
+data in transit  → the network and protocol boundary
+data at rest     → disks, databases, object stores, backups
+data in use      → processes, CPUs, OSes, hypervisors, enclaves, agents
+```
 
-For each, it helps to separate three things that often happened *decades apart*: the **threat**, the **theory** that modelled it, and the **implementation** that finally shipped — plus the attacks that broke those implementations in between. The recurring pattern: a threat is *modelled* long before it's *defeated*, and the deployed system gets broken many times along the way.
+The old version of this post was mostly the internet threat model: the adversary moved from the wire, to identity binding, to the authenticated counterparty itself. That is still the central story for **data in transit**, but it is only one face of the cube. Stored data and running computation have their own threat models.
 
-![Timeline of internet threat models across three layers — the wire, identity binding, and inside the session — from 1976 to today, showing each threat modelled years before it was defeated](/assets/threat-model/threat-model-timeline.svg)
+## Cube coordinates
 
-## 1 · On the wire: the network between endpoints
+```text
+Concerns:
+  secrecy, correctness, origin, attribution, uptime, unlinkability
 
-**Threat.** A passive eavesdropper reads your traffic; an active attacker drops, modifies, and injects it (a man-in-the-middle).
+Data states:
+  at rest | in transit | in use
 
-**Theory.** [Dolev and Yao][dolev-yao] (1983) formalized exactly this adversary — full control of the network — and that model is still the one we use today. Two decades later, [RFC 3552][rfc3552] (2003) made it the IETF's *default*: assume the endpoints are honest and the wire is hostile. Note the gap — the *model* of the wire attacker predates a deployed protocol that actually beats it by decades.
+Reasoning layer:
+  threat
 
-**Implementation — and the setup/usage split.** SSL (1995) → TLS 1.0 (1999) → TLS 1.2 with AEAD (2008) → TLS 1.3 (2018). The model was clear the whole time; the *implementations* leaked for twenty years. But the key realization is that a channel has two phases with completely different security stories:
+Control modality:
+  technology threats + process/human threats
+```
 
-- **Setup (the handshake) is the battleground.** The handshake negotiates versions and ciphersuites, and that negotiation is the soft underbelly: [FREAK and Logjam][logjam] (2015) downgrade a victim onto deliberately-weak export crypto without breaking any primitive. This is why cryptographic agility is now seen as a footgun — and why the negotiation-free designs from the [channels post](/programming/secure-channels.html) (Noise, WireGuard) sidestep the entire downgrade class by baking the ciphersuite into the protocol name rather than negotiating it. (Orthogonally, Heartbleed (2014) was a memory bug in OpenSSL — the library is its own attack surface, separate from the protocol.)
-- **Usage (the record phase) is solved.** Once a key is established and you protect bytes with an AEAD, steady-state traffic is essentially unbreakable — there is nothing left for a wire attacker to do. The historical record-layer attacks (BEAST 2011, CRIME 2012, Lucky 13 2013, POODLE 2014) were all against *pre-AEAD* constructions — CBC modes and TLS-level compression — and AEAD plus TLS 1.3 retired them. The symmetric cipher underneath matured the same way: [DES][des] (standardized 1977) shipped with a suspiciously short 56-bit key and was brute-forced by 1998, and the open [AES][aes] competition (2001) replaced it — public scrutiny as the antidote to a quietly-weakened standard, the same openness-vs-subversion theme as the Dual_EC RNG in §3. (The remaining caveats are precise ones the [primitives post](/programming/crypto-primitives.html) covers: key-commitment, RUP, side channels.)
+## Adversary vocabulary
 
-So the wire is the *solved* part: modern AEAD usage is airtight, and TLS 1.3 hardened setup by amputating most of the legacy negotiation those attacks rode in on. Which is precisely why the threat moved on.
+A threat model first names the adversary's powers.
 
-## 2 · In the identity binding: *is this key really Bob's?*
+Along behavior:
 
-**Threat.** A perfectly secure channel to the *wrong party*. The attacker breaks no crypto at all — he hands you his own public key, and you faithfully encrypt everything to him.
+- **Passive** — observes only.
+- **Active** — drops, modifies, injects, reorders, replays.
+- **Crash / omission / Byzantine** — distributed-systems vocabulary for nodes that halt, omit messages, or behave arbitrarily.
 
-**Theory.** [Diffie–Hellman][dh] (1976) gave us public keys, but a key is not a name. *Binding* a given key to the right identity — proving this key really is `example.com`'s — is a separate, unglamorous problem, and exactly the one PKI exists to solve. (That's distinct from *naming*: whether a human-meaningful name can simultaneously be unforgeable and decentralized is a further trilemma — Zooko's triangle — which shows up a layer up, in the [capstone](/programming/roots-of-trust-and-attestation.html).)
+Along resources:
 
-**Implementation (and its breaks).** [PKI][web-pki] — X.509, certificate authorities, the Web PKI (1990s–2000s) — turned identity binding into infrastructure, so each protocol stopped solving "who am I talking to" from scratch. Its failures are about trusting the wrong *issuer*: the Comodo and DigiNotar CA compromises (2011) minted valid certificates for domains they had no business signing, which is what drove [Certificate Transparency][ct] (2013+). Crucially, PKI solved *impersonation* — and *only* impersonation. It says nothing about whether the correctly-identified party is honest, which is exactly the next threat.
+- **Computationally bounded** — cannot break assumed-hard problems.
+- **Quantum** — breaks RSA/ECC assumptions via Shor, but not symmetric crypto at equivalent strength or post-quantum schemes.
+- **Unbounded** — information-theoretic adversary.
 
-## 3 · Inside the session: the authenticated counterparty itself
+Along targeting:
 
-**Threat.** Bob is provably Bob — every signature verifies, the channel is encrypted — and Bob is hostile. The dangerous actor is a *legitimate, authenticated* participant.
+- **Static** — targets chosen in advance.
+- **Adaptive** — corrupts new targets as it learns.
+- **Mobile** — corruptions come and go over time.
 
-**Theory.** This was modelled startlingly early. [Lowe's attack][ns-lowe] on the Needham–Schroeder authentication protocol (1995) showed that with *perfect* crypto and *perfect* key binding, a legitimate participant — Mallory, holding his own real key pair — can still subvert a protocol by exploiting its *role structure*, relaying messages to impersonate Alice to a third party. The lesson: the channel and the keys can be flawless and the protocol still broken. The field had its hardest threat in hand in 1995 — and then shelved it for twenty years, because a secure channel plus PKI *felt* like enough. [Arkko's draft][arkko] (2019) re-opened it formally: the new baseline should be "the *implementing* end-system isn't compromised, but the other parties may be."
+And along location:
 
-And it was never only theoretical. A hostile endpoint has been part of the internet since its infancy: the [Morris worm][morris] (1988) turned thousands of legitimate hosts into attackers overnight by exploiting buffer overflows and weak passwords — the first worm to hit the early internet at scale, though the self-replicating idea traces back to the benign Creeper program on the ARPANET in 1971. By the time RFC 3552 wrote down "endpoints are not compromised" in 2003, that had been a convenient fiction for fifteen years.
+- **Wire attacker** — controls the network.
+- **Storage attacker** — gets copies of stored bytes or controls storage service behavior.
+- **Execution attacker** — controls or observes the environment where plaintext is processed.
+- **Participant attacker** — is an authenticated party behaving maliciously.
 
-Arkko's sharper point is that the cryptographic endpoints often aren't the *real* ends at all. A CDN terminates your TLS, so the "server" you share a key with isn't the origin. And a [delegated-authorization flow like OAuth](/programming/authentication.html) is a triangle, not a line — it deliberately splits a trusted server-to-server *back channel* from a browser-mediated *front channel*, because those legs face different attackers (front-channel authorization-code interception is exactly why PKCE exists). Every delegate and intermediary is one more authenticated party you're trusting, so the two-party "secure channel" is, at internet scale, a convenient fiction.
-
-**Implementation (the live frontier).** This is the unsolved layer. [Confidential computing and attestation](/programming/roots-of-trust-and-attestation.html) try to defend against malicious *infrastructure* — a hostile cloud host running your workload. But the authenticated counterparty is increasingly your own software: the [xz backdoor][xz-backdoor] (2024) was a trusted maintainer who spent two years earning commit rights and then shipped a backdoor, and malware on [npm, PyPI, and the AUR][aur-malware] is now routine; even the primitive itself can be subverted ([Dual_EC_DRBG][dual-ec]). And LLMs change the economics: they cheapen the attacks whose rarity used to bound the model, and an AI agent acting with your credentials under a prompt-injected instruction is *exactly* Lowe's legitimate-participant-gone-rogue — now running inside your own tooling.
-
-## Aside - Adversary Model
-
-The wire attacker this section opens with is just one point in a much bigger space. An [adversary][adversary-crypto] is classified along orthogonal axes: *passive* (eavesdrop only) vs *active* (deviate, drop, inject); *computationally bounded* vs unbounded; *static* vs **adaptive** (picks new targets as it learns); *non-mobile* vs *mobile* (corruptions come and go over time). Dolev–Yao is one coordinate in that space — an active, bounded attacker who owns the network — and its computational cousin is the IND-CPA / IND-CCA game in [Cryptographic Primitives](/programming/crypto-primitives.html). The [distributed-systems literature][adversary-models] populates the rest, classifying corruption of *participants* (passive → crash → omission → **Byzantine**) rather than of the wire. The engineering stance that falls out is **zero-trust**: assume a strong, adaptive adversary at *every* boundary and trust nothing implicitly — which stops being paranoia the moment you accept layer 3 below, where an authenticated participant can itself be hostile (and where Byzantine fault tolerance, threshold crypto, and blockchains live).
-
-Those axes don't fit on a plane, so the cleanest way to read an adversary is as a *polyline* crossing one axis per feature (a [parallel-coordinates][parallel-coords] plot): the higher it rides, the stronger the attacker. Two things are worth stressing. First, the axes are orthogonal to *what* is attacked — an *adaptive*, *mobile*, *Byzantine* adversary describes a set of corrupted nodes as readily as the wire. Byzantine-on-the-wire is just active injection à la Dolev–Yao (benign drops and noise sit lower, as crash/omission), and *mobile* corruption that comes and goes is exactly what forces proactive secret-sharing/recovery. Second, *unbounded* compute has a practically important midpoint: a **quantum** adversary is unbounded only *with respect to today's elliptic-curve and RSA assumptions* (via Shor) — not against symmetric crypto or post-quantum schemes — which is why "harvest now, decrypt later" is a passive attacker on a quantum timer.
+Dolev–Yao is one coordinate in that space: an active attacker who owns the network while endpoints are honest. Modern systems often need the stronger stance: assume a strong, adaptive adversary at *every* boundary, including authenticated participants.
 
 ![Parallel-coordinates plot of the adversary model: four orthogonal axes — behaviour (passive→crash→omission→Byzantine), compute (bounded→quantum→unbounded), targeting (static→adaptive), and mobility (non-mobile→mobile) — each applying to the wire or a corrupted node, with a passive eavesdropper, Dolev–Yao, a quantum harvest-now-decrypt-later attacker, and a mobile Byzantine node drawn as polylines](/assets/threat-model/adversary-axes.svg)
 
-TODO: related with content of this thread: https://x.com/ittaia/status/2020963847134454041
+## 1 · Data in transit: the internet threat model
+
+Data in transit is the classic crypto story. Over forty years, the assumed internet adversary migrated through three layers:
+
+1. **On the wire** — the network between two endpoints.
+2. **In the identity binding** — *is this key really Bob's?*
+3. **Inside the authenticated session** — Bob is provably Bob, and Bob is hostile.
+
+For each, separate three things that often happened decades apart: the **threat**, the **theory** that modeled it, and the **implementation** that finally shipped.
+
+![Timeline of internet threat models across three layers — the wire, identity binding, and inside the session — from 1976 to today, showing each threat modelled years before it was defeated](/assets/threat-model/threat-model-timeline.svg)
+
+### 1.1 · On the wire
+
+**Threat.** A passive eavesdropper reads your traffic; an active attacker drops, modifies, injects, reorders, and replays it.
+
+**Theory.** [Dolev and Yao][dolev-yao] (1983) formalized this adversary — full network control — and [RFC 3552][rfc3552] (2003) made it the IETF default: assume endpoints are honest and the wire is hostile.
+
+**Implementation.** SSL (1995) → TLS 1.0 (1999) → TLS 1.2 with AEAD (2008) → TLS 1.3 (2018). The model was clear long before the deployed protocol was clean.
+
+A channel has two phases with different threat surfaces:
+
+- **Setup is the battleground.** The handshake negotiates versions, ciphersuites, identities, keys, and transcript binding. Downgrade attacks like [FREAK and Logjam][logjam] exploit negotiation rather than breaking primitives. This is why modern fixed-suite designs like Noise and WireGuard intentionally minimize agility.
+- **Usage is mostly solved.** Once a fresh session key exists and traffic is protected by an AEAD, the steady-state wire attacker has little left to do. The historical record-layer attacks — BEAST, CRIME, Lucky 13, POODLE — were attacks on pre-AEAD modes, compression, or downgradeable legacy.
+
+So for in-transit content, the modern answer is clear:
+
+```text
+key establishment + endpoint authentication + AEAD records
+```
+
+### 1.2 · In the identity binding
+
+**Threat.** A secure channel to the wrong party. The attacker breaks no cryptography; he hands you his own public key and you faithfully encrypt everything to him.
+
+**Theory.** [Diffie–Hellman][dh] (1976) gave public keys, but a key is not a name. Binding a key to an identity — proving this key really is `example.com`'s — is separate from key exchange.
+
+**Implementation.** PKI — X.509, certificate authorities, the Web PKI — turned identity binding into infrastructure. Its failures are about trusting the wrong issuer: Comodo and DigiNotar (2011) minted valid certificates for domains they had no business signing, which drove [Certificate Transparency][ct].
+
+PKI solved impersonation, not honesty. It says this is really `example.com`; it does not say `example.com` is safe, authorized, uncompromised, or benevolent.
+
+### 1.3 · Inside the authenticated session
+
+**Threat.** Bob is provably Bob — every signature verifies, the channel is encrypted — and Bob is hostile. The dangerous actor is a legitimate participant.
+
+**Theory.** [Lowe's attack][ns-lowe] on Needham–Schroeder (1995) showed that perfect crypto and perfect key binding can still leave a protocol broken. A legitimate participant can exploit role structure and relay messages to cause another party to misinterpret who said what.
+
+[Arkko's draft][arkko] (2019) reopened the point for the internet architecture: the baseline should no longer be "endpoints are honest." The implementing endpoint may be uncompromised, but the other participants, delegates, intermediaries, or authenticated counterparties may be adversarial.
+
+**Implementation frontier.** OAuth already admits the channel is a triangle: a browser-mediated front channel and a server-to-server back channel face different attackers. CDNs terminate TLS before the origin. Service meshes authenticate workloads that may still be buggy or hostile. AI agents act with valid credentials under prompt-injected instructions. The threat has moved inside the set of authenticated parties.
+
+This is the bridge from secure channels to authorization, policy, and attestation: authentication proves which principal acted; it does not prove the action should be trusted.
+
+## 2 · Data at rest: the storage threat model
+
+Data at rest is not a weaker version of data in transit. The adversary gets time, copies, backups, and operational mistakes.
+
+### 2.1 · Stolen or copied storage
+
+**Threat.** An attacker obtains a disk, laptop, phone, EBS snapshot, database dump, S3 bucket, backup archive, VM image, or log bundle.
+
+**Property.** Confidentiality of stored content.
+
+**Mechanisms.** Full-disk encryption, object/field encryption, envelope encryption, KMS/HSM-held keys, client-side encryption.
+
+The crucial difference from transit: stored ciphertext may be attacked indefinitely. If the encryption scheme is password-derived, the adversary can run an offline guessing attack. If the key later leaks, old data may fall. If a quantum adversary is plausible, "harvest now, decrypt later" applies to any public-key wrapping vulnerable to future quantum breaks.
+
+### 2.2 · Malicious or curious storage operator
+
+**Threat.** The storage layer faithfully stores bytes but should not see plaintext — a cloud admin, database operator, backup provider, or compromised object-store credential.
+
+**Property.** Confidentiality from the storage operator; integrity against modification or swap.
+
+**Mechanisms.** Client-side encryption, AEAD associated data, signatures, Merkle trees, transparency logs, KMS separation of duties.
+
+This is where "encryption at rest" can be misleading. Server-side encryption by the same cloud account protects against lost disks and some infrastructure failures; it may not protect against the service that also holds the keys. Client-side encryption moves the trust boundary upward, but also moves key management burden to the client.
+
+### 2.3 · Rollback and stale state
+
+**Threat.** An attacker restores an old but valid encrypted state: last month's database, a previous authorization policy, an old package index, a stale keyset.
+
+**Property.** Freshness / current integrity.
+
+**Mechanisms.** Version numbers, monotonic counters, signed checkpoints, append-only logs, quorum replication, transparency logs, trusted timestamps.
+
+AEAD proves the ciphertext was produced under the key. It does not prove this is the latest ciphertext. Storage needs its own replay defense.
+
+### 2.4 · Ransomware and lost keys
+
+**Threat.** The owner loses useful access: keys are destroyed, files are re-encrypted by malware, backups are deleted, or KMS becomes unavailable.
+
+**Property.** Availability and utility.
+
+**Mechanisms.** Backups, recovery drills, immutable retention, offline copies, key recovery/escrow policy, separation of duties.
+
+Crypto is double-edged here. It protects confidentiality, but a lost key is perfect denial of access. Ransomware is just unauthorized encryption plus extortion. No cipher solves the recovery policy; the answer is operational.
+
+## 3 · Data in use: the processing threat model
+
+Data in use is the hardest state because plaintext must exist somewhere. If code can compute on the data, some execution environment can see it.
+
+### 3.1 · Malicious process or compromised OS
+
+**Threat.** Another process reads memory, malware runs as the user, the OS is compromised, or a dependency executes with legitimate privileges.
+
+**Property.** Confidentiality and integrity of runtime state.
+
+**Mechanisms.** Process isolation, MMU/page tables, language sandboxes, seccomp/eBPF, containers, capability systems, least privilege, memory-safe languages, constant-time implementations.
+
+This is the classic access-control/reference-monitor route. The data is plaintext while used; protection comes from mediation and isolation.
+
+### 3.2 · Hostile hypervisor or cloud operator
+
+**Threat.** The infrastructure running the workload is not fully trusted: malicious host OS, hypervisor, cloud admin, or compromised management plane.
+
+**Property.** Confidentiality/integrity of memory and code identity despite hostile infrastructure.
+
+**Mechanisms.** Confidential VMs, TEEs, AMD SEV-SNP, Intel TDX/SGX, TPMs/vTPMs, measured boot, remote attestation, secret release based on measurements.
+
+This is where [Data in Use: Isolation, Measurement, and Attestation](/programming/data-in-use-isolation-measurement-and-attestation.html) lives. Attestation does not say "this code is good"; it says "this key is held by code with measurement M under root R." A verifier policy must still decide whether M and R are acceptable.
+
+### 3.3 · Side channels
+
+**Threat.** The protocol is logically secure, but the implementation leaks through timing, cache state, power, EM, branch prediction, speculative execution, page faults, or shared hardware.
+
+**Property.** Confidentiality of secrets during computation.
+
+**Mechanisms.** Constant-time code, masking, blinding, cache partitioning, hardware isolation, side-channel testing.
+
+Side channels are data-in-use attacks against the physical or microarchitectural execution channel the protocol did not model.
+
+### 3.4 · Supply chain and authenticated bad code
+
+**Threat.** The code doing the computation is itself malicious or compromised: backdoored dependency, malicious maintainer, poisoned package, compromised CI, prompt-injected agent with valid credentials.
+
+**Property.** Integrity of computation and intent.
+
+**Mechanisms.** Code signing, reproducible builds, package transparency, dependency pinning, sandboxing, least privilege, review, provenance, SLSA-style build attestations.
+
+This is the in-use version of the authenticated-counterparty frontier. The actor may have a valid signature, token, maintainer account, or workload identity. The protocol's role structure and policy decide whether that authenticated actor can cause harm.
+
+## 4 · Threats to the controls themselves
+
+The controls are also attack surfaces.
+
+| Control | Threat |
+|---|---|
+| RNG / entropy | weak seed, VM clone, backdoored CSPRNG like Dual_EC |
+| Key storage | leaked `.env`, memory disclosure, HSM misuse, bad backup |
+| Public-key binding | bad CA, stale root, key transparency failure |
+| Authorization policy | overbroad IAM, confused deputy, bad scope, stale grant |
+| KMS | unavailable, misconfigured, admin bypass, audit disabled |
+| Attestation | compromised vendor root, stale TCB, misleading measurement, verifier accepts too much |
+| Human process | rubber-stamped approval, phished admin, bad incident response |
+
+This is why the series separates mechanisms from policy and roots. A primitive can be sound while the key is stolen, the root is wrong, or the policy says yes to the wrong subject.
 
 ## Where the frontier is now
 
-The story isn't that the threat *moved* on its own — it's that we kept *solving* the inner layers, so the adversary kept relocating to whatever was still open. The wire took thirty-five years to genuinely secure (Dolev–Yao's 1983 model to TLS 1.3 in 2018); identity binding became infrastructure; and what's left is the threat Lowe already saw in 1995, now at the scale of cloud providers, upstream maintainers, and AI agents — all correctly authenticated, any of them potentially hostile. The protocol's role structure, not the channel, is where the adversary lives.
+The story is not that one threat replaced another. It is that each solved layer exposes the next boundary:
 
-That's the lens for the rest of the series: each post defends a *different* assumed adversary, and the frontier today is the authenticated-but-untrustworthy counterparty — which is exactly what [attestation](/programming/roots-of-trust-and-attestation.html) tries to pin down.
+```text
+wire attacker          → secure channels
+wrong public key       → PKI / authentication
+stolen stored bytes    → encryption / KMS
+plaintext during use   → isolation / attestation
+valid but hostile actor → authorization / protocol design / least privilege
+lost or locked data    → recovery / availability / governance
+```
+
+The frontier today is the authenticated-but-untrustworthy participant: a cloud host, package maintainer, OAuth client, service workload, AI agent, or enclave measurement that verifies correctly but may still do the wrong thing.
+
+That's the lens for the rest of the series. Each article occupies a different part of the cube: keys and algorithms give the mechanism substrate; policy decides who may use them; authentication binds keys to identities; channels protect transit; storage protects rest; attestation tries to say something meaningful about use.
 
 ## References <!-- omit in toc -->
 
@@ -97,11 +271,10 @@ That's the lens for the rest of the series: each post defends a *different* assu
 [logjam]: https://weakdh.org/ "The Logjam Attack - weakdh.org"
 [arkko]: https://datatracker.ietf.org/doc/html/draft-arkko-arch-internet-threat-model-01 "An Internet Threat Model (draft-arkko-arch-internet-threat-model-01) - Jari Arkko"
 [xz-backdoor]: https://en.wikipedia.org/wiki/XZ_Utils_backdoor "XZ Utils backdoor (CVE-2024-3094) - Wikipedia"
-[aur-malware]: https://ioctl.fail/preliminary-analysis-of-aur-malware/ "Preliminary analysis of AUR malware - ioctl.fail"
+[aur-malware]: https://ioctl.fail/preliminary-analysis-of-aur-malware/ "Preliminary analysis of AUR Malware - ioctl.fail"
 [dual-ec]: https://en.wikipedia.org/wiki/Dual_EC_DRBG "Dual_EC_DRBG (the backdoored RNG) - Wikipedia"
 [adversary-models]: https://decentralizedthoughts.github.io/2019-06-07-modeling-the-adversary/ "Modeling the Adversary - Decentralized Thoughts"
-[adversary-crypto]: https://en.wikipedia.org/wiki/Adversary_(cryptography) "Adversary (cryptography) - Wikipedia"
-[parallel-coords]: https://en.wikipedia.org/wiki/Parallel_coordinates "Parallel coordinates - Wikipedia"
+[adversary-crypto]: https://en.wikipedia.org/wiki/Adversary_(cryptography) "Adversary - Wikipedia"
 [des]: https://en.wikipedia.org/wiki/Data_Encryption_Standard "Data Encryption Standard - Wikipedia"
 [aes]: https://en.wikipedia.org/wiki/Advanced_Encryption_Standard "Advanced Encryption Standard - Wikipedia"
 [morris]: https://en.wikipedia.org/wiki/Morris_worm "Morris worm - Wikipedia"
