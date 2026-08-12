@@ -87,3 +87,9 @@ Place-oriented programming, where new information overwrites old in place, is a 
 [https://eli.thegreenplace.net/2016/the-expression-problem-and-its-solutions/](https://eli.thegreenplace.net/2016/the-expression-problem-and-its-solutions/)
 <br>&nbsp;&nbsp;&nbsp;&nbsp;
 The implementation side of the expression problem: adding new types is easy in OO and adding new operations is easy in FP, each painful in the other. A tour of the mechanisms that try to get both, including double dispatch and the visitor pattern.
+
+**Bit Twiddling Hacks** (Sean Eron Anderson)
+<br>&nbsp;&nbsp;&nbsp;&nbsp;
+[https://graphics.stanford.edu/~seander/bithacks.html](https://graphics.stanford.edu/~seander/bithacks.html)
+<br>&nbsp;&nbsp;&nbsp;&nbsp;
+The classic catalog of branchless bit manipulation tricks: counting set bits, reversing bits, computing sign or absolute value without branches, rounding to powers of two.
