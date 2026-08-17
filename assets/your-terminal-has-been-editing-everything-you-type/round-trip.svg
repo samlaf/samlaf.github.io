@@ -1,0 +1,109 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 660" font-family="-apple-system,'Segoe UI',Helvetica,Arial,sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0L10 5L0 10z" fill="#9aa0a6"/>
+    </marker>
+    <marker id="b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0L10 5L0 10z" fill="#c7d2fe"/>
+    </marker>
+  </defs>
+  <rect width="980" height="660" fill="#ffffff"/>
+
+  <!-- bands -->
+  <rect x="30" y="30" width="920" height="130" rx="12" fill="none" stroke="#c8c8c8" stroke-dasharray="6 5"/>
+  <text x="938" y="55" font-size="14" fill="#9a9a9a" text-anchor="end">User space</text>
+  <rect x="30" y="280" width="920" height="170" rx="12" fill="none" stroke="#c8c8c8" stroke-dasharray="6 5"/>
+  <text x="938" y="305" font-size="14" fill="#9a9a9a" text-anchor="end">Kernel</text>
+  <rect x="30" y="540" width="920" height="100" rx="12" fill="none" stroke="#c8c8c8" stroke-dasharray="6 5"/>
+  <text x="938" y="565" font-size="14" fill="#9a9a9a" text-anchor="end">Hardware</text>
+
+  <!-- user space boxes -->
+  <rect x="60" y="70" width="210" height="64" rx="10" fill="#4638b3"/>
+  <text x="165" y="97" font-size="17" font-weight="600" fill="#ffffff" text-anchor="middle">Shell + processes</text>
+  <text x="165" y="119" font-size="14" fill="#c7d2fe" text-anchor="middle">bash &#183; zsh &#183; vim &#183; less</text>
+
+  <rect x="395" y="70" width="195" height="64" rx="10" fill="#4638b3"/>
+  <text x="492" y="97" font-size="17" font-weight="600" fill="#ffffff" text-anchor="middle">Terminal emulator</text>
+  <text x="492" y="119" font-size="14" fill="#c7d2fe" text-anchor="middle">Ghostty &#183; iTerm2 &#183; xterm</text>
+
+  <rect x="700" y="70" width="220" height="64" rx="10" fill="#0d5c4b"/>
+  <text x="810" y="97" font-size="17" font-weight="600" fill="#ffffff" text-anchor="middle">Display server</text>
+  <text x="810" y="119" font-size="14" fill="#99e0c7" text-anchor="middle">Xorg / Wayland &#183; WindowServer</text>
+
+  <!-- keysyms / pixels between display server and xterm -->
+  <line x1="695" y1="86" x2="595" y2="86" stroke="#9aa0a6" stroke-width="1.5" marker-end="url(#a)"/>
+  <text x="645" y="78" font-size="13" fill="#8a8f98" text-anchor="middle">key events</text>
+  <line x1="595" y1="118" x2="695" y2="118" stroke="#9aa0a6" stroke-width="1.5" marker-end="url(#a)"/>
+  <text x="645" y="133" font-size="13" fill="#8a8f98" text-anchor="middle">pixels</text>
+
+  <!-- kernel box: the tty, one device, three layers left to right -->
+  <rect x="60" y="300" width="510" height="130" rx="10" fill="#4638b3"/>
+  <text x="75" y="324" font-size="13" fill="#c7d2fe">slave end</text>
+  <text x="555" y="324" font-size="13" fill="#c7d2fe" text-anchor="end">master end</text>
+  <text x="300" y="326" font-size="17" font-weight="600" fill="#ffffff" text-anchor="middle">the tty &#8212; one kernel device</text>
+
+  <rect x="80" y="342" width="130" height="70" rx="8" fill="#0d5c4b"/>
+  <text x="145" y="371" font-size="15" font-weight="600" fill="#ffffff" text-anchor="middle">tty core</text>
+  <text x="145" y="392" font-size="12" fill="#99e0c7" text-anchor="middle">sessions &#183; job control</text>
+
+  <rect x="240" y="342" width="180" height="70" rx="8" fill="#94391b"/>
+  <text x="330" y="371" font-size="15" font-weight="600" fill="#ffffff" text-anchor="middle">line discipline (n_tty)</text>
+  <text x="330" y="392" font-size="13" fill="#f5c9b0" text-anchor="middle">termios applies here</text>
+
+  <rect x="450" y="342" width="100" height="70" rx="8" fill="#0d5c4b"/>
+  <text x="500" y="371" font-size="15" font-weight="600" fill="#ffffff" text-anchor="middle">tty driver</text>
+  <text x="500" y="392" font-size="13" fill="#99e0c7" text-anchor="middle">pty (or UART)</text>
+
+  <line x1="215" y1="377" x2="235" y2="377" stroke="#c7d2fe" stroke-width="1.5" marker-start="url(#b)" marker-end="url(#b)"/>
+  <line x1="425" y1="377" x2="445" y2="377" stroke="#c7d2fe" stroke-width="1.5" marker-start="url(#b)" marker-end="url(#b)"/>
+
+  <!-- echo: the discipline sends a copy of your input back out the master -->
+  <path d="M420 350 C428 336 438 334 447 340" fill="none" stroke="#c7d2fe" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#b)"/>
+  <text x="432" y="327" font-size="12" fill="#c7d2fe" text-anchor="middle">echo</text>
+
+  <!-- kernel boxes: DRM / evdev -->
+  <rect x="650" y="320" width="130" height="70" rx="10" fill="#0d5c4b"/>
+  <text x="715" y="349" font-size="16" font-weight="600" fill="#ffffff" text-anchor="middle">Display driver</text>
+  <text x="715" y="371" font-size="14" fill="#99e0c7" text-anchor="middle">DRM/KMS</text>
+
+  <rect x="805" y="320" width="120" height="70" rx="10" fill="#0d5c4b"/>
+  <text x="865" y="349" font-size="16" font-weight="600" fill="#ffffff" text-anchor="middle">Input driver</text>
+  <text x="865" y="371" font-size="14" fill="#99e0c7" text-anchor="middle">evdev &#183; IOHID</text>
+
+  <!-- hardware boxes -->
+  <rect x="650" y="570" width="130" height="56" rx="10" fill="#4a4a48"/>
+  <text x="715" y="604" font-size="16" font-weight="600" fill="#ffffff" text-anchor="middle">Display</text>
+  <rect x="805" y="570" width="120" height="56" rx="10" fill="#4a4a48"/>
+  <text x="865" y="604" font-size="16" font-weight="600" fill="#ffffff" text-anchor="middle">Keyboard</text>
+
+  <!-- the road the pty impersonates -->
+  <line x1="500" y1="430" x2="500" y2="565" stroke="#9aa0a6" stroke-width="1.5" stroke-dasharray="6 5" marker-start="url(#a)" marker-end="url(#a)"/>
+  <text x="485" y="502" font-size="13" fill="#8a8f98" text-anchor="end">when the driver is a UART</text>
+  <rect x="375" y="570" width="250" height="56" rx="10" fill="#4a4a48"/>
+  <text x="500" y="593" font-size="16" font-weight="600" fill="#ffffff" text-anchor="middle">Real serial terminal</text>
+  <text x="500" y="613" font-size="13" fill="#d4d4d1" text-anchor="middle">VT100 &#183; ASR-33, on a real wire</text>
+
+  <!-- shell <-> slave end, straight into the discipline -->
+  <line x1="140" y1="134" x2="140" y2="337" stroke="#9aa0a6" stroke-width="1.5" marker-end="url(#a)"/>
+  <line x1="185" y1="342" x2="185" y2="139" stroke="#9aa0a6" stroke-width="1.5" marker-end="url(#a)"/>
+  <text transform="rotate(-90 134 217)" x="134" y="217" font-size="13" fill="#8a8f98" text-anchor="middle">text and escapes</text>
+  <text transform="rotate(-90 200 217)" x="200" y="217" font-size="13" fill="#8a8f98" text-anchor="middle">line or raw bytes</text>
+
+  <!-- xterm <-> master end, straight into the pty driver -->
+  <line x1="460" y1="134" x2="460" y2="337" stroke="#9aa0a6" stroke-width="1.5" marker-end="url(#a)"/>
+  <line x1="505" y1="342" x2="505" y2="139" stroke="#9aa0a6" stroke-width="1.5" marker-end="url(#a)"/>
+  <text transform="rotate(-90 454 217)" x="454" y="217" font-size="13" fill="#8a8f98" text-anchor="middle">encoded key bytes</text>
+  <text transform="rotate(-90 520 217)" x="520" y="217" font-size="13" fill="#8a8f98" text-anchor="middle">post-processed bytes</text>
+
+  <!-- display server <-> DRM / evdev -->
+  <line x1="740" y1="134" x2="740" y2="315" stroke="#9aa0a6" stroke-width="1.5" marker-end="url(#a)"/>
+  <line x1="865" y1="315" x2="865" y2="139" stroke="#9aa0a6" stroke-width="1.5" marker-end="url(#a)"/>
+  <text transform="rotate(-90 734 225)" x="734" y="225" font-size="13" fill="#8a8f98" text-anchor="middle">frames</text>
+  <text transform="rotate(-90 879 225)" x="879" y="225" font-size="13" fill="#8a8f98" text-anchor="middle">key events</text>
+
+  <!-- DRM -> display, keyboard -> evdev -->
+  <line x1="715" y1="390" x2="715" y2="565" stroke="#9aa0a6" stroke-width="1.5" marker-end="url(#a)"/>
+  <line x1="865" y1="570" x2="865" y2="395" stroke="#9aa0a6" stroke-width="1.5" marker-end="url(#a)"/>
+  <text transform="rotate(-90 709 478)" x="709" y="478" font-size="13" fill="#8a8f98" text-anchor="middle">scanout</text>
+  <text transform="rotate(-90 879 478)" x="879" y="478" font-size="13" fill="#8a8f98" text-anchor="middle">scancodes</text>
+</svg>

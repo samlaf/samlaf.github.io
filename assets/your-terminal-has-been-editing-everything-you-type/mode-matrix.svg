@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 680" font-family="-apple-system,'Segoe UI',Helvetica,Arial,sans-serif">
+  <rect width="900" height="680" fill="#ffffff"/>
+
+  <!-- column headers -->
+  <text x="470" y="42" font-size="15" font-weight="600" fill="#555555" text-anchor="middle">shell prompt</text>
+  <text x="470" y="62" font-size="13" fill="#9a9a9a" text-anchor="middle">cooked</text>
+  <text x="640" y="42" font-size="15" font-weight="600" fill="#555555" text-anchor="middle">TUI, editor</text>
+  <text x="640" y="62" font-size="13" fill="#9a9a9a" text-anchor="middle">cbreak</text>
+  <text x="810" y="42" font-size="15" font-weight="600" fill="#555555" text-anchor="middle">passthrough</text>
+  <text x="810" y="62" font-size="13" fill="#9a9a9a" text-anchor="middle">raw</text>
+
+  <!-- row 1: ICANON -->
+  <text x="40" y="112" font-size="14" fill="#555555">line buffering, erase and kill</text>
+  <text x="40" y="130" font-size="12" fill="#9a9a9a" font-family="ui-monospace,Menlo,monospace">ICANON</text>
+  <rect x="442" y="97" width="56" height="28" rx="14" fill="#1d3461"/><text x="470" y="116" font-size="13" font-weight="600" fill="#7fb2ff" text-anchor="middle">on</text>
+  <rect x="612" y="97" width="56" height="28" rx="14" fill="#1b1b1b"/><text x="640" y="116" font-size="13" font-weight="600" fill="#e5e5e5" text-anchor="middle">off</text>
+  <rect x="782" y="97" width="56" height="28" rx="14" fill="#1b1b1b"/><text x="810" y="116" font-size="13" font-weight="600" fill="#e5e5e5" text-anchor="middle">off</text>
+
+  <!-- row 2: ECHO -->
+  <text x="40" y="164" font-size="14" fill="#555555">echo typed characters</text>
+  <text x="40" y="182" font-size="12" fill="#9a9a9a" font-family="ui-monospace,Menlo,monospace">ECHO</text>
+  <rect x="442" y="149" width="56" height="28" rx="14" fill="#1d3461"/><text x="470" y="168" font-size="13" font-weight="600" fill="#7fb2ff" text-anchor="middle">on</text>
+  <rect x="612" y="149" width="56" height="28" rx="14" fill="#1d3461"/><text x="640" y="168" font-size="13" font-weight="600" fill="#7fb2ff" text-anchor="middle">on</text>
+  <rect x="782" y="149" width="56" height="28" rx="14" fill="#1b1b1b"/><text x="810" y="168" font-size="13" font-weight="600" fill="#e5e5e5" text-anchor="middle">off</text>
+
+  <!-- row 3: ISIG -->
+  <text x="40" y="216" font-size="14" fill="#555555">^C, ^Z, ^\ raise signals</text>
+  <text x="40" y="234" font-size="12" fill="#9a9a9a" font-family="ui-monospace,Menlo,monospace">ISIG</text>
+  <rect x="442" y="201" width="56" height="28" rx="14" fill="#1d3461"/><text x="470" y="220" font-size="13" font-weight="600" fill="#7fb2ff" text-anchor="middle">on</text>
+  <rect x="612" y="201" width="56" height="28" rx="14" fill="#1d3461"/><text x="640" y="220" font-size="13" font-weight="600" fill="#7fb2ff" text-anchor="middle">on</text>
+  <rect x="782" y="201" width="56" height="28" rx="14" fill="#1b1b1b"/><text x="810" y="220" font-size="13" font-weight="600" fill="#e5e5e5" text-anchor="middle">off</text>
+
+  <!-- row 4: IEXTEN -->
+  <text x="40" y="268" font-size="14" fill="#555555">^V, ^W, ^R</text>
+  <text x="40" y="286" font-size="12" fill="#9a9a9a" font-family="ui-monospace,Menlo,monospace">IEXTEN</text>
+  <rect x="442" y="253" width="56" height="28" rx="14" fill="#1d3461"/><text x="470" y="272" font-size="13" font-weight="600" fill="#7fb2ff" text-anchor="middle">on</text>
+  <rect x="612" y="253" width="56" height="28" rx="14" fill="#1d3461"/><text x="640" y="272" font-size="13" font-weight="600" fill="#7fb2ff" text-anchor="middle">on</text>
+  <rect x="782" y="253" width="56" height="28" rx="14" fill="#1b1b1b"/><text x="810" y="272" font-size="13" font-weight="600" fill="#e5e5e5" text-anchor="middle">off</text>
+
+  <!-- row 5: IXON -->
+  <text x="40" y="320" font-size="14" fill="#555555">^S and ^Q flow control</text>
+  <text x="40" y="338" font-size="12" fill="#9a9a9a" font-family="ui-monospace,Menlo,monospace">IXON</text>
+  <rect x="442" y="305" width="56" height="28" rx="14" fill="#1d3461"/><text x="470" y="324" font-size="13" font-weight="600" fill="#7fb2ff" text-anchor="middle">on</text>
+  <rect x="612" y="305" width="56" height="28" rx="14" fill="#1d3461"/><text x="640" y="324" font-size="13" font-weight="600" fill="#7fb2ff" text-anchor="middle">on</text>
+  <rect x="782" y="305" width="56" height="28" rx="14" fill="#1b1b1b"/><text x="810" y="324" font-size="13" font-weight="600" fill="#e5e5e5" text-anchor="middle">off</text>
+
+  <!-- row 6: ICRNL -->
+  <text x="40" y="372" font-size="14" fill="#555555">CR becomes NL on input</text>
+  <text x="40" y="390" font-size="12" fill="#9a9a9a" font-family="ui-monospace,Menlo,monospace">ICRNL</text>
+  <rect x="442" y="357" width="56" height="28" rx="14" fill="#1d3461"/><text x="470" y="376" font-size="13" font-weight="600" fill="#7fb2ff" text-anchor="middle">on</text>
+  <rect x="612" y="357" width="56" height="28" rx="14" fill="#1d3461"/><text x="640" y="376" font-size="13" font-weight="600" fill="#7fb2ff" text-anchor="middle">on</text>
+  <rect x="782" y="357" width="56" height="28" rx="14" fill="#1b1b1b"/><text x="810" y="376" font-size="13" font-weight="600" fill="#e5e5e5" text-anchor="middle">off</text>
+
+  <!-- row 7: OPOST -->
+  <text x="40" y="424" font-size="14" fill="#555555">NL becomes CRLF on output</text>
+  <text x="40" y="442" font-size="12" fill="#9a9a9a" font-family="ui-monospace,Menlo,monospace">OPOST + ONLCR</text>
+  <rect x="442" y="409" width="56" height="28" rx="14" fill="#1d3461"/><text x="470" y="428" font-size="13" font-weight="600" fill="#7fb2ff" text-anchor="middle">on</text>
+  <rect x="612" y="409" width="56" height="28" rx="14" fill="#1d3461"/><text x="640" y="428" font-size="13" font-weight="600" fill="#7fb2ff" text-anchor="middle">on</text>
+  <rect x="782" y="409" width="56" height="28" rx="14" fill="#1b1b1b"/><text x="810" y="428" font-size="13" font-weight="600" fill="#e5e5e5" text-anchor="middle">off</text>
+
+  <!-- divider -->
+  <line x1="40" y1="470" x2="860" y2="470" stroke="#e0e0e0" stroke-width="1"/>
+  <text x="40" y="500" font-size="15" font-weight="600" fill="#333333">resulting behaviour</text>
+
+  <text x="40" y="536" font-size="14" fill="#555555">read() returns</text>
+  <text x="470" y="536" font-size="14" fill="#777777" text-anchor="middle">one line</text>
+  <text x="640" y="536" font-size="14" fill="#777777" text-anchor="middle">one byte</text>
+  <text x="810" y="536" font-size="14" fill="#777777" text-anchor="middle">one byte</text>
+
+  <text x="40" y="572" font-size="14" fill="#555555">line editing done by</text>
+  <text x="470" y="572" font-size="14" fill="#777777" text-anchor="middle">the kernel</text>
+  <text x="640" y="572" font-size="14" fill="#777777" text-anchor="middle">your program</text>
+  <text x="810" y="572" font-size="14" fill="#777777" text-anchor="middle">your program</text>
+
+  <text x="40" y="608" font-size="14" fill="#555555">^C delivers</text>
+  <text x="470" y="608" font-size="14" fill="#777777" text-anchor="middle">SIGINT</text>
+  <text x="640" y="608" font-size="14" fill="#777777" text-anchor="middle">SIGINT</text>
+  <text x="810" y="608" font-size="14" fill="#777777" text-anchor="middle">byte 0x03</text>
+
+  <text x="40" y="644" font-size="14" fill="#555555" font-family="ui-monospace,Menlo,monospace">VMIN, VTIME</text>
+  <text x="470" y="644" font-size="14" fill="#777777" text-anchor="middle">unused</text>
+  <text x="640" y="644" font-size="14" fill="#777777" text-anchor="middle">1, 0</text>
+  <text x="810" y="644" font-size="14" fill="#777777" text-anchor="middle">1, 0</text>
+</svg>

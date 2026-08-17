@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540" font-family="-apple-system,'Segoe UI',Helvetica,Arial,sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0L10 5L0 10z" fill="#9aa0a6"/>
+    </marker>
+  </defs>
+  <rect width="960" height="540" fill="#ffffff"/>
+
+  <!-- panel titles -->
+  <text x="165" y="42" font-size="15" font-weight="600" fill="#555555" text-anchor="middle">a real terminal &#183; 1970s</text>
+  <text x="480" y="42" font-size="15" font-weight="600" fill="#555555" text-anchor="middle">the kernel console &#183; 1980s</text>
+  <text x="795" y="42" font-size="15" font-weight="600" fill="#555555" text-anchor="middle">a userspace emulator &#183; today</text>
+
+  <!-- ===== panel 1 ===== -->
+  <rect x="50" y="70" width="230" height="52" rx="10" fill="#4638b3"/>
+  <text x="165" y="102" font-size="15" font-weight="600" fill="#ffffff" text-anchor="middle">user process</text>
+  <line x1="165" y1="122" x2="165" y2="147" stroke="#9aa0a6" stroke-width="1.5" marker-end="url(#a)"/>
+
+  <rect x="50" y="152" width="230" height="52" rx="10" fill="#0d5c4b"/>
+  <text x="165" y="184" font-size="15" font-weight="600" fill="#ffffff" text-anchor="middle">tty core + line discipline</text>
+  <line x1="165" y1="204" x2="165" y2="229" stroke="#9aa0a6" stroke-width="1.5" marker-end="url(#a)"/>
+
+  <rect x="50" y="234" width="230" height="52" rx="10" fill="#0d5c4b"/>
+  <text x="165" y="266" font-size="15" font-weight="600" fill="#ffffff" text-anchor="middle">UART driver</text>
+  <line x1="165" y1="286" x2="165" y2="336" stroke="#9aa0a6" stroke-width="1.5" stroke-dasharray="5 5" marker-end="url(#a)"/>
+  <text x="183" y="316" font-size="13" fill="#8a8f98">serial wire</text>
+
+  <rect x="50" y="340" width="230" height="66" rx="10" fill="#94391b"/>
+  <text x="165" y="368" font-size="15" font-weight="600" fill="#ffffff" text-anchor="middle">VT100</text>
+  <text x="165" y="390" font-size="13" fill="#f5c9b0" text-anchor="middle">screen + keyboard, silicon</text>
+
+  <!-- ===== panel 2 ===== -->
+  <rect x="365" y="70" width="230" height="52" rx="10" fill="#4638b3"/>
+  <text x="480" y="102" font-size="15" font-weight="600" fill="#ffffff" text-anchor="middle">user process</text>
+  <line x1="480" y1="122" x2="480" y2="147" stroke="#9aa0a6" stroke-width="1.5" marker-end="url(#a)"/>
+
+  <rect x="365" y="152" width="230" height="52" rx="10" fill="#0d5c4b"/>
+  <text x="480" y="184" font-size="15" font-weight="600" fill="#ffffff" text-anchor="middle">tty core + line discipline</text>
+  <line x1="480" y1="204" x2="480" y2="229" stroke="#9aa0a6" stroke-width="1.5" marker-end="url(#a)"/>
+
+  <rect x="365" y="234" width="230" height="52" rx="10" fill="#0d5c4b"/>
+  <text x="480" y="266" font-size="15" font-weight="600" fill="#ffffff" text-anchor="middle">VT console driver</text>
+  <line x1="480" y1="286" x2="480" y2="336" stroke="#9aa0a6" stroke-width="1.5" marker-end="url(#a)"/>
+
+  <rect x="365" y="340" width="230" height="66" rx="10" fill="#94391b"/>
+  <text x="480" y="368" font-size="15" font-weight="600" fill="#ffffff" text-anchor="middle">kernel emulator</text>
+  <text x="480" y="390" font-size="13" fill="#f5c9b0" text-anchor="middle">the terminal, as kernel code</text>
+  <line x1="480" y1="406" x2="480" y2="431" stroke="#9aa0a6" stroke-width="1.5" marker-end="url(#a)"/>
+
+  <rect x="365" y="436" width="230" height="52" rx="10" fill="#4a4a48"/>
+  <text x="480" y="468" font-size="15" font-weight="600" fill="#ffffff" text-anchor="middle">VGA + keyboard</text>
+
+  <!-- ===== panel 3 ===== -->
+  <rect x="680" y="70" width="230" height="52" rx="10" fill="#4638b3"/>
+  <text x="795" y="102" font-size="15" font-weight="600" fill="#ffffff" text-anchor="middle">user process</text>
+  <line x1="795" y1="122" x2="795" y2="147" stroke="#9aa0a6" stroke-width="1.5" marker-end="url(#a)"/>
+
+  <rect x="680" y="152" width="230" height="52" rx="10" fill="#0d5c4b"/>
+  <text x="795" y="184" font-size="15" font-weight="600" fill="#ffffff" text-anchor="middle">tty core + line discipline</text>
+  <line x1="795" y1="204" x2="795" y2="229" stroke="#9aa0a6" stroke-width="1.5" marker-end="url(#a)"/>
+
+  <rect x="680" y="234" width="230" height="52" rx="10" fill="#0d5c4b"/>
+  <text x="795" y="266" font-size="15" font-weight="600" fill="#ffffff" text-anchor="middle">pty driver</text>
+  <line x1="795" y1="286" x2="795" y2="336" stroke="#9aa0a6" stroke-width="1.5" marker-end="url(#a)"/>
+
+  <rect x="680" y="340" width="230" height="66" rx="10" fill="#94391b"/>
+  <text x="795" y="368" font-size="15" font-weight="600" fill="#ffffff" text-anchor="middle">userspace emulator</text>
+  <text x="795" y="390" font-size="13" fill="#f5c9b0" text-anchor="middle">Ghostty &#183; xterm &#183; a GUI app</text>
+  <line x1="795" y1="406" x2="795" y2="431" stroke="#9aa0a6" stroke-width="1.5" marker-end="url(#a)"/>
+
+  <rect x="680" y="436" width="230" height="52" rx="10" fill="#4a4a48"/>
+  <text x="795" y="468" font-size="15" font-weight="600" fill="#ffffff" text-anchor="middle">display server</text>
+
+  <text x="480" y="524" font-size="14" fill="#9a9a9a" text-anchor="middle">Same fd, same line discipline in every era &#8212; only the seat of the terminal moves.</text>
+</svg>

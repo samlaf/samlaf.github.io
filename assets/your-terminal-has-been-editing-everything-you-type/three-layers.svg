@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 724" font-family="-apple-system,'Segoe UI',Helvetica,Arial,sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0L10 5L0 10z" fill="#9aa0a6"/>
+    </marker>
+  </defs>
+  <rect width="980" height="724" fill="#ffffff"/>
+
+  <!-- your program -->
+  <rect x="350" y="40" width="280" height="64" rx="10" fill="#4638b3"/>
+  <text x="490" y="67" font-size="17" font-weight="600" fill="#ffffff" text-anchor="middle">your program</text>
+  <text x="490" y="89" font-size="14" fill="#c7d2fe" text-anchor="middle">read() &#183; write() &#183; tcsetattr()</text>
+
+  <!-- kernel band: the tty -->
+  <rect x="230" y="160" width="520" height="420" rx="12" fill="none" stroke="#c8c8c8" stroke-dasharray="6 5"/>
+  <text x="738" y="185" font-size="14" fill="#9a9a9a" text-anchor="end">the tty &#8212; one kernel device</text>
+
+  <!-- tty core -->
+  <rect x="290" y="200" width="400" height="76" rx="10" fill="#0d5c4b"/>
+  <text x="490" y="228" font-size="17" font-weight="600" fill="#ffffff" text-anchor="middle">tty core</text>
+  <text x="490" y="252" font-size="13" fill="#99e0c7" text-anchor="middle">sessions &#183; controlling terminal &#183; foreground group &#183; SIGHUP</text>
+
+  <!-- line discipline -->
+  <rect x="290" y="308" width="400" height="100" rx="10" fill="#94391b"/>
+  <text x="490" y="336" font-size="17" font-weight="600" fill="#ffffff" text-anchor="middle">line discipline &#8212; N_TTY / TTYDISC</text>
+  <text x="490" y="360" font-size="13" fill="#f5c9b0" text-anchor="middle">ECHO &#183; ICANON &#183; ISIG &#183; ICRNL &#183; OPOST &#183; VMIN/VTIME</text>
+  <text x="490" y="384" font-size="13" font-weight="600" fill="#f5c9b0" text-anchor="middle">every termios flag except c_cflag</text>
+
+  <!-- tty driver: two variants -->
+  <rect x="250" y="440" width="230" height="76" rx="10" fill="#0d5c4b"/>
+  <text x="365" y="468" font-size="17" font-weight="600" fill="#ffffff" text-anchor="middle">pty driver</text>
+  <text x="365" y="492" font-size="13" fill="#99e0c7" text-anchor="middle">no hardware &#8212; c_cflag inert</text>
+
+  <rect x="500" y="440" width="230" height="76" rx="10" fill="#0d5c4b"/>
+  <text x="615" y="468" font-size="17" font-weight="600" fill="#ffffff" text-anchor="middle">UART driver</text>
+  <text x="615" y="492" font-size="13" fill="#99e0c7" text-anchor="middle">real wire &#8212; c_cflag load-bearing</text>
+
+  <!-- far end: terminal emulator -->
+  <rect x="245" y="640" width="240" height="64" rx="10" fill="#4638b3"/>
+  <text x="365" y="667" font-size="16" font-weight="600" fill="#ffffff" text-anchor="middle">terminal emulator</text>
+  <text x="365" y="689" font-size="13" fill="#c7d2fe" text-anchor="middle">Ghostty &#183; iTerm2 &#183; xterm</text>
+
+  <!-- far end: serial hardware -->
+  <rect x="495" y="640" width="240" height="64" rx="10" fill="#4a4a48"/>
+  <text x="615" y="667" font-size="16" font-weight="600" fill="#ffffff" text-anchor="middle">a modem, a GPS, a board</text>
+  <text x="615" y="689" font-size="13" fill="#d4d4d1" text-anchor="middle">AT &#183; NMEA &#183; ZMODEM &#183; Modbus</text>
+
+  <!-- vertical spine -->
+  <line x1="490" y1="104" x2="490" y2="195" stroke="#9aa0a6" stroke-width="1.5" marker-start="url(#a)" marker-end="url(#a)"/>
+  <text x="505" y="145" font-size="13" fill="#8a8f98">slave fd</text>
+  <line x1="490" y1="276" x2="490" y2="303" stroke="#9aa0a6" stroke-width="1.5" marker-start="url(#a)" marker-end="url(#a)"/>
+  <line x1="470" y1="408" x2="380" y2="435" stroke="#9aa0a6" stroke-width="1.5" marker-start="url(#a)" marker-end="url(#a)"/>
+  <line x1="510" y1="408" x2="600" y2="435" stroke="#9aa0a6" stroke-width="1.5" marker-start="url(#a)" marker-end="url(#a)"/>
+  <text x="490" y="430" font-size="13" fill="#8a8f98" text-anchor="middle">one driver per tty</text>
+  <line x1="365" y1="516" x2="365" y2="635" stroke="#9aa0a6" stroke-width="1.5" marker-start="url(#a)" marker-end="url(#a)"/>
+  <text x="378" y="585" font-size="13" fill="#8a8f98">master fd</text>
+  <line x1="615" y1="516" x2="615" y2="635" stroke="#9aa0a6" stroke-width="1.5" marker-start="url(#a)" marker-end="url(#a)"/>
+  <text x="628" y="585" font-size="13" fill="#8a8f98">a real wire</text>
+
+  <!-- payload: end to end, around the kernel's opinion -->
+  <path d="M350 72 L150 72 L150 672 L240 672" fill="none" stroke="#9aa0a6" stroke-width="1.5" stroke-dasharray="6 5" marker-start="url(#a)" marker-end="url(#a)"/>
+  <text transform="rotate(-90 135 372)" x="135" y="372" font-size="13" fill="#8a8f98" text-anchor="middle">payload &#8212; ECMA-48 to an emulator, AT or NMEA over a wire &#8212; untouched by every kernel layer</text>
+
+  <!-- swapping the discipline -->
+  <rect x="770" y="320" width="180" height="76" rx="10" fill="#7f2b2b"/>
+  <text x="860" y="348" font-size="16" font-weight="600" fill="#ffffff" text-anchor="middle">network stack</text>
+  <text x="860" y="372" font-size="14" fill="#f0bcbc" text-anchor="middle">sl0 &#183; ppp0</text>
+  <line x1="690" y1="358" x2="765" y2="358" stroke="#9aa0a6" stroke-width="1.5" stroke-dasharray="6 5" marker-end="url(#a)"/>
+  <text x="860" y="420" font-size="13" fill="#8a8f98" text-anchor="middle">swap in N_SLIP / N_PPP (TIOCSETD)</text>
+  <text x="860" y="438" font-size="13" fill="#8a8f98" text-anchor="middle">and no terminal is left</text>
+</svg>

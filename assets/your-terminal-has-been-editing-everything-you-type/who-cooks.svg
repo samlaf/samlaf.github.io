@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 640" font-family="-apple-system,'Segoe UI',Helvetica,Arial,sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0L10 5L0 10z" fill="#9aa0a6"/>
+    </marker>
+  </defs>
+  <rect width="960" height="640" fill="#ffffff"/>
+
+  <!-- ===== panel 1: cooked ===== -->
+  <text x="40" y="44" font-size="15" font-weight="600" fill="#555555">cooked &#8212; the kernel cooks (ICANON + ECHO on)</text>
+
+  <rect x="40" y="66" width="150" height="72" rx="10" fill="#4a4a48"/>
+  <text x="115" y="108" font-size="16" font-weight="600" fill="#ffffff" text-anchor="middle">keyboard</text>
+  <line x1="190" y1="102" x2="275" y2="102" stroke="#9aa0a6" stroke-width="1.5" marker-end="url(#a)"/>
+
+  <rect x="280" y="66" width="250" height="72" rx="10" fill="#94391b"/>
+  <text x="405" y="95" font-size="16" font-weight="600" fill="#ffffff" text-anchor="middle">line discipline</text>
+  <text x="405" y="117" font-size="14" fill="#f5c9b0" text-anchor="middle">buffers &#183; edits &#183; echoes</text>
+
+  <line x1="530" y1="102" x2="615" y2="102" stroke="#9aa0a6" stroke-width="1.5" marker-end="url(#a)"/>
+  <text x="572" y="92" font-size="13" fill="#8a8f98" text-anchor="middle">on Enter</text>
+
+  <rect x="620" y="66" width="220" height="72" rx="10" fill="#4638b3"/>
+  <text x="730" y="95" font-size="16" font-weight="600" fill="#ffffff" text-anchor="middle">shell</text>
+  <text x="730" y="117" font-size="14" fill="#c7d2fe" text-anchor="middle">read() returns a line</text>
+
+  <rect x="305" y="210" width="200" height="52" rx="10" fill="#4a4a48"/>
+  <text x="405" y="242" font-size="16" font-weight="600" fill="#ffffff" text-anchor="middle">display</text>
+  <line x1="405" y1="138" x2="405" y2="205" stroke="#9aa0a6" stroke-width="1.5" stroke-dasharray="5 5" marker-end="url(#a)"/>
+  <text x="420" y="178" font-size="13" fill="#8a8f98">echo</text>
+
+  <!-- ===== panel 2: readline ===== -->
+  <text x="40" y="334" font-size="15" font-weight="600" fill="#555555">readline &#8212; the program cooks (ICANON + ECHO off)</text>
+
+  <rect x="40" y="356" width="150" height="72" rx="10" fill="#4a4a48"/>
+  <text x="115" y="398" font-size="16" font-weight="600" fill="#ffffff" text-anchor="middle">keyboard</text>
+  <line x1="190" y1="392" x2="275" y2="392" stroke="#9aa0a6" stroke-width="1.5" marker-end="url(#a)"/>
+
+  <rect x="280" y="356" width="250" height="72" rx="10" fill="#4a4a48"/>
+  <text x="405" y="385" font-size="16" font-weight="600" fill="#ffffff" text-anchor="middle">line discipline</text>
+  <text x="405" y="407" font-size="14" fill="#d4d4d1" text-anchor="middle">pass-through &#183; VMIN=1</text>
+
+  <line x1="530" y1="392" x2="615" y2="392" stroke="#9aa0a6" stroke-width="1.5" marker-end="url(#a)"/>
+  <text x="572" y="382" font-size="13" fill="#8a8f98" text-anchor="middle">each byte</text>
+
+  <rect x="620" y="356" width="220" height="72" rx="10" fill="#94391b"/>
+  <text x="730" y="385" font-size="16" font-weight="600" fill="#ffffff" text-anchor="middle">bash (readline)</text>
+  <text x="730" y="407" font-size="14" fill="#f5c9b0" text-anchor="middle">buffers &#183; edits &#183; echoes</text>
+
+  <rect x="305" y="500" width="200" height="52" rx="10" fill="#4a4a48"/>
+  <text x="405" y="532" font-size="16" font-weight="600" fill="#ffffff" text-anchor="middle">display</text>
+  <line x1="700" y1="428" x2="480" y2="496" stroke="#9aa0a6" stroke-width="1.5" stroke-dasharray="5 5" marker-end="url(#a)"/>
+  <text x="608" y="452" font-size="13" fill="#8a8f98">echo</text>
+
+  <text x="480" y="612" font-size="14" fill="#9a9a9a" text-anchor="middle">Same three jobs, same picture from your chair &#8212; they only crossed the kernel boundary.</text>
+</svg>

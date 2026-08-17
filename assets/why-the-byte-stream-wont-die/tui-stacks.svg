@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 480" font-family="-apple-system,'Segoe UI',Helvetica,Arial,sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0L10 5L0 10z" fill="#9aa0a6"/>
+    </marker>
+  </defs>
+  <rect width="960" height="480" fill="#ffffff"/>
+
+  <!-- C column -->
+  <rect x="70" y="40" width="240" height="64" rx="10" fill="#1d4f8c"/>
+  <text x="190" y="67" font-size="16" font-weight="600" fill="#ffffff" text-anchor="middle">ncurses / notcurses</text>
+  <text x="190" y="89" font-size="14" fill="#bcd7f5" text-anchor="middle">C frameworks</text>
+  <line x1="190" y1="104" x2="190" y2="145" stroke="#9aa0a6" stroke-width="1.5" marker-end="url(#a)"/>
+
+  <rect x="70" y="150" width="240" height="64" rx="10" fill="#1d4f8c"/>
+  <text x="190" y="177" font-size="16" font-weight="600" fill="#ffffff" text-anchor="middle">terminfo database</text>
+  <text x="190" y="199" font-size="14" fill="#bcd7f5" text-anchor="middle">the capability DB</text>
+  <line x1="190" y1="214" x2="190" y2="255" stroke="#9aa0a6" stroke-width="1.5" marker-end="url(#a)"/>
+
+  <!-- Rust column -->
+  <rect x="360" y="40" width="240" height="64" rx="10" fill="#94391b"/>
+  <text x="480" y="67" font-size="16" font-weight="600" fill="#ffffff" text-anchor="middle">ratatui</text>
+  <text x="480" y="89" font-size="14" fill="#f5c9b0" text-anchor="middle">Rust framework</text>
+  <line x1="480" y1="104" x2="480" y2="145" stroke="#9aa0a6" stroke-width="1.5" marker-end="url(#a)"/>
+
+  <rect x="360" y="150" width="240" height="64" rx="10" fill="#94391b"/>
+  <text x="480" y="177" font-size="16" font-weight="600" fill="#ffffff" text-anchor="middle">crossterm</text>
+  <text x="480" y="199" font-size="14" fill="#f5c9b0" text-anchor="middle">pure Rust + Windows</text>
+  <line x1="480" y1="214" x2="480" y2="255" stroke="#9aa0a6" stroke-width="1.5" marker-end="url(#a)"/>
+
+  <!-- Go column -->
+  <rect x="650" y="40" width="240" height="64" rx="10" fill="#0d5c4b"/>
+  <text x="770" y="67" font-size="16" font-weight="600" fill="#ffffff" text-anchor="middle">Bubble Tea / tview</text>
+  <text x="770" y="89" font-size="14" fill="#99e0c7" text-anchor="middle">Go frameworks</text>
+  <line x1="770" y1="104" x2="770" y2="145" stroke="#9aa0a6" stroke-width="1.5" marker-end="url(#a)"/>
+
+  <rect x="650" y="150" width="240" height="64" rx="10" fill="#0d5c4b"/>
+  <text x="770" y="177" font-size="16" font-weight="600" fill="#ffffff" text-anchor="middle">termenv / tcell</text>
+  <text x="770" y="199" font-size="14" fill="#99e0c7" text-anchor="middle">pure Go</text>
+  <line x1="770" y1="214" x2="770" y2="255" stroke="#9aa0a6" stroke-width="1.5" marker-end="url(#a)"/>
+
+  <!-- shared substrate -->
+  <rect x="70" y="260" width="820" height="70" rx="10" fill="#4a4a48"/>
+  <text x="480" y="290" font-size="17" font-weight="600" fill="#ffffff" text-anchor="middle">Escape-byte protocol + termios + SIGWINCH</text>
+  <text x="480" y="313" font-size="14" fill="#d4d4d1" text-anchor="middle">the shared substrate</text>
+
+  <line x1="480" y1="330" x2="480" y2="371" stroke="#9aa0a6" stroke-width="1.5" marker-end="url(#a)"/>
+
+  <rect x="330" y="376" width="300" height="64" rx="10" fill="#4638b3"/>
+  <text x="480" y="403" font-size="16" font-weight="600" fill="#ffffff" text-anchor="middle">any terminal emulator</text>
+  <text x="480" y="425" font-size="14" fill="#c7d2fe" text-anchor="middle">local, ssh, tmux, asciinema&#8230;</text>
+</svg>
