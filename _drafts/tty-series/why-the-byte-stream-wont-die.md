@@ -1,5 +1,5 @@
 ---
-title:  "Why the byte stream won't die"
+title:  "TUI: Why the byte stream won't die"
 category: programming
 ---
 
@@ -36,7 +36,7 @@ And TUIs are having a renaissance —
 [Charm](https://charm.land/) in Go, ratatui in Rust. Their stacks look
 different for about two layers, and then:
 
-![every TUI framework bottoms out in the same substrate](/assets/why-the-byte-stream-wont-die/tui-stacks.svg)
+![every TUI framework bottoms out in the same substrate](/assets/tui-why-the-byte-stream-wont-die/tui-stacks.svg)
 
 Every framework, in every language, bottoms out in the same three things:
 the escape-byte protocol, termios, and `SIGWINCH`. Nobody is required to do
@@ -49,7 +49,7 @@ designing today you'd give the shell a real API: typed events in, draw calls
 out, no parser, no in-band control, no `\x1b[`. Put the two designs side by
 side:
 
-![the terminal substrate vs the GUI substrate](/assets/why-the-byte-stream-wont-die/two-substrates.svg)
+![the terminal substrate vs the GUI substrate](/assets/tui-why-the-byte-stream-wont-die/two-substrates.svg)
 
 The right column is *obviously* better engineering. Typed instead of stringly,
 discoverable instead of database-mediated, no state machine reverse-engineered
