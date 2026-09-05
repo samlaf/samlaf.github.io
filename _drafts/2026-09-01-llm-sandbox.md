@@ -344,6 +344,8 @@ The proxy is therefore a classic potential confused deputy: it possesses authori
 
 The placeholder is itself a capability. It may be worthless outside the gateway but valuable to anyone who can still reach that gateway. It should be bound to a sandbox identity, authenticated channel, session, expiry, scope, and budget rather than treated as harmless merely because it is not the upstream bearer secret.
 
+agent-creds shows one way to make that binding structural. Its guest-visible handle is a macaroon rather than an opaque string, so the constraints travel with the artifact instead of living only in gateway-side state: caveats naming host, method, path glob, and validity window are verified cryptographically before the vault will substitute a real credential. A stolen handle is then worth only what its caveats already permitted. This does not dissolve the confused-deputy problem — a caveat set wide enough to cover an agent's entire run recreates it — but it changes the question from *what does the gateway remember about this token* to *what does this token say about itself*.
+
 ## Threat model by enforcement plane
 
 The earlier two-column model—unnameability versus adjudication—hides trust placement. In particular, "malicious code defeats adjudication" is true of in-guest adjudication but false of a host gateway designed to distrust the guest kernel.
@@ -556,7 +558,7 @@ may access GitHub
     for sandbox Y
 ```
 
-The resource server verifies those caveats before honoring the request. This fits naturally inside a gateway: a controller makes a grant for a subgoal, encodes it in a macaroon, and the guest later presents that artifact to the gateway or upstream service. The token carries authority across time or process boundaries; the verifier remains the enforcement point.
+The resource server verifies those caveats before honoring the request. This fits naturally inside a gateway, and agent-creds builds exactly that: a sandbox orchestrator mints a macaroon for the agent, the guest presents it on every request, and a vault verifies its caveats — host, method, path, validity window — before injecting the real bearer token, Basic credential, OAuth2 access token, or SigV4 signature. The guest never holds a credential; it holds an attenuated grant that some verifier will honor. The token carries authority across time or process boundaries; the verifier remains the enforcement point.
 
 A macaroon does not itself isolate computation, retain some separate root credential, or remove alternate network paths. It is an authority artifact, not a sandbox or system decomposition. Its value here is to demonstrate that attenuation, delegation, context, and expiry can be properties of a reified grant rather than one global process profile.
 
@@ -618,6 +620,8 @@ Iron Proxy and Gondolin's network mediation are topologically forward proxies: t
 That makes them **adversarial-client forward proxies functioning as capability gateways**. The forward/reverse distinction remains useful for network placement, but it does not generalize to files, databases, signing keys, or publication handles. “Capability gateway” names the security role; “forward proxy” names one implementation shape.
 
 The distinction also exposes the contract again. An `HTTP_PROXY` variable is merely a cooperative convention. A capability gateway becomes enforcement only when the runtime removes every alternate route to the protected destination. Iron Proxy can be combined with forced routing such as nftables or TPROXY. Gondolin can make the relationship tighter by withholding ordinary NAT and making the host network backend the guest's only peer.
+
+Topology also decides where each property lives, and the two need not sit in the same process. agent-creds separates them: an Envoy proxy per sandbox terminates that sandbox's TLS, while one shared vault holds every upstream credential and evaluates policy. Enforcement is per-principal, so each sandbox arrives over its own nonforgeable channel; authority is centralized, so secrets, policy, and audit live in a single trusted place rather than being replicated per workload. Network-namespace isolation supplies the non-bypassability that an environment variable cannot. The proxy is the transport; the vault is the gateway.
 
 ## The architecture is recursive
 
@@ -776,6 +780,8 @@ The compute sandbox determines which universe the workload inhabits. The capabil
 - [Gondolin — VFS providers](https://earendil-works.github.io/gondolin/vfs/) — programmable resource providers, real-filesystem hardening, read-only and shadow layers, and provider composition
 - [Gondolin — QEMU backend](https://earendil-works.github.io/gondolin/qemu/) — minimal device model and the decision to keep the host as the guest's network peer
 - [Iron Proxy](https://github.com/paradigmxyz/iron-proxy) — untrusted-client forward proxy, default-deny egress, proxy-token secret substitution, request transforms, auditing, and routing requirements
+- [agent-creds](https://github.com/dtkav/agent-creds) — per-sandbox Envoy proxy and shared credential vault; the guest holds only a macaroon whose caveats are verified before the vault injects a bearer, Basic, OAuth2, or SigV4 credential, with network-namespace isolation supplying non-bypassability
+- [Using proxies to hide secrets from Claude Code](https://formal.ai/blog/using-proxies-claude-code/) — mitmproxy addons substituting a real API key for a dummy one, `NODE_EXTRA_CA_CERTS` to trust the intercepting CA, and separate proxy configuration for the harness process and its sandboxed subprocesses; forced by environment variable rather than by routing
 - [Lima — filesystem mounts](https://lima-vm.io/docs/config/mount/) — reverse-SSHFS, 9p, virtiofs, and mount behavior across VM drivers
 
 ## Kernel security mechanisms
@@ -793,6 +799,7 @@ The compute sandbox determines which universe the workload inhabits. The capabil
 
 ## Capability and authority foundations
 
+- [The Protection of Information in Computer Systems](https://www.cs.virginia.edu/~evans/cs551/saltzer/) — Saltzer and Schroeder's eight design principles, including complete mediation, least privilege, fail-safe defaults, and psychological acceptability
 - [Capability Myths Demolished](https://cgi.cse.unsw.edu.au/~cs9242/20/papers/Miller_YS_03.pdf) — capability-system terminology, authority, designation, confinement, and common misconceptions
 - [The Confused Deputy](https://www.cs.utexas.edu/~witchel/S25-380L/papers/hardy88confused.pdf) — the classic description of a program misusing authority on behalf of an untrusted requester
 - [Macaroons: Cookies with Contextual Caveats for Decentralized Authorization in the Cloud](https://static.googleusercontent.com/media/research.google.com/en/us/pubs/archive/41892.pdf) — attenuable bearer capabilities with contextual caveats
