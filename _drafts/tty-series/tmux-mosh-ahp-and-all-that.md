@@ -34,7 +34,7 @@ That last collision is the subject of this post. The rest is the long way round 
 
 Run tmux over ssh. Between your keyboard and your shell there are now three ptys, not one:
 
-![three stacked ptys between a laptop and a tmux pane: the laptop pty held by Ghostty and ssh, the host pty held by sshd and the tmux client, both raw, and the pane pty held by the tmux server and bash, the only one cooked, with echo returning up the whole chain](/assets/raw-mode-all-the-way-up/three-ptys.svg)
+![three stacked ptys between a laptop and a tmux pane: the laptop pty held by Ghostty and ssh, the host pty held by sshd and the tmux client, both raw, and the pane pty held by the tmux server and bash, the only one cooked, with echo returning up the whole chain](/assets/tty-series/tmux-mosh-ahp-and-all-that/three-ptys.svg)
 
 1. **On your laptop** — Ghostty on the master, `ssh` on the slave. `ssh` raws it the moment it allocates a remote pty.
 2. **On the host** — `sshd` on the master, the tmux *client* on the slave. The tmux **server** raws this one, in `tty_start_tty()`, via `tcsetattr` on a file descriptor it received over a unix socket. The client `dup()`s its stdin and stdout and hands them over with `SCM_RIGHTS` during the handshake. So the process configuring your terminal is not the process attached to it.

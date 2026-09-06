@@ -16,7 +16,7 @@ There are three places a threat can live:
 
 For each, it helps to separate three things that often happened *decades apart*: the **threat**, the **theory** that modelled it, and the **implementation** that finally shipped — plus the attacks that broke those implementations in between. The recurring pattern: a threat is *modelled* long before it's *defeated*, and the deployed system gets broken many times along the way.
 
-![Timeline of internet threat models across three layers — the wire, identity binding, and inside the session — from 1976 to today, showing each threat modelled years before it was defeated](/assets/threat-model/threat-model-timeline.svg)
+![Timeline of internet threat models across three layers — the wire, identity binding, and inside the session — from 1976 to today, showing each threat modelled years before it was defeated](/assets/crypto-series/threat-model/threat-model-timeline.svg)
 
 ## 1 · On the wire: the network between endpoints
 
@@ -57,7 +57,7 @@ The wire attacker this section opens with is just one point in a much bigger spa
 
 Those axes don't fit on a plane, so the cleanest way to read an adversary is as a *polyline* crossing one axis per feature (a [parallel-coordinates][parallel-coords] plot): the higher it rides, the stronger the attacker. Two things are worth stressing. First, the axes are orthogonal to *what* is attacked — an *adaptive*, *mobile*, *Byzantine* adversary describes a set of corrupted nodes as readily as the wire. Byzantine-on-the-wire is just active injection à la Dolev–Yao (benign drops and noise sit lower, as crash/omission), and *mobile* corruption that comes and goes is exactly what forces proactive secret-sharing/recovery. Second, *unbounded* compute has a practically important midpoint: a **quantum** adversary is unbounded only *with respect to today's elliptic-curve and RSA assumptions* (via Shor) — not against symmetric crypto or post-quantum schemes — which is why "harvest now, decrypt later" is a passive attacker on a quantum timer.
 
-![Parallel-coordinates plot of the adversary model: four orthogonal axes — behaviour (passive→crash→omission→Byzantine), compute (bounded→quantum→unbounded), targeting (static→adaptive), and mobility (non-mobile→mobile) — each applying to the wire or a corrupted node, with a passive eavesdropper, Dolev–Yao, a quantum harvest-now-decrypt-later attacker, and a mobile Byzantine node drawn as polylines](/assets/threat-model/adversary-axes.svg)
+![Parallel-coordinates plot of the adversary model: four orthogonal axes — behaviour (passive→crash→omission→Byzantine), compute (bounded→quantum→unbounded), targeting (static→adaptive), and mobility (non-mobile→mobile) — each applying to the wire or a corrupted node, with a passive eavesdropper, Dolev–Yao, a quantum harvest-now-decrypt-later attacker, and a mobile Byzantine node drawn as polylines](/assets/crypto-series/threat-model/adversary-axes.svg)
 
 TODO: related with content of this thread: https://x.com/ittaia/status/2020963847134454041
 

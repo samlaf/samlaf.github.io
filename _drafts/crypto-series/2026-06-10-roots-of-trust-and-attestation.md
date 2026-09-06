@@ -14,7 +14,7 @@ A channel's session keys come out of an ephemeral DH exchange — but what stops
 
 How is a channel's ephemeral session key ultimately authenticated?
 
-![image](/assets/roots-of-trust-and-attestation/session-key-authentication-chain.png)
+![image](/assets/crypto-series/roots-of-trust-and-attestation/session-key-authentication-chain.png)
 
 There are two chains to the same destination here. The left one is the familiar Web PKI: the leaf cert binds a domain to a key, signed by an intermediate, signed by a Root CA that's baked into your browser. The right one is hardware attestation: an Intel SGX root signs an Intel-issued attestation key, which signs a TDX quote whose `REPORTDATA` commits to the session key's hash. Either way, the session key is only as trustworthy as the out-of-band anchor at the top of its chain.
 
@@ -22,7 +22,7 @@ There are two chains to the same destination here. The left one is the familiar 
 
 So where do those anchors come from? They're never derived — they're *configured*, out of band, by software vendors, OS installs, and DHCP.
 
-![image](/assets/roots-of-trust-and-attestation/roots-of-trust-out-of-band.png)
+![image](/assets/crypto-series/roots-of-trust-and-attestation/roots-of-trust-out-of-band.png)
 
 Others that we could include:
 
@@ -43,34 +43,34 @@ And tying back to where the conversation started: **blockchain genesis hashes** 
 Proving that a key really lives behind one of those hardware roots — rather than just claiming to — is **attestation**. Red Hat's REMITS model is a clean lens for reading any attestation scheme, hardware or cloud.
 
 Redhat's REMITS model:
-![image](/assets/roots-of-trust-and-attestation/remits-model.png)
+![image](/assets/crypto-series/roots-of-trust-and-attestation/remits-model.png)
 
 
 
 ## TPM
 
-![image](/assets/roots-of-trust-and-attestation/remits-tpm.png)
+![image](/assets/crypto-series/roots-of-trust-and-attestation/remits-tpm.png)
 
 TODO: figure out which of the 2 below diagrams is correct
 
-![image](/assets/roots-of-trust-and-attestation/tpm-key-hierarchy-1.png)
+![image](/assets/crypto-series/roots-of-trust-and-attestation/tpm-key-hierarchy-1.png)
 
-![image](/assets/roots-of-trust-and-attestation/tpm-key-hierarchy-2.png)
+![image](/assets/crypto-series/roots-of-trust-and-attestation/tpm-key-hierarchy-2.png)
 
 ## CVMs
 
 ### AMD
 
-![image](/assets/roots-of-trust-and-attestation/remits-amd-sev.png)
+![image](/assets/crypto-series/roots-of-trust-and-attestation/remits-amd-sev.png)
 
 
 ### Intel DCAP
 
-![image](/assets/roots-of-trust-and-attestation/intel-dcap-key-hierarchy.png)
+![image](/assets/crypto-series/roots-of-trust-and-attestation/intel-dcap-key-hierarchy.png)
 
 
 In the REMITS model:
-![image](/assets/roots-of-trust-and-attestation/remits-intel-dcap.png)
+![image](/assets/crypto-series/roots-of-trust-and-attestation/remits-intel-dcap.png)
 
 ## Cloud Attestation of CVMs: to vTPM or not
 
@@ -80,20 +80,20 @@ Seems like vTPMs are more about the cloud provider decision, not the underlying 
 
 
 
-![image](/assets/roots-of-trust-and-attestation/azure-vtpm-two-run-chain.png)
+![image](/assets/crypto-series/roots-of-trust-and-attestation/azure-vtpm-two-run-chain.png)
 
 In the first run, we use hardware-provided evidence against the cloud provider’s own attestation architecture (such as Microsoft Azure Attestation). If successful, this first run unlocks the secrets necessary to build a vTPM (e.g. from persistent storage). How this is done precisely appears to rely on proprietary, non open-source Microsoft software. The root of trust in that first run is in hardware, namely an AMD root key (ARK) in the current SEV instances.
-![image](/assets/roots-of-trust-and-attestation/azure-vtpm-run1-amd-remits.png)
+![image](/assets/crypto-series/roots-of-trust-and-attestation/azure-vtpm-run1-amd-remits.png)
 
 A second run will then start with the vTPM as a root of trust, and the secrets become accessible through the standard mechanisms specified for all TPMs, which we described above. Except for the root of trust being a vTPM instead of a physical TPM, the second run is otherwise equivalent.
-![image](/assets/roots-of-trust-and-attestation/azure-vtpm-run2-remits.png)
+![image](/assets/crypto-series/roots-of-trust-and-attestation/azure-vtpm-run2-remits.png)
 
 
 ### Real TPM (Google)
 
 Main difference seems to be that Google's identity is completely independent from the hardware chain of trust, and needs to be verified independently?
 
-![image](/assets/roots-of-trust-and-attestation/gcp-dual-pki-chains.png)
+![image](/assets/crypto-series/roots-of-trust-and-attestation/gcp-dual-pki-chains.png)
 
 PKI #1 — Intel DCAP (left, guest evidence). Intel SGX/TDX root CA → PCK platform CA (Intel's provisioning service) → PCK cert bound to the platform's TCB level → TD quote carrying MRTD + RTMRs, signed by the Intel-provisioned quoting-enclave attestation key. This is the exact same direct Intel-rooted quote you get on paravisor-free GCP TDX — no Google software in the signing path. The RTMR event log is the structural analog of your "TPM event logs": it's the human-readable explanation of what the RTMR values mean, and the quote signs over the RTMRs that summarize it.
 

@@ -25,7 +25,7 @@ CRT, and firmware that turned an incoming byte stream into glowing phosphor
 and keystrokes into an outgoing byte stream, connected to the computer by a
 serial wire. The kernel's tty subsystem was written to talk to that object.
 
-![the terminal migrates from silicon to kernel to userspace](/assets/what-a-terminal-emulator-actually-is/history.svg)
+![the terminal migrates from silicon to kernel to userspace](/assets/tty-series/what-a-terminal-emulator-actually-is/history.svg)
 
 The terminal then migrated inward twice. First into the kernel: when machines
 grew their own screens, the "terminal" became kernel code driving the video

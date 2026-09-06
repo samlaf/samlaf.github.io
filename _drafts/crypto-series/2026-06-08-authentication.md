@@ -12,7 +12,7 @@ This is the identity arm of the [duality](/programming/crypto-series-intro.html)
 
 Authentication is a conversation between a handful of parties — a client, the resource server it's talking to, and often an identity provider that vouches for it — each holding different resident keys and minting different per-request proofs.
 
-![image](/assets/authentication/meta-map-people.png)
+![image](/assets/crypto-series/authentication/meta-map-people.png)
 
 > The grammar of what any proof can claim — who (identity: aud, iss, sub, rpId), when (freshness: iat, exp, jti, nonces), what (content: the bytes the proof commits to), what-for (scope), and bound-to-what (chaining: cnf claims) — is laid out in the secret-material map in [Keys](/programming/keys.html). Read any auth scheme below by asking which of those five it covers and which it omits.
 

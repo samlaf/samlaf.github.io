@@ -12,7 +12,7 @@ Cryptographic primitives are the atoms everything else is built from. The same m
 
 Long-term trend: the PRP era (DES, AES) is being supplemented by a PRF era (ChaCha, BLAKE3) where the primitive matches the way we actually use it. The diagram I drew has two roots today — HMAC and AES — but in fifteen years the dominant root might just be a single fast PRF that does everything.
 
-![image](/assets/crypto-primitives/prf-vs-prp-tree.png)
+![image](/assets/crypto-series/crypto-primitives/prf-vs-prp-tree.png)
 
 The bottom row is the punchline I want to drive home. A stream cipher, a CSPRNG, and a KDF's expand step are all the same machine — a PRF run in counter mode, producing a long pseudorandom output stream. They differ only in where the key comes from and what you do with the output:
 - Stream cipher: key from user/handshake → output XORed with plaintext to encrypt
@@ -24,7 +24,7 @@ Once you see that, you stop memorizing them as separate things. They're all "PRF
 
 ### Block vs Stream Cipher
 
-![image](/assets/crypto-primitives/block-vs-stream-cipher.png)
+![image](/assets/crypto-series/crypto-primitives/block-vs-stream-cipher.png)
 
 The vocabulary is genuinely overloaded. Four terms, two axes.
 
@@ -48,7 +48,7 @@ The trend over the last decade has been to abandon the upper-left quadrant (bloc
 
 Freshness is the goal. Nonces were the first clean formalization of how to deliver it, by surfacing a uniqueness contract at the mode-level API. Tweaks then provided a richer primitive that makes mode construction easier, by letting the mode designer derive freshness from context however they want rather than imposing a contract on the caller. XTS is the extreme case — pure position-derived tweaks, no nonce at all, freshness fully internal — accepted because disk encryption can't fit nonces anywhere. SIV is the other extreme — freshness from the plaintext itself, defending against the failure mode where nonces get reused — accepted because that failure mode keeps happening in real systems. Deoxys-II combines both ideas, using a tweakable primitive to build a nonce-based AEAD that's also misuse-resistant.
 
-![image](/assets/crypto-primitives/freshness-vs-primitive-grid.png)
+![image](/assets/crypto-series/crypto-primitives/freshness-vs-primitive-grid.png)
 
 Progression for how this came about (not exactly historical, but at least useful mental model):
 1. Probabilistic encryption (Goldwasser-Micali, 1984): caller must supply randomness (formally hidden, practically not).
