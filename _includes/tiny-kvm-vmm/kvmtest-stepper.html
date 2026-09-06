@@ -1,0 +1,234 @@
+{% comment %}
+  KVM execution stepper.
+  Drop this file under _includes/ and reference it from a post with an
+  include tag naming its path relative to _includes, e.g.
+  tiny-vmm/kvmtest-stepper.html
+  Everything is scoped under .kvmt so it will not touch your theme's styles.
+  Trace derived from Josh Triplett's kvmtest.c (MIT), LWN.net article 658511.
+{% endcomment %}
+
+<div class="kvmt" id="kvmt">
+  <style>
+  .kvmt{
+    --kvmt-bg: #ffffff;
+    --kvmt-fg: #1c1c1a;
+    --kvmt-dim: #5f5e5a;
+    --kvmt-mute: #8a8984;
+    --kvmt-line: #e3e1da;
+    --kvmt-line-2: #c9c7bf;
+    --kvmt-vmm-bg: #e6f1fb; --kvmt-vmm-fg: #0c447c;
+    --kvmt-kvm-bg: #faeeda; --kvmt-kvm-fg: #854f0b;
+    --kvmt-gst-bg: #e1f5ee; --kvmt-gst-fg: #0f6e56;
+    --kvmt-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    color: var(--kvmt-fg);
+    font-family: inherit;
+    font-size: 15px;
+    line-height: 1.6;
+    margin: 2rem 0;
+  }
+  @media (prefers-color-scheme: dark){
+    .kvmt{
+      --kvmt-bg: #1a1a18; --kvmt-fg: #e8e6df; --kvmt-dim: #a8a69e; --kvmt-mute: #7c7b76;
+      --kvmt-line: #33322e; --kvmt-line-2: #4a4944;
+      --kvmt-vmm-bg: #0c447c; --kvmt-vmm-fg: #b5d4f4;
+      --kvmt-kvm-bg: #633806; --kvmt-kvm-fg: #fac775;
+      --kvmt-gst-bg: #085041; --kvmt-gst-fg: #9fe1cb;
+    }
+  }
+  .kvmt *{box-sizing:border-box}
+  .kvmt-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .kvmt-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+  .kvmt-btn{font:inherit;font-size:14px;padding:6px 14px;border:1px solid var(--kvmt-line-2);
+    background:transparent;color:var(--kvmt-fg);border-radius:8px;cursor:pointer}
+  .kvmt-btn:hover:not(:disabled){border-color:var(--kvmt-fg)}
+  .kvmt-btn:disabled{opacity:.35;cursor:default}
+  .kvmt-btn:focus-visible{outline:2px solid var(--kvmt-vmm-fg);outline-offset:2px}
+  .kvmt-step{font-size:14px;color:var(--kvmt-mute)}
+  .kvmt-badge{margin-left:auto;font-size:13px;padding:4px 12px;border-radius:20px;white-space:nowrap}
+  .kvmt-desc{min-height:4.2em;margin-bottom:14px;color:var(--kvmt-fg)}
+  .kvmt-grid{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+  .kvmt-col-a{flex:1 1 300px;min-width:0}
+  .kvmt-col-b{flex:1 1 240px;min-width:0;display:flex;flex-direction:column;gap:14px}
+  .kvmt-card{border:1px solid var(--kvmt-line);border-radius:10px;padding:14px}
+  .kvmt-h{font-size:13px;font-weight:500;color:var(--kvmt-dim);margin:0 0 8px}
+  .kvmt-code{font-family:var(--kvmt-mono);font-size:13px;padding:4px 8px;border-radius:6px;
+    white-space:pre;overflow-x:auto;color:var(--kvmt-dim);background:transparent}
+  .kvmt-code[data-on="1"]{background:var(--kvmt-vmm-bg);color:var(--kvmt-vmm-fg)}
+  .kvmt-row{display:flex;justify-content:space-between;gap:12px;
+    font-family:var(--kvmt-mono);font-size:13px;padding:3px 0}
+  .kvmt-row span:first-child{color:var(--kvmt-dim)}
+  .kvmt-out{font-family:var(--kvmt-mono);font-size:13px;white-space:pre;min-height:2.6em}
+  .kvmt-note{font-size:13px;color:var(--kvmt-mute);margin-top:10px}
+  .kvmt-note a{color:inherit}
+  </style>
+
+  <p class="kvmt-sr">Interactive step-through of the kvmtest.c sample program, showing which context holds the CPU, guest register values, kvm_run contents, and host output at each step.</p>
+
+  <div class="kvmt-bar">
+    <button class="kvmt-btn" id="kvmt-prev">Back</button>
+    <button class="kvmt-btn" id="kvmt-next">Step</button>
+    <button class="kvmt-btn" id="kvmt-reset">Reset</button>
+    <span class="kvmt-step" id="kvmt-count">Step 1 of 14</span>
+    <span class="kvmt-badge" id="kvmt-badge">&nbsp;</span>
+  </div>
+
+  <p class="kvmt-desc" id="kvmt-desc" aria-live="polite">&nbsp;</p>
+
+  <div class="kvmt-grid">
+    <div class="kvmt-col-a">
+      <div class="kvmt-card">
+        <p class="kvmt-h">Guest code at 0x1000</p>
+        <div id="kvmt-listing"></div>
+      </div>
+    </div>
+    <div class="kvmt-col-b">
+      <div class="kvmt-card">
+        <p class="kvmt-h">Guest registers</p>
+        <div id="kvmt-regs"></div>
+      </div>
+      <div class="kvmt-card">
+        <p class="kvmt-h">Shared kvm_run page</p>
+        <div id="kvmt-run"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="kvmt-card">
+    <p class="kvmt-h">Host stdout</p>
+    <div class="kvmt-out" id="kvmt-out"></div>
+  </div>
+
+  <p class="kvmt-note">Trace of <a href="https://lwn.net/Articles/658512/">kvmtest.c</a> by Josh Triplett (MIT), from <a href="https://lwn.net/Articles/658511/">Using the KVM API</a> on LWN.</p>
+</div>
+
+<script>
+(function(){
+  var root = document.getElementById('kvmt');
+  if (!root || root.dataset.ready) return;
+  root.dataset.ready = '1';
+
+  var LINES = [
+    ["0x1000","mov  $0x3f8, %dx"],
+    ["0x1003","add  %bl, %al"],
+    ["0x1005","add  $'0', %al"],
+    ["0x1007","out  %al, (%dx)"],
+    ["0x1008","mov  $'\\n', %al"],
+    ["0x100a","out  %al, (%dx)"],
+    ["0x100b","hlt"]
+  ];
+  function R(ip,ax,bx,dx){return {rip:ip,rax:ax,rbx:bx,rdx:dx};}
+  var IO4  = {exit_reason:"KVM_EXIT_IO",direction:"OUT",port:"0x3f8",size:"1",data:"0x34  '4'"};
+  var IONL = {exit_reason:"KVM_EXIT_IO",direction:"OUT",port:"0x3f8",size:"1",data:"0x0a  '\\n'"};
+  var HLT  = {exit_reason:"KVM_EXIT_HLT"};
+
+  var S = [
+    {w:"vmm",cur:-1,r:R("0x1000","0x0002","0x0002","0x0000"),run:null,out:"",
+     d:"Setup is done. KVM_SET_SREGS zeroed cs.base, KVM_SET_REGS seeded rip, rax, rbx and rflags. Nothing is executing yet."},
+    {w:"kvm",cur:0,r:R("0x1000","0x0002","0x0002","0x0000"),run:null,out:"",
+     d:"ioctl(vcpufd, KVM_RUN). KVM saves host state, loads the GPRs from its software save area, and executes VMLAUNCH. This thread is now the vCPU."},
+    {w:"guest",cur:1,r:R("0x1003","0x0002","0x0002","0x03f8"),run:null,out:"",
+     d:"The mov ran natively in VMX non-root mode. No exit, no kernel involvement, no ioctl return."},
+    {w:"guest",cur:2,r:R("0x1005","0x0004","0x0002","0x03f8"),run:null,out:"",
+     d:"add %bl, %al gives al = 4. Still no exit. The host thread is still blocked inside KVM_RUN."},
+    {w:"guest",cur:3,r:R("0x1007","0x0034","0x0002","0x03f8"),run:null,out:"",
+     d:"add $'0', %al converts 4 to ASCII 0x34. Three instructions have now run with zero hypervisor cost."},
+    {w:"kvm",cur:4,r:R("0x1008","0x0034","0x0002","0x03f8"),run:IO4,out:"",
+     d:"out %al, (%dx) causes an unconditional I/O exit. Hardware records the reason in the VMCS; KVM finds no in-kernel handler for port 0x3f8, fills in kvm_run, advances rip past the instruction, and returns from the ioctl."},
+    {w:"vmm",cur:4,r:R("0x1008","0x0034","0x0002","0x03f8"),run:IO4,out:"4",
+     d:"switch (run->exit_reason) matches KVM_EXIT_IO. The 19-line switch statement is the entire device model: putchar reads the byte at run->io.data_offset."},
+    {w:"kvm",cur:4,r:R("0x1008","0x0034","0x0002","0x03f8"),run:null,out:"4",
+     d:"The while loop calls KVM_RUN again. This time it is VMRESUME rather than VMLAUNCH, because the VMCS is already current on this CPU."},
+    {w:"guest",cur:5,r:R("0x100a","0x000a","0x0002","0x03f8"),run:null,out:"4",
+     d:"mov $'\\n', %al loads the newline. Native again."},
+    {w:"kvm",cur:5,r:R("0x100b","0x000a","0x0002","0x03f8"),run:IONL,out:"4",
+     d:"Second I/O exit, same port. Note kvm_run is reused in place, not reallocated: it is the same mmapped page every time."},
+    {w:"vmm",cur:5,r:R("0x100b","0x000a","0x0002","0x03f8"),run:IONL,out:"4\n",
+     d:"Host prints the newline and loops."},
+    {w:"kvm",cur:6,r:R("0x100b","0x000a","0x0002","0x03f8"),run:null,out:"4\n",
+     d:"Third KVM_RUN. One more VMRESUME."},
+    {w:"kvm",cur:6,r:R("0x100c","0x000a","0x0002","0x03f8"),run:HLT,out:"4\n",
+     d:"hlt exits with KVM_EXIT_HLT. With the in-kernel irqchip there would be nothing to wake this vCPU, so KVM hands the decision to userspace."},
+    {w:"vmm",cur:-1,r:R("0x100c","0x000a","0x0002","0x03f8"),run:HLT,out:"4\nKVM_EXIT_HLT\n",
+     d:"The host treats HLT as done, prints, and returns 0. Total: three KVM_RUN calls, three vmexits, seven guest instructions."}
+  ];
+
+  var BADGE = {
+    vmm:  ["VMM userspace",       "var(--kvmt-vmm-bg)", "var(--kvmt-vmm-fg)"],
+    kvm:  ["KVM, kernel",         "var(--kvmt-kvm-bg)", "var(--kvmt-kvm-fg)"],
+    guest:["Guest, VMX non-root", "var(--kvmt-gst-bg)", "var(--kvmt-gst-fg)"]
+  };
+
+  var i = 0;
+  var $ = function(id){ return document.getElementById(id); };
+  var listing = $('kvmt-listing'), regs = $('kvmt-regs'), runEl = $('kvmt-run');
+  var outEl = $('kvmt-out'), descEl = $('kvmt-desc'), badge = $('kvmt-badge');
+  var count = $('kvmt-count'), prev = $('kvmt-prev'), next = $('kvmt-next');
+
+  LINES.forEach(function(l,n){
+    var d = document.createElement('div');
+    d.className = 'kvmt-code';
+    d.id = 'kvmt-l' + n;
+    d.textContent = l[0] + '   ' + l[1];
+    listing.appendChild(d);
+  });
+
+  function row(k,v){
+    var d = document.createElement('div');
+    d.className = 'kvmt-row';
+    var a = document.createElement('span'); a.textContent = k;
+    var b = document.createElement('span'); b.textContent = v;
+    d.appendChild(a); d.appendChild(b);
+    return d;
+  }
+
+  function render(){
+    var s = S[i];
+    count.textContent = 'Step ' + (i+1) + ' of ' + S.length;
+    descEl.textContent = s.d;
+
+    var bg = BADGE[s.w];
+    badge.textContent = bg[0];
+    badge.style.background = bg[1];
+    badge.style.color = bg[2];
+
+    LINES.forEach(function(l,n){
+      $('kvmt-l'+n).dataset.on = (n === s.cur) ? '1' : '0';
+    });
+
+    regs.textContent = '';
+    regs.appendChild(row('rip', s.r.rip));
+    regs.appendChild(row('rax', s.r.rax));
+    regs.appendChild(row('rbx', s.r.rbx));
+    regs.appendChild(row('rdx', s.r.rdx));
+
+    runEl.textContent = '';
+    if (!s.run){
+      var e = document.createElement('div');
+      e.className = 'kvmt-row';
+      e.style.color = 'var(--kvmt-mute)';
+      e.style.fontFamily = 'inherit';
+      e.textContent = 'stale, not yet written by this exit';
+      runEl.appendChild(e);
+    } else {
+      Object.keys(s.run).forEach(function(k){ runEl.appendChild(row(k, s.run[k])); });
+    }
+
+    outEl.textContent = s.out;
+    prev.disabled = (i === 0);
+    next.disabled = (i === S.length - 1);
+  }
+
+  function go(n){ if(n >= 0 && n < S.length){ i = n; render(); } }
+  prev.onclick  = function(){ go(i-1); };
+  next.onclick  = function(){ go(i+1); };
+  $('kvmt-reset').onclick = function(){ go(0); };
+
+  root.tabIndex = 0;
+  root.addEventListener('keydown', function(e){
+    if (e.key === 'ArrowRight'){ go(i+1); e.preventDefault(); }
+    if (e.key === 'ArrowLeft'){ go(i-1); e.preventDefault(); }
+  });
+
+  render();
+})();
+</script>
