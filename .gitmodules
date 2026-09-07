@@ -1,0 +1,9 @@
+[submodule "code/rust-cuda-aes"]
+	path = code/rust-cuda-aes
+	url = https://github.com/samlaf/rust-cuda-aes.git
+[submodule "code/tty-puzzles"]
+	path = code/tty-puzzles
+	url = https://github.com/samlaf/tty-puzzles.git
+[submodule "code/koopman-examples"]
+	path = code/koopman-examples
+	url = https://github.com/samlaf/koopman-examples.git

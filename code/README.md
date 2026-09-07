@@ -1,0 +1,19 @@
+# code
+
+Submodules for the runnable code behind posts on the site.
+
+Each directory is a standalone repo, cloned here so that prose and code can be
+read side by side while drafting. Directories are named after the upstream repo
+rather than the post slug, since one repo can back a whole series.
+
+| Directory          | Repo                                         | Used by                                       |
+| ------------------ | -------------------------------------------- | --------------------------------------------- |
+| `tty-puzzles`      | <https://github.com/samlaf/tty-puzzles>      | the terminal post and the `tty-series` drafts |
+| `rust-cuda-aes`    | <https://github.com/samlaf/rust-cuda-aes>    | the single-core AES post                      |
+| `koopman-examples` | <https://github.com/samlaf/koopman-examples> | the applied Koopman theory post               |
+
+Jekyll excludes this whole directory, so nothing here reaches `_site`. Posts
+link to GitHub, and link to a pinned commit whenever they quote specific lines,
+so a snippet in a published post keeps pointing at the code it was written from.
+
+Run `make code` to clone or update every submodule.

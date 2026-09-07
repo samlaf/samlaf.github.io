@@ -37,17 +37,22 @@ collections:
     output: true
 
 
-# Exclude from processing.
-# The following items will not be processed, by default. Create a custom list
-# to override the default setting.
-# exclude:
-#   - Gemfile
-#   - Gemfile.lock
-#   - node_modules
-#   - vendor/bundle/
-#   - vendor/cache/
-#   - vendor/gems/
-#   - vendor/ruby/
+# Exclude from processing. Setting this key replaces Jekyll's built-in list,
+# so the defaults are repeated here alongside our own additions.
+exclude:
+  - .sass-cache
+  - .jekyll-cache
+  - Gemfile
+  - Gemfile.lock
+  - vendor/bundle/
+  - vendor/cache/
+  - vendor/gems/
+  - vendor/ruby/
+  # Submodules holding the runnable code for posts. They are cloned for local
+  # reference and permalinking, never served from the site.
+  - code
+  - Makefile
+  - requirements.txt
 
 # These are front matter defaults. These make it so that we don't need to add the "layout" front matter to projects and posts.
 # See https://jekyllrb.com/docs/step-by-step/09-collections/ for more details.
