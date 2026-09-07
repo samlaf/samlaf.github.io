@@ -44,3 +44,59 @@ img[src*='#center'] {
 	flex: 33.33%;
 	padding: 5px;
 }
+
+// Site-wide code styling inside the main page content: inline code stays light,
+// while code blocks use a charcoal background and matching light syntax colors
+// in both light and dark browser modes. Nested code inherits the block's colors.
+// Minima's stylesheet loads after ours, so .page-content adds specificity to
+// these overrides. Keep pre.highlight explicitly targeted: Minima's
+// .highlighter-rouge .highlight rule otherwise restores its purple background
+// on the inner <pre>, even when the surrounding highlight wrapper is dark.
+.page-content {
+  code {
+    color: #242424;
+    background: #f2f2f0;
+    border-color: #deded9;
+  }
+
+  pre,
+  pre.highlight,
+  div.highlight,
+  figure.highlight {
+    color: #e8e6df;
+    background: #1a1a18;
+    border-color: #44443e;
+    border-radius: 8px;
+    color-scheme: dark;
+  }
+
+  pre {
+    padding: 16px 20px;
+    overflow-x: auto;
+  }
+
+  pre code {
+    color: inherit;
+    background: transparent;
+    border: 0;
+    padding: 0;
+  }
+
+  .highlight {
+    // Comments, preprocessor directives, and secondary output remain readable.
+    .c, .ch, .cm, .c1, .cs, .go, .gh, .gu, .w { color: #aaa99f; }
+    .cp, .cpf { color: #c4b5fd; }
+    .k, .kc, .kd, .kn, .kp, .kr, .kt, .ow { color: #c4b5fd; }
+    .o, .p, .nn { color: #e8e6df; }
+    .m, .mb, .mf, .mh, .mi, .mo, .il { color: #f5c078; }
+    .s, .sa, .sb, .sc, .sd, .s2, .sh, .sx, .sr, .s1, .ss { color: #a8d5a2; }
+    .se, .si { color: #f5c078; }
+    .na, .nb, .bp, .nc, .no, .nd, .ni, .ne, .nv, .vc, .vg, .vi, .vm { color: #8dd3dc; }
+    .nf, .fm, .nl { color: #f5d58a; }
+    .nt { color: #c4b5fd; }
+    .gp { color: #8dd3dc; }
+    .gr, .gt { color: #ffb4b4; }
+    .err, .gd, .gd .x { color: #ffb4b4; background: #482626; }
+    .gi, .gi .x { color: #b6e3ad; background: #233d29; }
+  }
+}
