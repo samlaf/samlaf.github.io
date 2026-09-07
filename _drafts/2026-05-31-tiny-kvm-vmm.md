@@ -8,15 +8,15 @@ Pekka Enberg in [3] discusses the past and future of hypervisors. In particular,
 That is a useful theoretical model to have in mind, but it doesn't line up very well with how hypervisors are implemented in practice,
 where the kernel (KVM, Apple's Hypervisor.framework) and the user-space emulator (qemu, firecracker, etc) both implement parts of Pekka's VMM and device-model.
 
-![](/assets/tiny-kvm-vmm/vmm-vs-device-model.png)
+![VMM and device model responsibilities across userspace and the kernel.](/assets/tiny-kvm-vmm/vmm-vs-device-model.png)
 
 ## What KVM Is
 
 KVM is the hardware path. The important conceptual point is that KVM is essentially an ioctl API over VMX/SVM and several file descriptor types: a system fd from `/dev/kvm`, a VM fd, vCPU fds, and sometimes device fds. ([Kernel.org][2])
 
-![](/assets/tiny-kvm-vmm/kvm-fds.png)
+![KVM system, VM, and vCPU file descriptors and their ioctl operations.](/assets/tiny-kvm-vmm/kvm-fds.png)
 
-![](/assets/tiny-kvm-vmm/kvm-regs-and-mem.png)
+![How KVM register and memory configuration maps to kernel and hardware state.](/assets/tiny-kvm-vmm/kvm-regs-and-mem.png)
 
 ## Setting up
 
@@ -212,7 +212,7 @@ trap, no emulation, no round trip through your process. It is also live:
 nothing here has to wait for `hlt`. Host and guest can read and write the same
 page while the vCPU is running.
 
-![](/assets/tiny-kvm-vmm/kvm-host-guest-mmap.png)
+![Host mappings for guest RAM and the shared kvm_run page.](/assets/tiny-kvm-vmm/kvm-host-guest-mmap.png)
 
 #### Coda: a slot can be backed by anything
 

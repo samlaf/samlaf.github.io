@@ -13,7 +13,7 @@
     --kvmt-bg: #ffffff;
     --kvmt-fg: #1c1c1a;
     --kvmt-dim: #5f5e5a;
-    --kvmt-mute: #8a8984;
+    --kvmt-mute: #66655f;
     --kvmt-line: #e3e1da;
     --kvmt-line-2: #c9c7bf;
     --kvmt-vmm-bg: #e6f1fb; --kvmt-vmm-fg: #0c447c;
@@ -21,14 +21,18 @@
     --kvmt-gst-bg: #e1f5ee; --kvmt-gst-fg: #0f6e56;
     --kvmt-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
     color: var(--kvmt-fg);
+    background: var(--kvmt-bg);
+    color-scheme: light dark;
     font-family: inherit;
     font-size: 15px;
     line-height: 1.6;
     margin: 2rem 0;
+    padding: 20px;
+    border-radius: 12px;
   }
   @media (prefers-color-scheme: dark){
     .kvmt{
-      --kvmt-bg: #1a1a18; --kvmt-fg: #e8e6df; --kvmt-dim: #a8a69e; --kvmt-mute: #7c7b76;
+      --kvmt-bg: #1a1a18; --kvmt-fg: #e8e6df; --kvmt-dim: #a8a69e; --kvmt-mute: #a8a69e;
       --kvmt-line: #33322e; --kvmt-line-2: #4a4944;
       --kvmt-vmm-bg: #0c447c; --kvmt-vmm-fg: #b5d4f4;
       --kvmt-kvm-bg: #633806; --kvmt-kvm-fg: #fac775;
