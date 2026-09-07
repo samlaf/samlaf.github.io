@@ -22,7 +22,8 @@ KVM is the hardware path. The important conceptual point is that KVM is essentia
 
 Four phases get you to the point where guest code can run: **handles**,
 **memory**, **cpu**, **run**. The first three are setup, they are the same in
-every rung, and once you have written them you mostly stop thinking about them.
+every example, and once you have written them you mostly stop thinking about
+them.
 Here they are, in full.
 
 ```c
@@ -36,7 +37,7 @@ Here they are, in full.
 #include <sys/mman.h>
 #include <unistd.h>
 
-/* The guest payload. This is the one thing every rung below changes. */
+/* The guest payload. This is the one thing every example below changes. */
 static const uint8_t code[] = { /* ... */ };
 
 int main(void)
@@ -121,7 +122,8 @@ object model. Filling guest RAM before registering the slot is fine too —
 guest-physical range. The host mapping stays yours, and you can write to it
 before, during, or after the guest runs.
 
-Rung 2 is the only one that adds anything here, and only a second memory slot.
+Example 3 is the only one that adds anything here, and only a second memory
+slot.
 Everything else in this article happens after the brace above.
 
 ## Building it up
@@ -130,22 +132,22 @@ Most KVM tutorials open with a guest that immediately talks to a serial port,
 which welds two separate ideas together: *the guest ran and I can observe it*,
 and *I emulated a peripheral*. Those are worth pulling apart.
 
-So we start with neither. Rung 0 is a working VMM with no device model at all,
-and every rung after it is a diff against the one before, varying exactly one
-thing.
+So we start with neither. Example 1 is a working VMM with no device model at
+all, and every example after it is a diff against the one before, varying
+exactly one thing.
 
-| Rung | Adds | Varies |
+| Example | Adds | Varies |
 |---|---|---|
-| 0 | `hlt`, host reads `rax` and guest RAM | — |
-| 1 | a store to an unbacked address | the exit |
-| 2 | an IVT, `sti`, and injection — by hand, then by KVM | the direction |
-| 3 | the run loop in a thread, kicked by a signal | the execution model |
+| 1 | `hlt`, host reads `rax` and guest RAM | — |
+| 2 | a store to an unbacked address | the exit |
+| 3 | an IVT, `sti`, and injection — by hand, then by KVM | the direction |
+| 4 | the run loop in a thread, kicked by a signal | the execution model |
 
-Rungs 0 and 1 are about what makes the guest leave. Rung 2 is about which way
-traffic goes, and it gets built twice: once with your VMM doing the work, once
-with `KVM_CREATE_IRQCHIP` doing it. Rung 3 is about who runs the loop.
+Examples 1 and 2 are about what makes the guest leave. Example 3 is about which
+way traffic goes, and it gets built twice: once with your VMM doing the work,
+once with `KVM_CREATE_IRQCHIP` doing it. Example 4 is about who runs the loop.
 
-### Rung 0: no devices at all
+### Example 1: no devices at all
 
 A guest can do useful work and hand back a result without any device model. All
 that is left is phase 4 — the payload, the loop, and reading the answer back.
@@ -237,8 +239,8 @@ buffers. ([Triplett][4])
 Keep `MAP_SHARED`. With `MAP_PRIVATE` you get copy-on-write, so the guest's
 writes go to a private copy and nobody else ever sees them.
 
-This is worth pausing on, because it is the thing the rest of the ladder is
-implicitly working around. Rungs 1 and 2 are about *exits* — the guest stops,
+This is worth pausing on, because it is the thing the rest of this article is
+implicitly working around. Examples 2 and 3 are about *exits* — the guest stops,
 you do something, the guest resumes. Exits are a control plane, and every one
 of them costs a round trip. Shared memory is a data plane, and it costs
 nothing. Fast virtual I/O is almost entirely the art of moving bytes on the
@@ -248,7 +250,7 @@ A virtqueue is exactly this: descriptors and rings sitting in guest RAM that
 the VMM reads directly, with an MMIO write used only to say *look now*. The
 bytes never travel through an exit.
 
-### Rung 1: an address that isn't there
+### Example 2: an address that isn't there
 
 Change one byte. The store target goes from `0x1f00` to `0x8000`:
 
@@ -319,7 +321,7 @@ the slot and records which pages get dirtied, and you collect them later with
 `KVM_GET_DIRTY_LOG`. Again, no per-write exit — the tracking happens underneath
 you.
 
-The pattern is the same one rung 2 will show for interrupts. By default the
+The pattern is the same one example 3 will show for interrupts. By default the
 kernel handles it and you are not told. Every mechanism here is an explicit
 request to be told, paid for in exits.
 
@@ -368,15 +370,15 @@ opcode, so the fields arrive already decoded, straight out of the VMCS. ([ACRN][
 The mechanism really is x86-only, though — arm64 has `KVM_EXIT_MMIO` and no
 `KVM_EXIT_IO` whatsoever. ([Kernel.org][2])
 
-### Rung 2: the other direction
+### Example 3: the other direction
 
 Everything so far is guest to host. The guest hits something, you wake up, you
 service it. Nothing in the program has ever *reached into* a running guest.
 
-Rung 0 mapped its code at `0x1000` and left physical zero unbacked. That was
+Example 1 mapped its code at `0x1000` and left physical zero unbacked. That was
 not arbitrary. In real mode the interrupt vector table lives at zero — four
 bytes per vector, a 16-bit offset then a 16-bit segment — and putting guest
-code there would have landed on top of it. This rung is the one that finally
+code there would have landed on top of it. This is the example that finally
 wants an IVT, so it needs a second slot.
 
 ```c
@@ -398,7 +400,7 @@ ivt[0x20 * 4 + 3] = 0x00;
 ```
 
 The guest enables interrupts and halts. The handler writes a byte to the MMIO
-address from rung 1, so you can see it run:
+address from example 2, so you can see it run:
 
 ```c
 const uint8_t code[] = {
@@ -434,23 +436,23 @@ case KVM_EXIT_IRQ_WINDOW_OPEN: {
 Expected output is `I` then `D`: the handler runs, `iret` returns to the
 instruction after `hlt`, and the guest finishes.
 
-One thing this rung exposes that the others do not. A real-mode interrupt
+One thing this example exposes that the others do not. A real-mode interrupt
 pushes flags, `cs` and `ip` — six bytes — and the program has no stack at all,
 because nothing before now ever needed one. So you must also set
 `regs.rsp = 0x1000`, which grows down through the IVT page, comfortably above
 the 1KB the vector table itself occupies.
 
-Notice what you did *not* write here. Nothing in this rung emulates a CPU.
+Notice what you did *not* write here. Nothing in this example emulates a CPU.
 Reading the IVT, pushing flags and `cs` and `ip`, vectoring to `0x1010` — that
 is all done by the hardware, driven by KVM. And nothing here emulates an
 interrupt controller either, because there isn't one. On real hardware a device
 raises a line into a PIC, and the PIC decides which vector the CPU should take.
 `KVM_INTERRUPT` skips that entire layer and hands the CPU a vector directly.
 
-So this rung is not a device model. It is a back door, and it is only open
+So this is not a device model. It is a back door, and it is only open
 because of something the program never did.
 
-#### The same rung, delegated
+#### The same example, delegated
 
 Ask KVM for an interrupt controller and it will keep one for you:
 
@@ -487,8 +489,8 @@ already knows.
 
 **And `KVM_EXIT_HLT` stops happening at all.** With an in-kernel local APIC,
 `hlt` is handled inside the kernel: the vCPU blocks there and the irqchip wakes
-it when a line goes high. Your process is not involved. Both earlier rungs end
-on `KVM_EXIT_HLT`, so turning on the irqchip would quietly delete the exit this
+it when a line goes high. Your process is not involved. Both earlier examples
+end on `KVM_EXIT_HLT`, so turning on the irqchip would quietly delete the exit this
 whole article has been built around — which is the real reason it comes last.
 (There is a modern opt-out, `KVM_X86_USERSPACE_EXIT_HLT`, if you want the exit
 back anyway. ([LWN.net][6]))
@@ -496,7 +498,7 @@ back anyway. ([LWN.net][6]))
 The guest side moves too. A guest using the in-kernel PIC programs it the
 normal way, with `out` to ports `0x20` and `0x21`. Those writes are serviced in
 the kernel and never surface in your run loop — the same instruction that
-produced a `KVM_EXIT_IO` in rung 1's coda now produces no exit whatsoever.
+produced a `KVM_EXIT_IO` in example 2's coda now produces no exit whatsoever.
 Whether your process wakes up is decided by one ioctl at setup time.
 
 That is the diagram at the top of this article, in code. `KVM_INTERRUPT` and
@@ -505,9 +507,9 @@ moves that work into the right column, into the kernel, where the guest can use
 it without ever waking you. Neither version is more correct. The first shows you
 what an interrupt costs; the second is what you ship.
 
-### Rung 3: who calls `KVM_RUN`?
+### Example 4: who calls `KVM_RUN`?
 
-Rung 2 injected an interrupt from inside the run loop, between exits. Real
+Example 3 injected an interrupt from inside the run loop, between exits. Real
 devices do not work that way. A timer fires, a packet lands, a block request
 completes — and none of them are politely waiting for the vCPU to exit first.
 So: who calls `KVM_INTERRUPT`, and how do they reach a vCPU that is blocked
@@ -537,7 +539,7 @@ static void *vcpu_thread(void *arg)
             }
             err(1, "KVM_RUN");
         }
-        /* ... the switch from the earlier rungs ... */
+        /* ... the switch from the earlier examples ... */
     }
 }
 
@@ -568,7 +570,7 @@ it is a thread's entire life, and a signal is the doorbell.
 > A note on trust. The instruction encodings above are machine-checked — I
 > assembled every one of them and diffed the bytes — and the ioctl sequences come
 > from the KVM API documentation. But none of it has been *run*: I wrote this on
-> a Mac, which has no `/dev/kvm`. The interrupt handshake in rung 2 is the part I
+> a Mac, which has no `/dev/kvm`. The interrupt handshake in example 3 is the part I
 > would put on a Linux box first.
 
 ## References
