@@ -46,12 +46,13 @@ img[src*='#center'] {
 }
 
 // Site-wide code styling inside the main page content: inline code stays light,
-// while code blocks use a charcoal background and matching light syntax colors
+// while code blocks use a light-gray background and matching dark syntax colors
+// to distinguish them from the charcoal diagrams and interactive demos
 // in both light and dark browser modes. Nested code inherits the block's colors.
 // Minima's stylesheet loads after ours, so .page-content adds specificity to
 // these overrides. Keep pre.highlight explicitly targeted: Minima's
 // .highlighter-rouge .highlight rule otherwise restores its purple background
-// on the inner <pre>, even when the surrounding highlight wrapper is dark.
+// on the inner <pre>, even when the surrounding highlight wrapper is gray.
 .page-content {
   code {
     color: #242424;
@@ -63,11 +64,11 @@ img[src*='#center'] {
   pre.highlight,
   div.highlight,
   figure.highlight {
-    color: #e8e6df;
-    background: #1a1a18;
-    border-color: #44443e;
+    color: #24292f;
+    background: #f0f0f0;
+    border-color: #d4d4d4;
     border-radius: 8px;
-    color-scheme: dark;
+    color-scheme: only light;
   }
 
   pre {
@@ -84,19 +85,19 @@ img[src*='#center'] {
 
   .highlight {
     // Comments, preprocessor directives, and secondary output remain readable.
-    .c, .ch, .cm, .c1, .cs, .go, .gh, .gu, .w { color: #aaa99f; }
-    .cp, .cpf { color: #c4b5fd; }
-    .k, .kc, .kd, .kn, .kp, .kr, .kt, .ow { color: #c4b5fd; }
-    .o, .p, .nn { color: #e8e6df; }
-    .m, .mb, .mf, .mh, .mi, .mo, .il { color: #f5c078; }
-    .s, .sa, .sb, .sc, .sd, .s2, .sh, .sx, .sr, .s1, .ss { color: #a8d5a2; }
-    .se, .si { color: #f5c078; }
-    .na, .nb, .bp, .nc, .no, .nd, .ni, .ne, .nv, .vc, .vg, .vi, .vm { color: #8dd3dc; }
-    .nf, .fm, .nl { color: #f5d58a; }
-    .nt { color: #c4b5fd; }
-    .gp { color: #8dd3dc; }
-    .gr, .gt { color: #ffb4b4; }
-    .err, .gd, .gd .x { color: #ffb4b4; background: #482626; }
-    .gi, .gi .x { color: #b6e3ad; background: #233d29; }
+    .c, .ch, .cm, .c1, .cs, .go, .gh, .gu, .w { color: #62676d; }
+    .cp, .cpf { color: #6639a6; }
+    .k, .kc, .kd, .kn, .kp, .kr, .kt, .ow { color: #6639a6; }
+    .o, .p, .nn { color: #24292f; }
+    .m, .mb, .mf, .mh, .mi, .mo, .il { color: #895000; }
+    .s, .sa, .sb, .sc, .sd, .s2, .sh, .sx, .sr, .s1, .ss { color: #286238; }
+    .se, .si { color: #895000; }
+    .na, .nb, .bp, .nc, .no, .nd, .ni, .ne, .nv, .vc, .vg, .vi, .vm { color: #086575; }
+    .nf, .fm, .nl { color: #92431c; }
+    .nt { color: #6639a6; }
+    .gp { color: #086575; }
+    .gr, .gt { color: #a12622; }
+    .err, .gd, .gd .x { color: #a12622; background: #fbe3e3; }
+    .gi, .gi .x { color: #286238; background: #deefdf; }
   }
 }
