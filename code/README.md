@@ -11,6 +11,7 @@ rather than the post slug, since one repo can back a whole series.
 | `tty-puzzles`      | <https://github.com/samlaf/tty-puzzles>      | the terminal post and the `tty-series` drafts |
 | `rust-cuda-aes`    | <https://github.com/samlaf/rust-cuda-aes>    | the single-core AES post                      |
 | `koopman-examples` | <https://github.com/samlaf/koopman-examples> | the applied Koopman theory post               |
+| `tiny-vmms`        | <https://github.com/samlaf/tiny-vmms>        | the tiny KVM VMM draft                        |
 
 Jekyll excludes this whole directory, so nothing here reaches `_site`. Posts
 link to GitHub, and link to a pinned commit whenever they quote specific lines,

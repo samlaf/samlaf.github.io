@@ -7,3 +7,6 @@
 [submodule "code/koopman-examples"]
 	path = code/koopman-examples
 	url = https://github.com/samlaf/koopman-examples.git
+[submodule "code/tiny-vmms"]
+	path = code/tiny-vmms
+	url = https://github.com/samlaf/tiny-vmms.git
