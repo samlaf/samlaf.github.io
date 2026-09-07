@@ -1,5 +1,6 @@
 ---
 title:  A Quick Tour of Applied Koopman Theory
+code_url: https://github.com/samlaf/koopman-examples
 ---
 
 

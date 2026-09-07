@@ -2,6 +2,7 @@
 title:  "Your terminal has been editing everything you type"
 category: programming
 date: 2026-08-16
+code_url: https://github.com/samlaf/tty-puzzles
 ---
 
 > **Note:** the terminal output in this post is from macOS. Everything here

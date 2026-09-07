@@ -14,7 +14,11 @@ rather than the post slug, since one repo can back a whole series.
 | `tiny-vmms`        | <https://github.com/samlaf/tiny-vmms>        | the tiny KVM VMM draft                        |
 
 Jekyll excludes this whole directory, so nothing here reaches `_site`. Posts
-link to GitHub, and link to a pinned commit whenever they quote specific lines,
-so a snippet in a published post keeps pointing at the code it was written from.
+link to GitHub instead, via front matter that `_layouts/post.html` renders next
+to the date:
+
+```yaml
+code_url: https://github.com/samlaf/rust-cuda-aes
+```
 
 Run `make code` to clone or update every submodule.

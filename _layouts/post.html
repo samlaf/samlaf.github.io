@@ -3,6 +3,22 @@ layout: default
 ---
 <h1 style="margin-bottom:0.1em;">{{ page.title }}</h1>
 {% if page.series %}<p style="color:#666; font-size:1.05em; margin-top:0; font-style:italic;">({% if page.series_url %}<a href="{{ page.series_url }}">{{ page.series }}</a>{% else %}{{ page.series }}{% endif %})</p>{% endif %}
-<p style="color:#888; font-size:0.9em;">{{ page.date | date: "%B %-d, %Y" }}</p>
+<p style="color:#888; font-size:0.9em;">{{ page.date | date: "%B %-d, %Y" }}
+{%- if page.code_url %}
+  {%- comment -%}
+    Label a code link by its URL: github.com/owner/repo, keeping any
+    subdirectory but dropping the /tree/<branch> segment in between.
+  {%- endcomment -%}
+  {%- assign code_label = page.code_url | remove_first: "https://" | remove_first: "http://" | remove_first: "www." | split: "/tree/" -%}
+  {%- assign code_path = code_label[0] -%}
+  {%- if code_label.size > 1 -%}
+    {%- assign code_tail = code_label[1] | split: "/" -%}
+    {%- if code_tail.size > 1 -%}
+      {%- assign code_subdir = code_tail | slice: 1, 50 | join: "/" -%}
+      {%- assign code_path = code_path | append: "/" | append: code_subdir -%}
+    {%- endif -%}
+  {%- endif %}
+  &middot; <a href="{{ page.code_url }}">{{ code_path }}</a>
+{%- endif %}</p>
 
 {{ content }}

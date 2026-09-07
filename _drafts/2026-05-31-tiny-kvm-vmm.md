@@ -2,6 +2,7 @@
 title:  "Tiny KVM VMM"
 category: programming
 date:   2026-05-31
+code_url: https://github.com/samlaf/tiny-vmms/tree/main/kvm
 ---
 
 Pekka Enberg in [3] discusses the past and future of hypervisors. In particular, he breaks down the hypervisor as being a VMM and a device model.
@@ -66,7 +67,7 @@ int main(void)
     /* 2. memory: one 4KB page at guest-physical 0x1000 */
     mem = mmap(NULL, 0x1000, PROT_READ | PROT_WRITE,
                MAP_SHARED | MAP_ANONYMOUS, -1, 0);
-    if (!mem)
+    if (mem == MAP_FAILED)
         err(1, "allocating guest memory");
     memcpy(mem, code, sizeof(code));
 
@@ -92,7 +93,7 @@ int main(void)
     if (mmap_size < sizeof(*run))
         errx(1, "KVM_GET_VCPU_MMAP_SIZE unexpectedly small");
     run = mmap(NULL, mmap_size, PROT_READ | PROT_WRITE, MAP_SHARED, vcpufd, 0);
-    if (!run)
+    if (run == MAP_FAILED)
         err(1, "mmap vcpu");
 
     /* flatten cs so cs:ip addresses are just physical addresses */
@@ -422,19 +423,36 @@ the PIC lives in userspace, which is exactly when `KVM_INTERRUPT` is available
 the guest can accept a vector, and then you hand one over:
 
 ```c
-run->request_interrupt_window = 1;
+    /* ... at the top of the loop ... */
+    run->request_interrupt_window = !injected;
 
-/* ... inside the loop, after KVM_RUN ... */
-case KVM_EXIT_IRQ_WINDOW_OPEN: {
-    struct kvm_interrupt irq = { .irq = 0x20 };
-    ioctl(vcpufd, KVM_INTERRUPT, &irq);
-    run->request_interrupt_window = 0;
-    break;
-}
+    ret = ioctl(vcpufd, KVM_RUN, NULL);
+    if (ret == -1)
+        err(1, "KVM_RUN");
+
+    if (!injected && run->ready_for_interrupt_injection) {
+        struct kvm_interrupt irq = { .irq = 0x20 };
+        if (ioctl(vcpufd, KVM_INTERRUPT, &irq) == -1)
+            err(1, "KVM_INTERRUPT");
+        injected = 1;
+    }
 ```
 
-Expected output is `I` then `D`: the handler runs, `iret` returns to the
-instruction after `hlt`, and the guest finishes.
+The obvious place to put that is a `case KVM_EXIT_IRQ_WINDOW_OPEN:` arm, and
+it does not work. `sti` does not enable interrupts until *after* the following
+instruction — the sti shadow — and the following instruction is the `hlt`. So
+the window opens on an instruction that was already leaving the guest, and the
+exit you actually get is `KVM_EXIT_HLT`. The window-open exit never arrives,
+and a program that waits for it waits forever.
+
+`ready_for_interrupt_injection` is the field to read instead. KVM sets it on
+every exit, whatever the reason, so checking it after `KVM_RUN` catches the
+window no matter which exit carried you out.
+
+Expected output is `I` then `D`: the first `hlt` exits, you inject, re-entry
+vectors straight into the handler, `iret` returns to the instruction after the
+`hlt`, and the guest runs on to its second `hlt` and finishes. Counting those
+two halts is how the loop knows it is done.
 
 One thing this example exposes that the others do not. A real-mode interrupt
 pushes flags, `cs` and `ip` — six bytes — and the program has no stack at all,
@@ -495,11 +513,43 @@ whole article has been built around — which is the real reason it comes last.
 (There is a modern opt-out, `KVM_X86_USERSPACE_EXIT_HLT`, if you want the exit
 back anyway. ([LWN.net][6]))
 
-The guest side moves too. A guest using the in-kernel PIC programs it the
-normal way, with `out` to ports `0x20` and `0x21`. Those writes are serviced in
-the kernel and never surface in your run loop — the same instruction that
-produced a `KVM_EXIT_IO` in example 2's coda now produces no exit whatsoever.
-Whether your process wakes up is decided by one ioctl at setup time.
+The guest side moves too, and this is the part that bites. An in-kernel PIC is
+a *real* 8259 as far as the guest is concerned: it comes up with every line
+masked and no vector base programmed. Assert `KVM_IRQ_LINE` on a VM whose guest
+has not initialised it and precisely nothing happens. So the guest has to send
+it the usual init sequence first, with `out` to ports `0x20`/`0x21` for the
+master and `0xa0`/`0xa1` for the slave:
+
+```c
+    0xb0, 0x11, 0xe6, 0x20,  /* ICW1 master: init, ICW4 to follow */
+    0xb0, 0x11, 0xe6, 0xa0,  /* ICW1 slave                        */
+    0xb0, 0x20, 0xe6, 0x21,  /* ICW2 master: vector base 0x20     */
+    0xb0, 0x28, 0xe6, 0xa1,  /* ICW2 slave:  vector base 0x28     */
+    0xb0, 0x04, 0xe6, 0x21,  /* ICW3 master: slave on IRQ2        */
+    0xb0, 0x02, 0xe6, 0xa1,  /* ICW3 slave:  cascade identity 2   */
+    0xb0, 0x01, 0xe6, 0x21,  /* ICW4 master: 8086 mode            */
+    0xb0, 0x01, 0xe6, 0xa1,  /* ICW4 slave:  8086 mode            */
+    0xb0, 0xfe, 0xe6, 0x21,  /* OCW1 master: unmask IRQ0 only     */
+    0xb0, 0xff, 0xe6, 0xa1,  /* OCW1 slave:  mask everything      */
+```
+
+That is where the vector base `0x20` comes from, incidentally. In example 3 you
+picked `0x20` yourself and handed it to `KVM_INTERRUPT`. Here the guest tells
+the PIC that line 0 means vector `0x20`, and the PIC does the mapping — which
+is exactly the layer `KVM_INTERRUPT` skipped. The handler also owes the PIC an
+end-of-interrupt (`out $0x20, %al` to port `0x20`) before its `iret`, or the
+controller will never let line 0 through again.
+
+Not one of those twenty `out`s appears in your run loop. They are serviced
+inside the kernel — the same instruction that produced a `KVM_EXIT_IO` in
+example 2's coda now produces no exit whatsoever. Whether your process wakes up
+is decided by one ioctl at setup time.
+
+Two consequences for the shape of the program. You cannot assert the line
+before the guest has finished programming the PIC, so the guest needs some way
+to say *ready* — an MMIO write does fine, and it is the only exit you get
+before the interrupt. And since `hlt` no longer comes back to you, the program
+cannot end on one: it ends on the handler's MMIO write instead.
 
 That is the diagram at the top of this article, in code. `KVM_INTERRUPT` and
 the hand-built IVT are the left column: work your VMM does. `KVM_CREATE_IRQCHIP`

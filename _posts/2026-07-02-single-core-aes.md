@@ -2,6 +2,7 @@
 title:  "Maxing out AES-128-CTR on a single Zen5 core"
 category: programming
 date: 2026-07-02
+code_url: https://github.com/samlaf/rust-cuda-aes
 ---
 
 AES is the most widely deployed symmetric cipher in the world, encrypting most TLS traffic. Its main challenger, ChaCha20-Poly1305, was designed to win on CPUs lacking dedicated AES hardware — but that hardware is now everywhere, and [2025 benchmarks][ash-chacha-aes] show hardware-accelerated AES beating ChaCha on every modern CPU. 
