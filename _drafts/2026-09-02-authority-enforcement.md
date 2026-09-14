@@ -1,0 +1,351 @@
+---
+title:  "How authority is enforced: reference monitors and sandboxes"
+category: programming
+date:   2026-09-02
+---
+
+> This is the second of three articles on authorization.
+>
+> 1. **Where authority lives** — how a system represents authority, and how authority moves between principals.
+> 2. **How authority is enforced** — what makes those limits non-bypassable.
+> 3. **LLM sandbox = compute isolation + authority mediation** — how the two combine for agents.
+
+The first article ended with a description and no teeth. A capability graph bounds what a component can reach. An ACL says who may touch a resource. Neither does anything to a program that declines to participate.
+
+Something has to make the description true. This article is about that something: what it must guarantee, where people put it, and the two fundamentally different strategies it can use.
+
+## The unit of analysis is the external effect
+
+Sandboxing discussions usually start with the wrong noun. They ask whether untrusted code should run in a container, a microVM, gVisor, WASI, or a language runtime. Those choices matter, but they answer only *where computation happens*. They do not answer *what that computation can do*.
+
+Start from the other end. What effects can the workload cause?
+
+- Can it read host files?
+- Can it mutate durable state?
+- Can it reach the internet, localhost, or a metadata service?
+- Can it exercise a credential?
+- Can it publish an artifact that will execute later?
+- Can it inspect or interfere with another workload?
+
+Every one of these can be controlled at several points. A write to a repository might be prevented because the host path is absent, denied by an LSM, rejected by a filesystem provider, blocked by a tool hook, or refused by server-side branch protection. Those mechanisms are not interchangeable. They see different vocabularies and they live in different trust domains.
+
+So a sandbox is best defined by what it constrains, not by how it is built:
+
+> **A sandbox is an execution environment that restricts the effects a computation can have on the rest of the system.**
+
+That definition is deliberately mechanism-free. It covers a VM, a seccomp filter, a WASI runtime, and a proxy, because all four exist to shrink the same set.
+
+## The reference monitor
+
+The foundational statement is fifty years old. James Anderson led a study for the U.S. Air Force in 1972 whose two volumes defined the research agenda of computer security for the next two decades. Most of what now feels like background furniture got its first rigorous statement there.
+
+A reference monitor must be:
+
+1. **Always invoked.** Every access goes through it. Usually called *complete mediation*.
+2. **Tamperproof.** It is protected from modification by the subjects it controls.
+3. **Verifiable.** Small and simple enough that its correctness can be analyzed, ideally formally.
+
+```text
+request
+   ↓
+Reference Monitor
+   ↓
+effect
+```
+
+There is no escaping this. Every mechanism in the rest of this article is a reference monitor placed somewhere, and every failure is one of the three properties not holding. Microkernel design is precisely the project of making the reference monitor as small as possible so the third property becomes achievable.
+
+The third requirement was close to aspirational when it was written. Anderson knew formal verification of a real system was out of reach with 1972 tooling. seL4's verification in 2009 is, in a meaningful sense, the first time anyone discharged it on a system meant for actual use. That is most of the reason the seL4 people are entitled to their swagger.
+
+## Decomposing the monitor
+
+"Reference monitor" names a function, not a component. In practice that function splits, and the split has a standard vocabulary worth fixing now because the third article leans on it.
+
+```text
+request ──► PEP ──────► PDP
+             ▲            │
+             └────────────┘
+                decision
+```
+
+- **PEP**, policy enforcement point. Sits in the path of the effect. Cannot be bypassed. Does what the decision says.
+- **PDP**, policy decision point. Evaluates policy against facts and returns an answer. Need not be in the path at all.
+
+XACML's architecture adds two more, and the four-part vocabulary is the one most authorization products use:
+
+```text
+PAP   policy administration point   where policy is authored
+PIP   policy information point      where facts come from
+PDP   policy decision point         evaluates policy against facts
+PEP   policy enforcement point      sits in the path, applies the answer
+```
+
+The distinction is logical. All four can be one kernel function, or four services in different datacenters. What matters is that only the PEP has to satisfy Anderson's first two properties. The PDP must be *correct*; the PEP must be *unavoidable*. Conflating them is how people end up with an authorization system that is beautifully expressive and trivially routed around.
+
+The [Flask architecture](https://www.cs.cmu.edu/~dga/papers/flask-usenixsec99.pdf) is the cleanest instantiation, and the direct ancestor of SELinux. Flask separates **object managers**, which own resources and enforce decisions, from a **security server**, which evaluates policy. An object manager asks whether a subject may perform an operation on an object, caches the returned access vector, and — the part people forget — receives notifications when a policy change requires revoking what it cached.
+
+That revocation channel is the honest cost of caching a decision. The first article ended with the pipeline
+
+```text
+policy → decision → materialized authority → capability
+```
+
+and noted that the interesting engineering is in the arrow. Flask is what the arrow looks like when someone builds it carefully: the cache makes enforcement fast, and the notification channel is what you owe in exchange.
+
+## Unnameability versus adjudication
+
+Underneath all of it are two strategies, and almost every argument about sandboxing is really an argument about which one is being used.
+
+```text
+UNNAMEABILITY                      ADJUDICATION
+
+the resource is absent from        the request is expressible,
+the reachable universe             and an enforcement point
+                                   judges it
+
+no route                           policy engine
+no mount                           SELinux / AppArmor
+no reference                       seccomp rule
+API not imported                   ACL check
+
+"there is nothing to ask for"      "you asked; the answer is no"
+```
+
+These are functions, not technology categories. A mechanism may provide either or both. Namespaces alter the universe a process can name, one kernel-object class at a time. A VM does it for a whole machine. WASI does it by omitting APIs. Seccomp adjudicates entry to the syscall interface using syscall numbers and scalar arguments. LSMs adjudicate operations on resolved kernel objects.
+
+The strongest designs compose them: make the raw authority **unnameable**, then expose a **restricted, adjudicated** capability in its place.
+
+```text
+real GitHub token
+    absent from the workload entirely
+
+placeholder handle
+    visible to the workload
+    usable only through the gateway
+    valid only for approved operations
+```
+
+That is not layering one filter over another. It is *authority attenuation* — replacing possession of a powerful resource with permission to request a smaller set of effects. Which is the first article's capability story, arriving from the enforcement side.
+
+### The layering leaks, and it should
+
+It is tempting to present this series as a clean stack: article one is representation, article two is enforcement. That is mostly true and it is worth noticing exactly where it fails.
+
+Object-capability reachability is both. It is a *representation* of authority — the graph says what exists — and simultaneously an *enforcement strategy*, because a component cannot invoke what it cannot name. There is no separate checking step to bypass. The unnameability column above is, read another way, just the capability model applied to whatever resource class you care about.
+
+ACLs do not have this property. An ACL is purely a representation, and it is inert until some object manager consults it. That asymmetry is the single most useful thing to carry out of these two articles, and it explains why capabilities keep reappearing in both halves of the discussion while ACLs stay firmly in the first.
+
+## Three properties people conflate
+
+"Policy expressivity" collapses three independent questions. Separating them makes most comparisons tractable.
+
+**1. Legibility — what vocabulary crosses the boundary?**
+
+```text
+more semantic
+    agent intent and tool calls
+    Git operations and SQL statements
+    HTTP methods, paths, headers, bodies
+    filesystem paths, inodes, operations
+    IP addresses, ports, flows
+    block offsets and Ethernet frames
+more structural
+```
+
+**2. Programmability — what may policy do there?**
+
+```text
+fixed behavior
+static allow/deny configuration
+declarative subject × object relations
+programmable decisions
+stateful policy and external approval
+transformation, emulation, resource synthesis
+```
+
+**3. Trust placement — who executes the decision?**
+
+```text
+application or harness
+guest process
+guest kernel
+host process or host kernel
+hypervisor
+remote resource server
+```
+
+![image](/assets/authority-enforcement/legibility-vs-programmability.png)
+
+These vary independently. An LSM is structurally legible, weakly programmable, and trusted only as far as the guest kernel. A JavaScript callback in a host proxy is semantically legible, arbitrarily programmable, and survives a compromised guest. Neither dominates; they protect different boundaries.
+
+### Non-bypassability is none of the three
+
+It is a property of the **topology**, not of a policy language or a hook. The question is only ever: can the workload reach the protected resource by some other path?
+
+The clearest illustration is the humble proxy. `HTTP_PROXY` is a cooperative convention. A workload that wants to ignore it simply ignores it, and no amount of policy sophistication inside the proxy changes that. The same proxy becomes genuine enforcement when the topology closes: force routing with nftables or TPROXY, or give the workload a network peer that is the proxy, with no NAT and no alternate route.
+
+Same code, same policies, same expressivity. Enforcement in one deployment and decoration in the other. This is why arguing about policy languages before establishing the topology is almost always wasted effort.
+
+## Linux is a toolkit, not a primitive
+
+Linux has no single sandbox primitive. It has a collection of mechanisms, each controlling a different class of effect, and every real sandbox is a composition.
+
+1. `fork()` + `setuid()` + `exec()` — memory isolation, though only in one direction
+2. `chroot()` and mount namespaces — filesystem view
+3. `seccomp()` — allow or deny syscalls by number and scalar arguments
+4. `prctl()` — assorted process-level restrictions
+5. Namespaces — virtualize a kernel subsystem at a time: PID, IPC, NET, MNT, UTS, user, cgroup, time
+6. DAC and Linux capabilities — the traditional permission checks, and root split into pieces
+7. LSMs — SELinux, AppArmor, Smack, TOMOYO, Landlock, BPF-LSM
+
+![](/assets/authority-enforcement/linux-security-mechanisms.png)
+
+The LSM framework deserves the most attention, because it is Flask brought into Linux and it sits at a specific and well-chosen place. Rather than interposing at syscall entry, the kernel first resolves user-supplied names and handles into internal objects, *then* calls the hook immediately before the security-relevant operation. The question it asks is explicit:
+
+```text
+May subject S perform operation OP on kernel object OBJ?
+```
+
+This is exactly what separates an LSM from seccomp. Seccomp sees a syscall number and scalar arguments; it cannot dereference a pathname pointer or reason about the resolved inode. An LSM sees the object and the kernel context that produced it, no matter which syscall route got there.
+
+That difference has a direct consequence for policy soundness. Path-based policy has to account for symlinks, hard links, rename, bind mounts, already-open handles, and the gap between a directory entry and an inode. Label-based policy attached to kernel objects sidesteps much of that aliasing, at the cost of policies that map less directly onto how people describe a workspace. Neither choice is free.
+
+![](/assets/authority-enforcement/linux-security-frontends.png)
+
+The same primitives wear different user-facing clothes, which is a large part of why the landscape looks more fragmented than it is.
+
+## Interface and mechanism are separable
+
+Containers make the point better than any argument could.
+
+A "container" is defined by a contract — an image, a bundle, a lifecycle — and never by a mechanism.
+
+![image](/assets/authority-enforcement/oci-stacks.png)
+
+Behind the same OCI runtime interface you can put wildly different enforcement:
+
+```text
+container contract
+       │
+       ├── runc    → namespaces, cgroups, host kernel
+       ├── runsc   → gVisor, a userspace kernel
+       └── kata    → a full VM
+```
+
+![image](/assets/authority-enforcement/container-runtimes.png)
+
+These are interchangeable to the consumer and not remotely comparable as boundaries. "We run it in a container" says nothing about the security properties. It says the workload was packaged a certain way.
+
+This is the first article's policy/mechanism separation showing up one level down. The interface is the policy — what the workload may assume about its environment. The runtime is the mechanism. Keeping the seam there is what lets you change your mind about isolation strength without repackaging anything.
+
+## Two systems that got the shape right
+
+**WebAssembly and WASI** are the cleanest modern instance of unnameability followed by adjudicated reintroduction. A Wasm module starts with linear memory and computation. It inherits no ambient filesystem, network, environment, or clock. Everything useful arrives as an import the host chose to supply.
+
+```text
+Wasm module
+    → imported WASI operation
+        → host runtime
+            → selected filesystem, socket, clock, or service
+```
+
+The module cannot perform a host syscall behind the runtime's back, because there is no syscall instruction to perform. Its effect vocabulary is also legible: `open-at` or a typed component call carries far more meaning than a block offset. Unnameability comes free from the execution semantics rather than from a device model someone had to get right.
+
+**Effect systems** reach the same separation from the language side. Instead of letting a function perform hidden I/O, the type system records the effect, and a handler supplies its interpretation.
+
+```text
+computation requests Network.send
+    → handler may execute, deny, record, transform, or emulate it
+```
+
+Note what the handler can do. It is not restricted to allow or deny — it can synthesize a result, maintain a budget, or delegate the decision elsewhere. That is the programmability axis, at the most semantic legibility available anywhere.
+
+But a type-and-effect system is not automatically a security boundary. It may prove that *cooperative* source code declares its effects while native code, FFI, `unsafe`, or a compromised runtime walks straight past the handler. It becomes confinement only when the language and runtime together guarantee that every relevant effect is captured. Anderson's first property, restated for a compiler.
+
+The transferable lesson is not "adopt an effect language". It is that interfaces get easier to govern when the effect is named at the level policy cares about. `publishArtifact` is a better policy event than a sequence of writes and HTTP requests — but only if the lower-level routes cannot reach the same outcome.
+
+## seL4 as the meeting point
+
+The first article used seL4 to argue that capabilities are not always cached ACL decisions: in a separation kernel, the capability graph *is* the authority, with no authoritative copy elsewhere. That was a claim about representation. Here is the enforcement half.
+
+seL4 stores capabilities in kernel objects called CNodes. Userspace never touches a capability directly; it names a slot, and the kernel dereferences it. All authority — memory, execution, IPC endpoints, interrupts — is a capability, obtained by retyping untyped memory. There is no ambient authority anywhere in the system, including the ability to allocate.
+
+Two mechanisms make the graph governable rather than merely descriptive:
+
+**The grant right.** Holding a capability does not imply the ability to share it. Passing a capability over an endpoint requires the `grant` right on that endpoint. From the [seL4 retrospective](https://microkerneldude.org/2019/08/06/10-years-sel4-still-the-best-still-getting-better):
+
+> Capabilities also cleanly solved another issue with original L4, that of limiting communication. The original model relied on an (inflexible) process hierarchy and redirection to a monitor process ("chief") to limit data flow. Capabilities provide a cleaner, simpler and low-overhead model: Having a privilege does not in itself imply the ability to share that privilege, an additional grant right is needed to pass on capabilities.
+
+That is Saltzer and Schroeder's second objection — propagation control — answered structurally rather than by a registry.
+
+**The capability derivation tree.** The kernel tracks which capabilities were derived from which. `seL4_CNode_Revoke` removes all descendants of a capability in one operation. That is the third objection answered too, without indirection and without a lookup table, because the kernel already holds the provenance.
+
+So seL4 is where the two articles meet:
+
+> **Capabilities describe authority structurally. A trusted, verified reference monitor makes that structure non-bypassable.**
+
+And the separation of policy from mechanism survives: seL4 enforces whatever capability graph exists. Deciding what graph *should* exist — which components get which endpoints — is a system-design question that lives entirely outside the kernel, usually in a static configuration produced before boot.
+
+## Runtime versus analysis time
+
+One last axis, because it explains why some security properties cannot be enforced by a monitor at all, however well placed.
+
+There are three ways to establish that something cannot happen:
+
+- **Runtime monitoring** enforces safety trace properties. Access control, type checks, assertions, capability discipline. It is your first line of defense and it is fundamentally limited to "is this single step okay?"
+- **Static analysis** verifies hyperproperties by reasoning over all traces at once. Information-flow type systems, model checking, abstract interpretation. Strictly more powerful than monitoring for security properties, but incomplete, and limited to properties of the code.
+- **Cryptographic enforcement** converts a hyperproperty into a trace property by making distinguishing information computationally unavailable, then enforces the result at runtime. It is the only mechanism that can enforce a hyperproperty *during* execution — at the cost of computational hardness assumptions the other two do not need.
+
+The difference in one line each:
+
+```text
+"We proved no one can break in."     static analysis
+"We're watching for break-ins."      runtime monitor
+"There's nothing to steal."          capabilities
+```
+
+For trace properties, runtime monitoring is complete and static analysis is merely sound. For hyperproperties — non-interference, most confidentiality claims — static analysis can verify what monitoring cannot express. And capabilities sidestep the hierarchy entirely by operating at the level of system design rather than system verification. The attack does not get denied; it becomes incoherent.
+
+This is why "add a check" is sometimes the wrong instinct. If the property you want is about what an observer can *infer*, no reference monitor will get you there.
+
+## The architecture is recursive
+
+None of these are alternatives. A Wasm component runs inside a Linux guest constrained by an LSM. The guest presents an attenuated handle to a host broker. The broker uses a scoped OAuth token against a service whose own policy protects the resource.
+
+At every boundary, the same six questions:
+
+1. What computation is inside the boundary?
+2. What raw authority has been made unnameable?
+3. What handle or request vocabulary crosses it?
+4. Which trusted component interprets that vocabulary?
+5. Can the requester bypass that interpreter?
+6. What is the interpreter's maximum authority if its policy is wrong?
+
+Question five is Anderson's first property. Question six is the one people skip, and it is the one that decides how bad your worst day is.
+
+## What this does not solve
+
+Everything above assumes the reference monitor is a thing you can point at. A kernel. A hypervisor. A runtime. One component, in one trust domain, sitting in one path.
+
+Modern workloads do not have that shape. A single logical operation crosses a process, a machine, an API, a database, a cloud service, a user identity, and an organizational policy. There is no kernel spanning all of that.
+
+The answer is not that the reference monitor becomes distributed. It is that it gets **relocated and replicated**: several monitors, each complete within its own boundary, each seeing a different vocabulary, each surviving a different failure. The guest kernel mediates guest objects. The host mediates external effects. The resource server enforces its own invariant. No single one of them is complete, and the composition has to be designed rather than assumed.
+
+Which is exactly the problem LLM agents force you to confront, because an agent's authority is not known until it runs. That is the third article.
+
+## References
+
+- [Computer Security Technology Planning Study](https://csrc.nist.gov/csrc/media/publications/conference-paper/1998/10/08/proceedings-of-the-21st-nissc-1998/documents/early-cs-papers/ande72.pdf) — Anderson, 1972; the reference monitor
+- [The Flask Security Architecture](https://www.cs.cmu.edu/~dga/papers/flask-usenixsec99.pdf) — object managers, security server, access-vector caching, revocation
+- [Linux Security Modules: General Security Support for the Linux Kernel](https://www.usenix.org/legacy/publications/library/proceedings/sec02/full_papers/wright/wright_html/) — the original LSM design
+- [Linux Security Module usage](https://docs.kernel.org/admin-guide/LSM/index.html) and [development](https://docs.kernel.org/security/lsm-development.html)
+- [AppArmor — Where Do LSMs Fit?](https://apparmor.net/about/lsm_introduction/) — syscall filtering versus DAC, MAC, and resolved-object hooks
+- [Landlock](https://docs.kernel.org/userspace-api/landlock.html) — unprivileged monotonic self-restriction
+- [BPF LSM programs](https://docs.kernel.org/bpf/prog_lsm.html)
+- [Linux namespaces](https://man7.org/linux/man-pages/man7/namespaces.7.html) and [capabilities](https://man7.org/linux/man-pages/man7/capabilities.7.html)
+- [Software isolation in Linux](https://nikmav.blogspot.com/2015/06/software-isolation-in-linux_15.html) — the mechanism inventory
+- [Capsicum: Practical Capabilities for UNIX](https://www.usenix.org/conference/usenixsecurity10/capsicum-practical-capabilities-unix)
+- [10 years seL4](https://microkerneldude.org/2019/08/06/10-years-sel4-still-the-best-still-getting-better) — the grant right and what verification bought
+- [seL4 reference manual](https://sel4.systems/Info/Docs/seL4-manual-latest.pdf) — CNodes, untyped retyping, the capability derivation tree, `Revoke`
+- [WebAssembly Component Model](https://component-model.bytecodealliance.org/design/components.html) and [WASI security principles](https://github.com/bytecodealliance/wasi.dev/blob/main/docs/security.md)
+- [Handling Algebraic Effects](https://arxiv.org/abs/1312.1399) — effect handlers as programmable interpretations

@@ -1,283 +1,342 @@
 ---
-title:  "Authorization: Capabilities vs ACLs"
+title:  "Where authority lives: ACLs, capabilities, and delegation"
 category: programming
 date:   2026-09-01
 ---
 
-## Historical Perspective
+> This is the first of three articles on authorization.
+>
+> 1. **Where authority lives** — how a system represents authority, and how authority moves between principals.
+> 2. **How authority is enforced** — what makes those limits non-bypassable.
+> 3. **LLM sandbox = compute isolation + authority mediation** — how the two combine for agents.
+
+Ask what authorization is and you will get an answer about deciding. Can Alice read this file? Is this token valid? Does this role include that permission. Deciding matters, but it is the second question. The first is where the answer lives before anyone asks.
+
+A system has to put authority somewhere. It can keep a list at each resource naming who may touch it. It can hand each subject a set of unforgeable references to the things it may touch. It can keep a database of relationships and compute the answer on demand. These are not implementation details that wash out at scale. Each one makes a different set of questions cheap and a different set expensive, and the expensive questions are the ones that eventually break your architecture.
+
+This article is about representation and propagation only. It deliberately does not answer *what authority should exist* — that is a policy question, and it belongs to the third article. It also does not answer what stops a program from ignoring the representation entirely. That is the second article.
 
 ![image](/assets/authorization-ocaps-vs-acl/auth-models.png)
 
-https://idpro.org/the-state-of-the-union-of-authorization/
+*From [The State of the Union of Authorization](https://idpro.org/the-state-of-the-union-of-authorization/).*
 
-### Reference Monitor (Anderson Report)
+## The matrix and its two projections
 
-This is the OG paper. It was a study Anderson led for the U.S. Air Force, and it's one of the foundational documents of computer security as a discipline. The two-volume report laid out a research agenda that basically defined the field for the next two decades — it's where a lot of concepts that now feel like background furniture got their first rigorous statement.
+Start with the simplest model that captures the problem. Lampson's access-control matrix has subjects down one axis, objects across the other, and permitted operations in the cells.
 
-There is no way to escape having some reference monitor — that's just Anderson's 1972 observation about tamperproof, always-invoked, verifiable enforcement. Microkernel design is precisely the project of making the reference monitor as small as possible.
+```text
+             File A    File B    Device C
+Alice          rw        r
+Bob                      rw        use
+```
 
-Reference Monitor is thus:
-1. Complete mediation (sometimes "always invoked") — it must be impossible to bypass; every access goes through it.
-2. Tamperproof — it must be protected from unauthorized modification.
-3. Verifiable — it must be small and simple enough that its correctness can be analyzed, ideally formally.
+Nobody stores the matrix. It is mostly empty, and it changes constantly. So real systems store one of its two projections.
 
-### All the way back to S&S
+Store it by column, at the resource, and you get an **access control list**:
 
-https://www.cs.virginia.edu/~evans/cs551/saltzer/ 
+```text
+File A → Alice: rw
+File B → Alice: r, Bob: rw
+Device C → Bob: use
+```
 
-S&S actually argue against capabilities, in a soft way, by the end of section II-B. They identify three problems: revocation, propagation control, and review/audit. Their conclusion is that capabilities are great as a fast bottom layer but should be governed by an ACL system above them: "the most effective way of preserving some of the useful properties of capabilities is to limit their free copyability to the bottom most implementation layer of a computer system… The authorizations implemented by the capability system are then systematically maintained as an image of some higher level authorization description, usually some kind of an access control list system." This recommendation is enormously consequential — it's basically the design philosophy that won. Unix, Windows, POSIX, every mainstream OS until very recently is built this way. The whole ACL/identity-management world that Samonas is operating inside is downstream of this choice.
+Store it by row, at the subject, and you get a **capability list**:
 
-The ocap pushback is essentially: S&S identified real problems but drew the wrong conclusion. Modern ocap work argues that revocation has good answers (Redell's indirection, which S&S themselves describe! — that's the seed of the membrane pattern), propagation can be controlled by being careful about what references you hand out, and audit is recoverable through other means. Meanwhile, ACL systems have the confused deputy problem and ambient authority pathologies that ocap proponents argue are worse than what they "fix." Norm Hardy's "The Confused Deputy" (1988) is the canonical statement of this critique — and notice that the web version of the S&S paper you linked was apparently created by Norm Hardy himself, which is a nice piece of historical irony.
+```text
+Alice → File A: rw, File B: r
+Bob   → File B: rw, Device C: use
+```
 
-### SeL4
+The same information, transposed. This is the observation that makes people say ACLs and capabilities are dual, and at this level they are. A file descriptor is a capability; `/etc/passwd`'s mode bits are an ACL; both describe cells of the same matrix.
 
-From [here](https://microkerneldude.org/2019/08/06/10-years-sel4-still-the-best-still-getting-better):
-"Capabilities also cleanly solved another issue with original L4, that of limiting communication. The original model relied on an (inflexible) process hierarchy and redirection to a monitor process (“chief”) to limit data flow. Capabilities provide a cleaner, simpler and low-overhead model: Having a privilege does not in itself imply the ability to share that privilege, an additional grant right is needed to pass on capabilities."
+Hold that claim loosely. The matrix describes permissions at an instant. It says nothing about how a cell got filled in, who is allowed to fill in another one, or what happens when Alice hands Bob something. Every interesting difference between ACLs and capabilities lives in those dynamics, which the matrix does not model. The rest of this article is mostly about dismantling the duality it suggests.
 
-The "verifiable" requirement was considered almost aspirational in 1972 — Anderson knew formal verification of real systems was beyond reach with the tools of the day. The seL4 verification in 2009 is, in a real sense, the first time anyone fully discharged Anderson's third requirement on a system intended for actual use. That's part of why the seL4 people are entitled to a bit of swagger about it.
+## Capabilities are not transposed ACLs
 
-### Lampson's "caps are cached ACL decisions"
+Mark Miller's [Capability Myths Demolished](https://cgi.cse.unsw.edu.au/~cs9242/20/papers/Miller_YS_03.pdf) is the canonical statement that the transposition story is wrong, or at least badly incomplete. The strong version of the idea — the **object-capability model** — adds properties the matrix cannot express.
 
-From [this](https://arxiv.org/pdf/2011.02455):
-An authorization policy is a function permissions(agent, resource), usually thought of as amatrix and stored as a set of triples. A small policy can be centralized, but usually it’s stored
-- at the resource, listing the agents with permissions for it in an access control list (ACL), or
-- at the agent, listing the resources for which it has permissions in a capability list.
+An object capability is an unforgeable reference that both *designates* an object and *conveys* the authority to invoke it. The consequences compound:
 
-Only ACLs work for managing the policy, because the manager’s question is, “Who has access tothis resource?” It’s okay to make short-term copies of parts of it into capabilities (usually calledfile descriptors), which are faster to check. Stating the policy using named sets of both agents andresources makes the manager’s job feasible.
+- **Unforgeability.** You cannot manufacture a capability by guessing. There is no global namespace from which to recover an object by naming it.
+- **Designation and authority coincide.** Saying *which* object and saying *that you may use it* are the same act. This is what kills the confused deputy, as we will see.
+- **Delegation is reference-passing.** To give Bob authority, hand him the reference. No registry updates, no central grant.
+- **Attenuation.** You can wrap a reference in a proxy that forwards a subset of operations, and hand that on instead.
+- **Reachability bounds authority.** What a subject can ever affect is the transitive closure of the references it holds. Absence of a reference is a hard limit, not a denied request.
+- **No ambient authority.** A subject acts only through references it was given. It has no background powers it can invoke by virtue of who it is.
 
-### TLDR ocap vs reference monitor
+That last property is the real dividing line, and it is invisible in the matrix. In a Unix process, opening a file requires only a *name* — the authority comes from the process's identity, floating in the background. In an ocap system, the name *is* the authority, and you only have names someone handed you.
 
-I think the cleanest way to hold both views is this: caps and ACLs are dual representations, but they make different things easy to reason about. ACLs make administrative questions easy ("who has access?"). Caps make confinement and propagation questions easy ("what can this subject ever reach?"). For a multi-user file server, the administrative question dominates and ACLs win. For a separation kernel running mutually-suspicious components where you want a formal bound on blast radius, the propagation question dominates and caps win.
+Three things get called capabilities and only one of them has these properties:
 
-seL4 is squarely in the second camp — it's not trying to be a Unix replacement, it's trying to be the substrate for systems where you need provable confinement. In that setting, Lampson's "caps are cached ACL decisions" framing genuinely undersells what's happening, because the static structure of the cap graph is the thing being reasoned about, not any individual access decision.
+```text
+capability list
+    a row of the matrix; the kernel keeps it; ambient
+    authority usually still exists alongside it
 
-But I'd resist the maximalist cap position too. The cap community spent a long time pretending revocation and administration weren't problems, and they are. Lampson's corrective is healthy. The right reading is probably: ACLs are the right interface for humans managing policy; caps are the right interface for programs enforcing it; and which one you put at the core of your system depends on which question you most need to answer rigorously.
+bearer token
+    a string that grants access to whoever presents it;
+    forgeable if guessable, copyable, and usually names
+    a resource in a global namespace
 
-## SVO Framework
+object capability
+    unforgeable reference, designation = authority,
+    delegable, attenuable, no ambient authority
+```
 
-Traditional Models (DAC/MAC/RBAC)
-- DAC: "WHO (specific subject identity) can do WHAT (verbs) to WHICH resources (objects)"
-- MAC: "WHO (subject's clearance level) can do WHAT to WHICH (object's classification level)"
-    - but systems like SELinux are more sophisticated on the WHO, and use the full `user:role:type:level` to write filtering policies
-- RBAC: "WHICH ROLES (groups of subjects) can do WHAT to WHICH resources"
+A file descriptor is close to the third. An API key is firmly the second. Conflating them is how discussions about capabilities go wrong.
 
-These are fundamentally about "WHO" the subject is, with increasingly sophisticated ways of grouping and categorizing subjects.
+### Possession is authorization
 
-Advanced Attribute Models (ABAC)
-- ABAC: "GIGANTIC LIST OF ATTRIBUTES DESCRIBING SOMEONE"-VO
+The bearer idea long predates computers, and the examples are worth having in mind because they make the tradeoffs concrete.
 
-Capabilities
-- Mostly about shifting left the cost of computing the ABAC (afaiu... see below)
-- Supports Delegation-Centric Access Control (DCAC?)
+- **Value.** Casino chips, gift cards, subway tokens, postage stamps, gold, money orders.
+- **Access.** House keys, coat check tickets, locker keys.
+- **Authority.** Signet rings and royal seals — pressing the seal was the proof.
+- **Computing.** OAuth bearer tokens, API keys, session cookies, pre-signed S3 URLs, "anyone with this link can edit", SSH private keys, TOTP seeds.
 
+Notice what happened to almost all of them. Cash has serial numbers. Gift cards have activation systems. Crypto has a public ledger. Bearer instruments make theft, fraud, and enforcement hard, so registries creep in. The useful question is never whether something is bearer or registered, but where on that spectrum it sits and what the drift toward registration cost.
+
+## The mainstream models all live on the ACL side
+
+Before going further it is worth placing the models you actually use. The usual progression — DAC, MAC, RBAC, ABAC, ReBAC — reads as a story about increasing sophistication. It is more precisely a story about increasingly elaborate ways to describe **the subject**.
+
+```text
+DAC   WHO (this identity) can do WHAT to WHICH resource
+MAC   WHO (this clearance) can do WHAT to WHICH (this classification)
+RBAC  WHICH ROLES (groups of subjects) can do WHAT to WHICH
+ABAC  WHICH ATTRIBUTES (of subject, resource, action, environment)
+ReBAC WHICH RELATIONSHIPS connect this subject to this resource
+```
 
 ![image](/assets/authorization-ocaps-vs-acl/access-control-models.png)
 
-### MAC
+Every one of these keeps authority at the resource, or in a policy store that speaks on the resource's behalf, and looks the subject up when a request arrives. They are refinements of the ACL projection, not alternatives to it. The subject presents an identity; the system decides.
 
-Relationship between MAC and ABAC/RBAC might not be as simple as outlined in the diagram:
-> A security context in a domain is defined by a domain security policy. In the Linux security module (LSM) in SELinux, the security context is an extended attribute. Type enforcement implementation is a prerequisite for MAC, and a first step before multilevel security (MLS) or its replacement multi categories security (MCS). It is a complement of role-based access control (RBAC).
-> -- From [Type Enforcement](https://en.wikipedia.org/wiki/Type_enforcement) article
+The clean ladder also oversimplifies. MAC is not simply "RBAC plus levels": SELinux's type enforcement is a prerequisite for MAC and a first step toward multilevel security, and its security context is the full `user:role:type:level` tuple rather than a single clearance. Type enforcement and RBAC are complements in that design, not rungs.
 
-### ABAC
+ABAC is where the industry landed for anything complicated, with XACML and OPA's Rego as the two main expressions. Both share a shape: a policy document, a set of facts about subject and resource and environment, and an engine that evaluates one against the other at request time.
 
-XACML and OPA's Rego seem to be the 2 main approaches.
+Which is exactly the cost capabilities are trying to avoid.
 
-https://axiomatics.com/wp-content/uploads/2024/10/the-ultimate-guide-to-choosing-the-right-authorization-language-whitepaper-axiomatics-10-16-2024.pdf 
+## Identity is not authority
 
-### Capabilities
+The credential a subject presents can carry wildly different amounts of already-decided authority. It helps to see this as a ladder.
 
-Capabilities *can* be thought of as a kind of ABAC, where each capability is an attribute in some sense. Think of a jwt token being sent using an "attribute" (the `Authorization: Bearer` header) of each API request.
+```text
+identity              "This is Alice."
+   ↓                  The verifier must decide everything.
 
-Capabilities are about shifting authorization decisions "left" (earlier in the process) and effectively "compiling" the authorization decision into an unforgeable token. RBAC/ABAC requires heavy process everytime a user tries to access something.
-- "Compile-time" authorization: The hard work happens when issuing the capability
-- "Run-time" is just verification: Just verify the capability is valid and hasn't been revoked
-- Optimization through pre-authorization: The decision is made once, encoded in the token
-- Decentralized verification: The resource only needs to verify the capability is valid
+attributes            "Alice is a manager in Finance."
+   ↓                  The verifier still decides, with better facts.
 
-Real-World Examples of This Pattern
+scoped token          "Bearer of this may read the billing API."
+   ↓                  Most of the decision is already made.
 
-- AWS Pre-signed URLs: AWS does the complex policy evaluation once, then creates a URL that grants specific access for a limited time - no further policy evaluation needed when using it
-- OAuth 2.0 tokens (JWT?): Authorization servers do the heavy policy work once, then issue a scoped token that services can validate without re-evaluating complex user permissions
-- Kubernetes Service Account tokens: The auth decision is "compiled" into a JWT with specific permissions, allowing services to access specific resources without re-authenticating
-- Macaroons: Google's capability tokens that contain "caveats" (restrictions) and can be attenuated further without going back to a central authority
+capability            "Bearer of this may read invoice 4471,
+                       until 17:00, once."
+                      The decision is made. Verification is all
+                      that remains.
+```
 
-## Separation of Policy from Mechanism
+Going down the ladder moves work from request time to issue time. This is the sense in which capabilities "shift left": the hard policy evaluation happens once, when the capability is minted, and every subsequent use is a cheap validity check. Pre-signed S3 URLs do exactly this. So do OAuth access tokens and Kubernetes service account tokens. The authorization server does the expensive relationship and attribute work; the resource server checks a signature.
 
-Somehow it feels to me like capabilities violate the policy/mechanism separation. See the wiki [paragraph about physical vs card keys](https://en.wikipedia.org/wiki/Separation_of_mechanism_and_policy#Rationale_and_implications). I extended it with what seems like capabilities (separate key for each door).
+A second axis cuts across the ladder, and conflating the two causes real bugs:
 
-![image](/assets/authorization-ocaps-vs-acl/keys-vs-cards.png)
+```text
+bearer              whoever holds it may use it
+proof-of-possession holder must additionally prove they
+                    control a key bound to the credential
+```
 
-The Evolution of Access Control
-1. Physical Key (Policy + Mechanism Fused)
-- The key's shape IS the policy
-- No separation - the mechanism (lock pins) and policy (who can enter) are literally the same thing
-- Simple but inflexible: changing policy requires changing locks
+A capability can be bearer or PoP. An identity assertion can be bearer or PoP. The mTLS-bound token and the string in an `Authorization` header sit at the same rung of the ladder and have completely different theft properties.
 
-1. Card Key with ACL (Separated Policy/Mechanism)
-- Mechanism: Card reader verifies identity
-- Policy: Database decides access rights
-- Clean separation allows dynamic policy updates
-But requires online checks and centralized infrastructure
+### Tokens as reified decisions
 
-1. Smart Card with JWT/Capabilities (Distributed Policy Enforcement)
-- High-level policy: "Who gets tokens and when do they expire?"
-- Low-level policy: Embedded in the token itself
-- Mechanism: Just cryptographic verification
+Macaroons, JWTs, and OAuth access tokens are none of the architectures discussed so far. They are **artifacts**: a previous authorization, serialized so a later request need not return to the decision-maker and reconstruct it.
 
-You're absolutely right - it's like we've come full circle! The capability token is similar to a physical key in that it carries its own authorization, but with crucial improvements:
-- Physical Key:  Policy = Key Shape (permanent)
-- Capability:    Policy = Token Claims (temporal, revocable, contextual)
+The "cached decision" framing is close but not exact. A verifier still checks signature, issuer, audience, and expiry, and often consults current resource state. A JWT frequently carries *claims* from which the resource server makes a fresh decision rather than a final allow.
 
-Modern capability systems add a temporal dimension to policies:
-- Expiration times (token valid until X)
-- Contextual constraints (only valid from certain IPs)
-- Revocation lists (even unexpired tokens can be blacklisted)
-- Refresh mechanisms (get new tokens without re-authentication)
+[Macaroons](https://static.googleusercontent.com/media/research.google.com/en/us/pubs/archive/41892.pdf) go furthest toward being genuine reified capabilities. A holder can attenuate one by appending caveats — repository, method, time window, request budget, a required third-party discharge — without the root key and without going back to the issuer:
 
-It's like having a physical key that:
-- Dissolves after 1 hour
-- Only works during business hours
-- Can be remotely deactivated
-- Morphs its shape based on what door you're at
+```text
+may access GitHub
+    only repository X
+    only pull-request operations
+    before 17:00
+    for sandbox Y
+```
 
-This hybrid approach gives us the simplicity of physical keys (bearer model) with the flexibility of database-driven policies (dynamic, contextual, temporal controls).
+That is attenuation as a property of the artifact rather than of a process profile. The constraints travel with the token instead of living in some verifier's memory. It matters: a stolen macaroon is worth only what its caveats already permitted.
 
+## Delegation
 
-Also see this:
-![image](/assets/authorization-ocaps-vs-acl/mechanism-policy-separation.png)
+Delegation is where the two representations stop resembling each other, and it is the heart of the matter.
 
-## Bearer Assets vs Identity Checks
+Three different things get called delegation, and article three depends on keeping them apart:
 
+- **Administrative delegation.** Alice gains the power to grant others access to X. She is not exercising authority over X; she is exercising authority over the *policy* about X. This is what "admin" usually means.
+- **On-behalf-of delegation.** Bob acts *as* Alice. Impersonation, `sudo -u`, OAuth's actor claim, service accounts that assume a user's identity. Bob's effective authority is Alice's entire authority.
+- **Authority delegation.** Alice gives Bob a specific power she holds, and only that. Bob acts as himself, holding one more thing than he did before.
 
-There's multiple ways to look at this:
-- [Object Capabilities](https://en.wikipedia.org/wiki/Object-capability_model) vs [Reference Monitor](https://en.wikipedia.org/wiki/Reference_monitor)
-- [Access Control Matrix](https://en.wikipedia.org/wiki/Access_control_matrix): Capabilities vs ACL
-- push vs pull
-- bearer assets vs registered assets
-- DID vs ID Registry (India's aadhaar)
-- IBE vs access control
+The mechanics differ sharply by representation. Under central policy:
 
-### Posession is Authorization
+```text
+Alice grants Bob access to X
+        ↓
+record an authorization fact in the store
+        ↓
+Bob's next request is evaluated against the new fact
+```
 
-No external registry or identity check mediates access.
+Under capabilities:
 
-- Physical tokens of value
-    - Casino chips
-    - Gift cards / prepaid debit cards
-    - Subway tokens / transit cards (pre-account era)
-    - Arcade tokens
-    - Postage stamps (unused)
-    - Gold, gems, and other commodity money — value is intrinsic to the object
-    - Lottery tickets
-    - Money orders (before cashing)
-- Physical tokens of access
-    - Keys (house, car, padlock) — whoever holds the key opens the door
-    - Coat check tickets / claim tickets
-    - Locker keys
-    - Safe deposit box keys (partially — bank also checks identity, but the key is the irreplaceable half)
-- Computing & security
-    - Bearer tokens (OAuth 2.0) — literally named after this concept
-    - API keys / secret keys
-    - Session cookies — the browser "holds" the cookie, the server trusts the holder
-    - Pre-signed URLs (AWS S3, etc.) — anyone with the URL gets access
-    - Capability URLs (e.g., "anyone with this link can edit" in Google Docs)
-    - Macaroons (decentralized authorization credentials you can attenuate and pass along)
-    - One-time passwords / TOTP seeds — possession of the seed is the identity
-    - SSH private keys
-- Historical / cultural
-    - Signet rings / royal seals — pressing the seal was proof of authority
-    - Letters of credit (historically, often bearer-like)
-    - Tally sticks — medieval bearer debt instruments
+```text
+Alice ─── cap(X) ───► Bob
+```
 
-Almost nothing is purely bearer anymore. Even cash has serial numbers. Crypto has a public ledger (pseudonymous but not anonymous). Gift cards have activation systems. The trend across every domain is the same one the Wikipedia article describes for bearer shares — registries creep in because bearer systems make theft, fraud, and regulatory enforcement hard. The interesting question is where on the spectrum something sits, not whether it's binary.
+That is the whole operation. No store, no round trip, nobody else informed. Which is simultaneously the feature and the problem.
 
-### Pros and Cons
+Attenuation then chains naturally:
 
-ACL / identity-based systems have: 
-- auditability ("who can access X?" — read the list) 
-- policy expression ("all managers get access" — one rule)
-- revocation (edit the list)
-- centralized governance
+```text
+Alice   read + write, all of repo
+    ↓
+Bob     read only
+    ↓
+Agent   read only, subdirectory Y, expires in 10 minutes
+```
 
-They suffer from confused deputy because authority is ambient — the deputy acts based on who it is, not on a scoped token for this specific action.
+Each step hands on strictly less. Nobody consults a policy engine. Nobody can hand on more than they hold, which is a structural guarantee rather than a rule someone enforces.
 
-Capability / bearer systems have:
-- confused deputy immunity (authority is per-token, no ambient power to misuse)
-- privacy (no central registry)
-- easy delegation (hand over the token)
-- attenuability (create sub-capabilities with reduced scope)
+## Revocation, propagation, review
 
-They suffer from: no revocation (can't un-give a token), delegation indistinguishable from theft, no auditability (who holds what?).
+Saltzer and Schroeder saw the problem in 1975 and argued against capabilities — gently, and at the end of a section, but unmistakably. Their [Protection of Information in Computer Systems](https://www.cs.virginia.edu/~evans/cs551/saltzer/) identifies three objections:
 
-### ACL and Tokens Convergence
+1. **Revocation.** You cannot un-give a reference.
+2. **Propagation control.** Alice can pass it to anyone, and you cannot see or stop it.
+3. **Review and audit.** You cannot answer "who holds authority over X?" by inspecting X.
 
-Capabilities adding revocation → you introduce an indirection layer: the token doesn't grant access directly, it points to a reference that can be invalidated. But that reference lives somewhere — a table mapping tokens to validity status. That table is a registry. You've reinvented the ACL's central lookup, just with an extra hop. Expiring tokens are the same — you need a clock authority and a check-on-use mechanism, which is a registry check.
+Their conclusion is one of the most consequential recommendations in the field:
 
-Capabilities adding auditability → you need to answer "who holds what?" which requires tracking token holders. That's literally a registry of principals and their permissions — an ACL.
+> The most effective way of preserving some of the useful properties of capabilities is to limit their free copyability to the bottom most implementation layer of a computer system… The authorizations implemented by the capability system are then systematically maintained as an image of some higher level authorization description, usually some kind of an access control list system.
 
-ACLs adding confused deputy protection → SCIF's approach: label every piece of data with its trust level, make all endorsement explicit, add runtime type checks at boundaries. But this is essentially scoping authority to specific operations and trust levels — which is converging toward the capability idea that authority should be per-action, not ambient. You're still identity-based, but the effective authority at any call site is narrow and explicit.
+Capabilities as a fast bottom layer, governed by an ACL system above. That design won completely. Unix, Windows, POSIX — file descriptors underneath, mode bits and ACLs on top. The entire identity-management industry is downstream of this paragraph.
+
+The object-capability response is that S&S identified real problems and drew the wrong conclusion. Revocation has good answers: Redell's indirection — interpose a forwarder you can sever — is described in S&S's own paper, and it is the seed of what later became the membrane pattern. Propagation can be controlled by being careful about which references you hand out in the first place. Audit is recoverable by other means.
+
+Meanwhile, the argument runs, ACL systems have pathologies of their own that are worse than what they fix. Norm Hardy's [The Confused Deputy](https://www.cs.utexas.edu/~witchel/S25-380L/papers/hardy88confused.pdf) is the canonical statement: a program holding ambient authority is asked by an untrusted caller to do something, and cannot tell which of its powers the request was entitled to invoke. The compiler writes to the billing file because it *can*, and because the request named a path rather than carrying a reference. Designation and authority came apart, and the deputy got confused in the gap.
+
+There is a nice piece of historical irony here: the web copy of the S&S paper that everyone links to was put online by Norm Hardy.
+
+### The patches converge
+
+Here is the part that took me a while to see. Each side's fix for its own weakness imports the other side's core mechanism.
 
 ![image](/assets/authorization-ocaps-vs-acl/acl-vs-ocaps.png)
 
-The punchline is that the patches each side applies to fix its weaknesses import the core mechanism of the other side:
+**Capabilities adding revocation.** You introduce indirection: the token no longer grants access directly, it points at something that can be invalidated. But that something lives in a table mapping tokens to validity. That table is a registry. You have rebuilt the ACL's central lookup with an extra hop. Expiry is the same move — you need a clock authority and a check on use.
 
-When ACLs add SCIF-style information flow control, they're effectively saying "authority at this call site is scoped to exactly what was explicitly endorsed" — which is converging toward the capability idea that authority should travel with the specific action, not float ambiguously around the deputy's identity.
+**Capabilities adding audit.** Answering "who holds what?" requires tracking holders. That is a list of principals and their permissions.
 
-When capabilities add revocation via indirection, they're building a lookup table that says "is this token still valid?" — which is a registry. Add auditability ("who holds what?") and you're maintaining a list of principals and their permissions. Add policy-based distribution ("only managers get this capability") and you need an identity system to decide who's a manager. You've rebuilt an ACL with extra steps.
+**Capabilities adding policy-based issuance.** "Only managers get this capability" requires an identity system that knows who is a manager.
 
-### Runtime vs Analysis Time
+**ACLs adding confused-deputy protection.** Label the data, make every endorsement explicit, check types at boundaries. You are scoping authority to specific operations and trust levels — converging on the capability claim that authority should travel with the action rather than float around the deputy's identity.
 
-three enforcement mechanisms:
-- Runtime monitoring — enforces safety trace properties. Access control, type checks, assertions, capability discipline. This is your first line of defense but it's fundamentally limited to "is this single step okay?"
-- Static analysis — verifies hyperproperties by reasoning over all traces at once. IFC type systems, model checking, abstract interpretation. More powerful than runtime monitoring for security properties, but incomplete and limited to properties of the code (can't reason about the adversary's computational power).
-- Cryptographic enforcement (eg. bearer token) — converts hyperproperties into trace properties by making distinguishing information computationally unavailable, then enforces the resulting trace property at runtime. This is the only mechanism that can enforce hyperproperties during execution rather than before it. But it depends on computational hardness assumptions, which static analysis doesn't need.
+So the honest summary is not that one wins. It is that a system with real-world requirements ends up needing both mechanisms, and the interesting design question is which one you put at the core.
 
-It's the difference between:
-- "We proved no one can break in" (type system — verified the hyperproperty)
-- "We're watching for break-ins" (runtime monitor — can catch trace-level violations but can't verify the hyperproperty)
-- "There's nothing to steal" (capabilities — restructured the system so the attack is incoherent)
+## Policy and mechanism
 
-For trace properties, runtime monitoring is complete (so more powerful) while static analysis is only sound. For hyperproperties, static analysis can verify things runtime monitoring fundamentally can't. And capabilities sidestep the whole hierarchy by operating at the level of system design rather than system verification.
+There is a second lens on this, and it is the one that finally made the whole thing click for me: the separation of policy from mechanism.
 
+![image](/assets/authorization-ocaps-vs-acl/keys-vs-cards.png)
 
-## Linux Sandboxing
+**A physical key fuses policy and mechanism.** The shape of the key *is* the policy. The lock pins *are* the mechanism. They are literally the same object. Simple, fast, offline, and unchangeable — to change the policy you change the lock.
 
-From https://nikmav.blogspot.com/2015/06/software-isolation-in-linux_15.html :
-1. fork() + setuid() + exec(): memory isolation (parent memory protected from child ONLY!)
-2. chroot(): filesystem isolation
-3. seccomp(): white/blacklist syscalls
-4. prctl(): memory isolation (from other processes)
-5. SELinux: centralized-policy administrative MAC tool for protecting OS resources (files, other processes, pipes, network interfaces etc) - policy written in m4 language
-6. Namespaces: virtualize entire kernel subsystems (PID, IPC, NS, NET, etc) - blacklist based
+**A card key with a central ACL separates them.** The reader is the mechanism; it verifies identity. The database is the policy; it decides rights. You get dynamic updates, central revocation, and audit logs. You also get a dependency on an online check and centralized infrastructure.
 
-See also https://apparmor.net/about/lsm_introduction/
-![](/assets/authorization-ocaps-vs-acl/linux-security-mechanisms.png)
+**A capability token puts policy back in the artifact.** The token carries its own authorization. The mechanism is reduced to cryptographic verification.
 
-And the different security primitives have different user-friendly frontends:
-![](/assets/authorization-ocaps-vs-acl/linux-security-frontends.png)
+Which looks like regression, and initially I read it as capabilities violating a principle I care about. It isn't, quite. The fusion is real, but what got fused is different:
 
-## Containers
+```text
+physical key   policy = key shape          permanent
+capability     policy = token claims       temporal, scoped, revocable
+```
 
-"container" is defined by the contract (an image, a bundle, a lifecycle), never by the mechanism.
+It is a physical key that dissolves after an hour, only works during business hours, can be remotely deactivated, and changes shape depending on which door it is presented to. The bearer model's offline simplicity, with the database model's contextual control.
 
-![image](/assets/authorization-ocaps-vs-acl/oci-stacks.png)
+![image](/assets/authorization-ocaps-vs-acl/mechanism-policy-separation.png)
 
-runc (namespaces), runsc (a userspace kernel), and kata-runtime (a VM) are interchangeable behind container
+The generalization is that **policy/mechanism separation is not a binary but a question of where the seam sits**. You can push the seam down to the lock, out to a database, or into the credential. The third article's whole architecture is a specific choice about where to put that seam for agents.
 
-![image](/assets/authorization-ocaps-vs-acl/container-runtimes.png)
+## Local authority versus global knowledge
 
+Lampson states the administrative case bluntly in [a 2020 retrospective](https://arxiv.org/pdf/2011.02455):
 
+> Only ACLs work for managing the policy, because the manager's question is, "Who has access to this resource?" It's okay to make short-term copies of parts of it into capabilities (usually called file descriptors), which are faster to check.
+
+Hence the slogan: capabilities are cached ACL decisions.
+
+The slogan is right about a real thing and wrong about another. Sort the questions by who asks them.
+
+A capability answers one question, perfectly and locally:
+
+> May the holder of this perform operation X?
+
+No lookup, no network, no identity resolution. The answer is in your hand.
+
+A central authorization store answers the questions a capability cannot:
+
+> Who can perform X?
+> What can Alice access?
+> Revoke everything derived from Alice's grant.
+> Which of these ten thousand records may Alice see?
+
+That last one deserves its own name. **Reverse indexability** — filtering a result set by authorization rather than checking one access — is the question that breaks capability systems in practice, and it is why data-centric authorization systems like Zanzibar exist. You cannot build a list page by asking the user to present every capability they might hold.
+
+So:
+
+> **Capabilities scale as an execution mechanism. Centralized authorization state scales as an administrative and query mechanism.**
+
+Which resolves the argument without declaring a winner. ACLs are the right interface for humans managing policy. Capabilities are the right interface for programs enforcing it. Which one belongs at the core of your system depends on which question you most need to answer rigorously.
+
+For a multi-user file server, the administrative question dominates and ACLs win. For a separation kernel running mutually suspicious components where you want a provable bound on blast radius, the propagation question dominates and capabilities win.
+
+That second case is worth one more paragraph, because it is where the "cached decision" framing genuinely undersells what is happening. In seL4, the capability graph is not an optimization of some authoritative ACL kept elsewhere. There is no elsewhere. The graph *is* the authority, and its static structure is the thing being reasoned about — not any individual access decision. Nothing is being cached, because there is no original.
+
+So the synthesis looks like this, and it is deliberately one-directional:
+
+```text
+global, queryable policy        ← the administrative question
+        ↓
+authorization decision
+        ↓
+materialized authority          ← the execution question
+        ↓
+capability
+```
+
+Centralized policy decides what authority should exist. Capabilities represent and safely propagate authority once it exists. Most real systems want the top half for administration and the bottom half for enforcement, and the interesting engineering is in the arrow between them.
+
+## Where this leaves us
+
+We now have two ways to say what authority exists and how it travels, and a reasonable account of when to reach for each. A capability graph bounds what a component can ever reach. An ACL lets an administrator answer who can reach a resource. A macaroon carries an attenuated grant across a process boundary without a round trip.
+
+None of that stops anything.
+
+A representation is a description. A program that ignores the description is not violating the capability model — it is operating outside it. Something has to make the description true: has to guarantee that every attempt to cause an effect actually encounters the check, that the check cannot be tampered with, and that no path around it exists.
+
+That is the reference monitor, and it is the second article in this series.
 
 ## References
 
-- https://insights.sei.cmu.edu/blog/zero-trust-adoption-managing-risk-with-cybersecurity-engineering-and-adaptive-risk-assessment/
-- https://nvlpubs.nist.gov/nistpubs/specialpublications/NIST.SP.800-207.pdf
-- https://www.latacora.com/blog/2019/07/24/how-not-to/
-- https://www.usenix.org/legacy/event/sec10/tech/full_papers/Watson.pdf
-- https://arxiv.org/pdf/2509.10727
-- https://microkerneldude.org/2019/08/06/10-years-sel4-still-the-best-still-getting-better
-- https://arxiv.org/pdf/2011.02455
-- https://trustworthy.systems/publications/nicta_full_text/8988.pdf
-- https://www.cs.virginia.edu/~evans/cs551/saltzer/
-- https://dl.acm.org/doi/10.1145/353323.353382
+- [The Protection of Information in Computer Systems](https://www.cs.virginia.edu/~evans/cs551/saltzer/) — Saltzer and Schroeder, including the three objections to capabilities and the recommendation that shaped every mainstream OS
+- [Capability Myths Demolished](https://cgi.cse.unsw.edu.au/~cs9242/20/papers/Miller_YS_03.pdf) — Miller, Yee, Shapiro on the duality myth, designation, and confinement
+- [The Confused Deputy](https://www.cs.utexas.edu/~witchel/S25-380L/papers/hardy88confused.pdf) — Hardy, 1988
+- [Authorization (Lampson)](https://arxiv.org/pdf/2011.02455) — the "caps are cached ACL decisions" position
+- [Macaroons: Cookies with Contextual Caveats](https://static.googleusercontent.com/media/research.google.com/en/us/pubs/archive/41892.pdf) — attenuable bearer capabilities
+- [JWT, RFC 7519](https://www.rfc-editor.org/rfc/rfc7519.html) and [OAuth 2.0, RFC 6749](https://www.rfc-editor.org/rfc/rfc6749.html)
+- [The State of the Union of Authorization](https://idpro.org/the-state-of-the-union-of-authorization/) — the landscape diagram
+- [Type Enforcement](https://en.wikipedia.org/wiki/Type_enforcement) — why the MAC/RBAC relationship is not a simple ladder
+- [The Ultimate Guide to Choosing the Right Authorization Language](https://axiomatics.com/wp-content/uploads/2024/10/the-ultimate-guide-to-choosing-the-right-authorization-language-whitepaper-axiomatics-10-16-2024.pdf) — XACML versus Rego
+- [Zanzibar: Google's Consistent, Global Authorization System](https://research.google/pubs/pub48190/) — relationship-based authorization and reverse indexability
