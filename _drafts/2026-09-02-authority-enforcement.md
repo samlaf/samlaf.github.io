@@ -127,13 +127,19 @@ placeholder handle
 
 That is not layering one filter over another. It is *authority attenuation* — replacing possession of a powerful resource with permission to request a smaller set of effects. Which is the first article's capability story, arriving from the enforcement side.
 
+Unnameability only covers what is absent. A component holding two references can still use the wrong one, and that is excess authority rather than ambient authority. No amount of unnameability touches it. Least authority is a separate discipline from capability discipline, which is why the last of the six questions at the end of this article asks what an interpreter can do when its policy is wrong.
+
 ### The layering leaks, and it should
 
 It is tempting to present this series as a clean stack: article one is representation, article two is enforcement. That is mostly true and it is worth noticing exactly where it fails.
 
 Object-capability reachability is both. It is a *representation* of authority — the graph says what exists — and simultaneously an *enforcement strategy*, because a component cannot invoke what it cannot name. There is no separate checking step to bypass. The unnameability column above is, read another way, just the capability model applied to whatever resource class you care about.
 
+Which is also the limit of the analogy. Unnameability is the broader category. A mount namespace removes names while leaving ambient authority intact over everything still visible, so `chroot` is not a capability system. Designation and authority coincide only when the name you hold is the only way to reach the object.
+
 ACLs do not have this property. An ACL is purely a representation, and it is inert until some object manager consults it. That asymmetry is the single most useful thing to carry out of these two articles, and it explains why capabilities keep reappearing in both halves of the discussion while ACLs stay firmly in the first.
+
+The confused deputy is that asymmetry in one example. The first article's compiler is handed a pathname, and a pathname is a designator anyone can utter. The resulting check is an adjudication, and it can be made correct: propagate the caller's identity and the deputy has enough to decide. Hand the compiler a file descriptor instead and there is nothing to decide, because it never held a name for the billing file. Expressible versus unrepresentable is the same seam as adjudication versus unnameability, seen from the representation side.
 
 ## Three properties people conflate
 
@@ -249,7 +255,7 @@ Wasm module
             → selected filesystem, socket, clock, or service
 ```
 
-The module cannot perform a host syscall behind the runtime's back, because there is no syscall instruction to perform. Its effect vocabulary is also legible: `open-at` or a typed component call carries far more meaning than a block offset. Unnameability comes free from the execution semantics rather than from a device model someone had to get right.
+The module cannot perform a host syscall behind the runtime's back, because there is no syscall instruction to perform. Its effect vocabulary is also legible: `open-at` or a typed component call carries far more meaning than a block offset. Unnameability comes free from the execution semantics rather than from a device model someone had to get right. The import list doubles as an audit surface: a static, exhaustive enumeration of what the component can reach, which is the local form of review the first article argues capabilities keep.
 
 **Effect systems** reach the same separation from the language side. Instead of letting a function perform hidden I/O, the type system records the effect, and a handler supplies its interpretation.
 

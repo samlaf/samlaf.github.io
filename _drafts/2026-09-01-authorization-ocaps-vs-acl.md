@@ -58,9 +58,9 @@ Mark Miller's [Capability Myths Demolished](https://cgi.cse.unsw.edu.au/~cs9242/
 An object capability is an unforgeable reference that both *designates* an object and *conveys* the authority to invoke it. The consequences compound:
 
 - **Unforgeability.** You cannot manufacture a capability by guessing. There is no global namespace from which to recover an object by naming it.
-- **Designation and authority coincide.** Saying *which* object and saying *that you may use it* are the same act. This is what kills the confused deputy, as we will see.
+- **Designation and authority coincide.** Saying *which* object and saying *that you may use it* are the same act. Lacking authority therefore means lacking a name, which is the property the confused deputy turns on, as we will see.
 - **Delegation is reference-passing.** To give Bob authority, hand him the reference. No registry updates, no central grant.
-- **Attenuation.** You can wrap a reference in a proxy that forwards a subset of operations, and hand that on instead.
+- **Attenuation.** You can wrap a reference in a proxy that forwards a subset of operations, and hand that on instead. The wrapper has to be airtight: Midori found that a caller handed a `File` could downcast it back to the wider type it really was, which took language-level restrictions on casting to close.
 - **Reachability bounds authority.** What a subject can ever affect is the transitive closure of the references it holds. Absence of a reference is a hard limit, not a denied request.
 - **No ambient authority.** A subject acts only through references it was given. It has no background powers it can invoke by virtue of who it is.
 
@@ -84,6 +84,8 @@ object capability
 ```
 
 A file descriptor is close to the third. An API key is firmly the second. Conflating them is how discussions about capabilities go wrong.
+
+The file descriptor is worth sitting with, because `open` is the conversion between the two regimes. A pathname is plain data naming a slot in a global namespace. The descriptor it returns is a handle in a small per-process table that previous authorization decisions populated. [`pidfd` does the same for processes](/programming/everything-is-a-file.html), turning a guessable, reusable integer into possession of one specific object.
 
 ### Possession is authorization
 
@@ -222,7 +224,7 @@ Their conclusion is one of the most consequential recommendations in the field:
 
 Capabilities as a fast bottom layer, governed by an ACL system above. That design won completely. Unix, Windows, POSIX — file descriptors underneath, mode bits and ACLs on top. The entire identity-management industry is downstream of this paragraph.
 
-The object-capability response is that S&S identified real problems and drew the wrong conclusion. Revocation has good answers: Redell's indirection — interpose a forwarder you can sever — is described in S&S's own paper, and it is the seed of what later became the membrane pattern. Propagation can be controlled by being careful about which references you hand out in the first place. Audit is recoverable by other means.
+The object-capability response is that S&S identified real problems and drew the wrong conclusion. Revocation has good answers: Redell's indirection — interpose a forwarder you can sever — is described in S&S's own paper, and it is the seed of what later became the membrane pattern. Propagation can be controlled by being careful about which references you hand out in the first place. Audit survives in local form, and it is worth being precise about what that does and does not buy.
 
 Meanwhile, the argument runs, ACL systems have pathologies of their own that are worse than what they fix. Norm Hardy's [The Confused Deputy](https://www.cs.utexas.edu/~witchel/S25-380L/papers/hardy88confused.pdf) is the canonical statement: a program holding ambient authority is asked by an untrusted caller to do something, and cannot tell which of its powers the request was entitled to invoke. The compiler writes to the billing file because it *can*, and because the request named a path rather than carrying a reference. Designation and authority came apart, and the deputy got confused in the gap.
 
@@ -236,13 +238,41 @@ Here is the part that took me a while to see. Each side's fix for its own weakne
 
 **Capabilities adding revocation.** You introduce indirection: the token no longer grants access directly, it points at something that can be invalidated. But that something lives in a table mapping tokens to validity. That table is a registry. You have rebuilt the ACL's central lookup with an extra hop. Expiry is the same move — you need a clock authority and a check on use.
 
-**Capabilities adding audit.** Answering "who holds what?" requires tracking holders. That is a list of principals and their permissions.
+**Capabilities adding global audit.** Answering "who holds what?" across a whole system requires tracking holders. That is a list of principals and their permissions.
 
 **Capabilities adding policy-based issuance.** "Only managers get this capability" requires an identity system that knows who is a manager.
 
-**ACLs adding confused-deputy protection.** Label the data, make every endorsement explicit, check types at boundaries. You are scoping authority to specific operations and trust levels — converging on the capability claim that authority should travel with the action rather than float around the deputy's identity.
+**ACLs adding confused-deputy protection.** Label the data, make every endorsement explicit, propagate the original caller's identity into the request context so the deputy can say on whose behalf it acts. The check now has enough information to be right.
 
-So the honest summary is not that one wins. It is that a system with real-world requirements ends up needing both mechanisms, and the interesting design question is which one you put at the core.
+### The convergence is not symmetric
+
+The three capability-side patches import machinery: a registry, a list, an identity system. Each one works whether or not the capability holder cooperates. The ACL-side patch imports a discipline. It works only if the deputy uses it.
+
+That gap has a clean statement. ACL-plus-context makes the correct answer **expressible** — AWS's `sts:ExternalId` and `aws:SourceArn`, propagated caller identity, request-context claims all exist so a deputy *can* be right. It still has to ask. Object capabilities make the incorrect answer **unrepresentable**. Lacking authority means lacking a name, so there is no wrong question to ask.
+
+The difference shows up precisely when the deputy is careless, and Hardy's compiler was careless rather than malicious. Nobody attacked it. Someone wrote it without considering the question. ACL-plus-context is exactly as reliable as the deputy's diligence, and diligence does not survive scale.
+
+The capability claim needs its own limit, though, and Miller is explicit about it. A program holding two references can still use the wrong one. Unifying designation and authority removes *ambient* authority, not *excess* authority. It does not make the deputy careful. It shrinks the set of things carelessness can reach. Midori hit this directly: components accumulated “big bags” of capabilities because threading them individually was tedious, which is least authority losing to ergonomics rather than to theory.
+
+Which explains what the systems that actually shipped this did. Capsicum, `openat` everywhere, WASI preopens, seccomp, SPIFFE's short-lived scoped SVIDs, macaroon caveats — none of them improve how a resource is designated. All of them reduce what the process holds. That is the attenuation chain above, arriving as fifteen years of engineering practice rather than as a diagram.
+
+There is a name for the underlying distinction. The next article calls it unnameability versus adjudication.
+
+So the honest summary is not that one wins outright. It is that a system with real-world requirements ends up needing both mechanisms, and the interesting design question is which one you put at the core.
+
+### Complete over the intended state, not the reachable state
+
+Review, the third objection, deserves more care than revocation and propagation, because the ACL answer to it is weaker than it looks.
+
+A relationship store like [Zanzibar](https://research.google/pubs/pub48190/) answers it directly, and its tuple graph is a complete picture of policy. But policy binds only where the code consults the PDP. The service still holds ambient credentials to the database. A code path that opens a connection directly, a deserialization bug, a compromised dependency — none of those appear in the graph, and none are stopped by it. The audit is complete over the state you intended, not the state a compromised process can reach.
+
+Object capabilities invert this exactly. There is no global view. But what you *can* see is reachability itself, and reachability is the thing that constrains a compromised component.
+
+So capability auditability is not zero. It is local rather than global, and Miller's **"only connectivity begets connectivity"** is the load-bearing claim. A reference arrives in exactly four ways: initial conditions, creation, endowment, or introduction. Midori made the first of those an artifact you can read — a manifest, consulted at load time. That bounds how the graph can evolve, which makes a component's authority analyzable from its boundary.
+
+A Wasm component's import list is the concrete version. It enumerates, statically and exhaustively, everything the component can reach — exhaustive by construction rather than by policy discipline. As audit surfaces go, that is a good one, arguably better than a tuple query.
+
+It answers a different question, though. "What can this component do?" rather than "who can touch this resource?" Auditors want the second.
 
 ## Policy and mechanism
 
@@ -300,6 +330,8 @@ So:
 
 Which resolves the argument without declaring a winner. ACLs are the right interface for humans managing policy. Capabilities are the right interface for programs enforcing it. Which one belongs at the core of your system depends on which question you most need to answer rigorously.
 
+The sharper version of that is about principals. Zanzibar's are people and organizational relations: they change independently of the code, non-programmers have to modify them, and they must be enumerable and revocable on demand. Ocap's are code objects, where the topology is a program-structure question and the adversary is a buggy or hostile component rather than an over-privileged employee. Running both is normal rather than incoherent — Zanzibar-style relations at the user-facing boundary, capability discipline for confinement below it. Midori is the evidence. It is the most committed object-capability system anyone has shipped, and Duffy's retrospective still names policy management and the user-facing side as the part they left under-explored.
+
 For a multi-user file server, the administrative question dominates and ACLs win. For a separation kernel running mutually suspicious components where you want a provable bound on blast radius, the propagation question dominates and capabilities win.
 
 That second case is worth one more paragraph, because it is where the "cached decision" framing genuinely undersells what is happening. In seL4, the capability graph is not an optimization of some authoritative ACL kept elsewhere. There is no elsewhere. The graph *is* the authority, and its static structure is the thing being reasoned about — not any individual access decision. Nothing is being cached, because there is no original.
@@ -318,6 +350,24 @@ capability
 
 Centralized policy decides what authority should exist. Capabilities represent and safely propagate authority once it exists. Most real systems want the top half for administration and the bottom half for enforcement, and the interesting engineering is in the arrow between them.
 
+### What running both looks like
+
+The arrow is a component, and it is worth being concrete about what it does.
+
+Take `GET /docs/4471`. An edge service resolves Alice's session — it is the only thing in the system that knows the string `alice`. It asks the relationship store `check(user:alice, viewer, doc:4471)`, or a `list` query when it is building an index page. On allow it does *not* pass "alice, approved" downstream. It mints a handle that designates document 4471 and conveys read, and hands that on.
+
+Everything below holds only the handle. The renderer, the thumbnailer, and the export worker have no database credentials and no way to name document 4472. The thumbnailer's copy is attenuated further — read-only, thirty seconds — by wrapping the reference it already holds, with no second trip to the policy store.
+
+That last constraint carries the whole design. If the renderer fetches the row over the service's own superuser connection, the check was advisory, and every code path that skips it reaches everything. The capability layer is not an optimization of the ACL check. It is what closes the gap between the intended state and the reachable state.
+
+Capsicum is this architecture compressed into one process: open what policy permits by path, then call `cap_enter()`, after which the process can never name anything new. Pre-signed URLs are the same architecture stretched across a network, where IAM decides at signing time and the holder never touches IAM.
+
+Midori pushed the seam all the way to program startup. Mutable statics were a compile error, and there was no `DateTime.Now` — to read the clock you asked for a `Clock`. Authority entered through a manifest that the application model read at load time and used to endow `main`, and from there it moved only by reference-passing. The manifest is the declarative, reviewable, human-facing artifact. Everything after it is capability discipline.
+
+Revocation across the seam is the obvious objection, and the answer is the familiar one: short lifetimes, indirection you can sever, or a notification channel from the policy store to whoever minted. Flask built the third, and the next article takes it apart.
+
+The second cost is that audit becomes two stories. The tuple graph answers "who can reach document 4471", complete over the intended state. The capability graph answers "what can the thumbnailer reach", complete over the reachable state. Both are real, neither subsumes the other, and joining them is not a solved problem.
+
 ## Where this leaves us
 
 We now have two ways to say what authority exists and how it travels, and a reasonable account of when to reach for each. A capability graph bounds what a component can ever reach. An ACL lets an administrator answer who can reach a resource. A macaroon carries an attenuated grant across a process boundary without a round trip.
@@ -332,6 +382,7 @@ That is the reference monitor, and it is the second article in this series.
 
 - [The Protection of Information in Computer Systems](https://www.cs.virginia.edu/~evans/cs551/saltzer/) — Saltzer and Schroeder, including the three objections to capabilities and the recommendation that shaped every mainstream OS
 - [Capability Myths Demolished](https://cgi.cse.unsw.edu.au/~cs9242/20/papers/Miller_YS_03.pdf) — Miller, Yee, Shapiro on the duality myth, designation, and confinement
+- [Robust Composition](http://www.erights.org/talks/thesis/markm-thesis.pdf) — Miller's thesis; ambient versus excess authority, and "only connectivity begets connectivity"
 - [The Confused Deputy](https://www.cs.utexas.edu/~witchel/S25-380L/papers/hardy88confused.pdf) — Hardy, 1988
 - [Authorization (Lampson)](https://arxiv.org/pdf/2011.02455) — the "caps are cached ACL decisions" position
 - [Macaroons: Cookies with Contextual Caveats](https://static.googleusercontent.com/media/research.google.com/en/us/pubs/archive/41892.pdf) — attenuable bearer capabilities
@@ -339,4 +390,6 @@ That is the reference monitor, and it is the second article in this series.
 - [The State of the Union of Authorization](https://idpro.org/the-state-of-the-union-of-authorization/) — the landscape diagram
 - [Type Enforcement](https://en.wikipedia.org/wiki/Type_enforcement) — why the MAC/RBAC relationship is not a simple ladder
 - [The Ultimate Guide to Choosing the Right Authorization Language](https://axiomatics.com/wp-content/uploads/2024/10/the-ultimate-guide-to-choosing-the-right-authorization-language-whitepaper-axiomatics-10-16-2024.pdf) — XACML versus Rego
+- [Objects as Secure Capabilities](https://joeduffyblog.com/2015/11/10/objects-as-secure-capabilities/) — Duffy on Midori; the capability oracle at `main`, no mutable statics, and where it fell short
+- [Capsicum: Practical Capabilities for UNIX](https://www.usenix.org/conference/usenixsecurity10/capsicum-practical-capabilities-unix) — ambient authority removed from a real Unix
 - [Zanzibar: Google's Consistent, Global Authorization System](https://research.google/pubs/pub48190/) — relationship-based authorization and reverse indexability
