@@ -10,6 +10,49 @@ date:   2026-09-03
 > 2. **How authority is enforced** — what makes those limits non-bypassable.
 > 3. **LLM sandbox = compute isolation + authority mediation** — how the two combine for agents.
 
+- [Part 0 — Why agents break the assumptions](#part-0--why-agents-break-the-assumptions)
+  - [Data becomes executable](#data-becomes-executable)
+  - [The confined workload is also a delegate](#the-confined-workload-is-also-a-delegate)
+  - [Policy cannot be enumerated in advance](#policy-cannot-be-enumerated-in-advance)
+  - [The tool call is a semantic chokepoint](#the-tool-call-is-a-semantic-chokepoint)
+  - [The shape of the answer](#the-shape-of-the-answer)
+- [Part I — DECIDE](#part-i--decide)
+  - [The decision point, with a task in it](#the-decision-point-with-a-task-in-it)
+  - [AuthZEN: standardizing the seam](#authzen-standardizing-the-seam)
+- [Part II — DELEGATE](#part-ii--delegate)
+  - [From decision to capability](#from-decision-to-capability)
+  - [Authority is temporal](#authority-is-temporal)
+  - [Why not just call the PDP on everything, forever](#why-not-just-call-the-pdp-on-everything-forever)
+- [Part III — EXERCISE](#part-iii--exercise)
+  - [Two coupled subsystems](#two-coupled-subsystems)
+    - [1. The compute sandbox](#1-the-compute-sandbox)
+    - [2. The capability gateway](#2-the-capability-gateway)
+  - [The runtime–gateway contract](#the-runtimegateway-contract)
+  - [The residual interface](#the-residual-interface)
+  - [Programmable gateways versus declarative LSMs](#programmable-gateways-versus-declarative-lsms)
+  - [Filesystem mediation is a resource service](#filesystem-mediation-is-a-resource-service)
+    - [The path-policy soundness trap](#the-path-policy-soundness-trap)
+  - [Protocol gateways can see what kernels cannot](#protocol-gateways-can-see-what-kernels-cannot)
+  - [Secret possession is not authority containment](#secret-possession-is-not-authority-containment)
+  - [Threat model by enforcement plane](#threat-model-by-enforcement-plane)
+  - [A complete enforcement stack](#a-complete-enforcement-stack)
+  - [Cost and compatibility](#cost-and-compatibility)
+  - [Replaceable runtimes, stable authority boundary](#replaceable-runtimes-stable-authority-boundary)
+  - [The landscape, scored against the contract](#the-landscape-scored-against-the-contract)
+  - [Recommended architecture](#recommended-architecture)
+- [Part IV — What is left over](#part-iv--what-is-left-over)
+  - [Agent-specific threats](#agent-specific-threats)
+    - [Inference-endpoint exfiltration](#inference-endpoint-exfiltration)
+  - [Harness placement and the trust split](#harness-placement-and-the-trust-split)
+  - [The seam nobody has named](#the-seam-nobody-has-named)
+  - [Conclusion](#conclusion)
+- [References](#references)
+  - [Primary implementation sources](#primary-implementation-sources)
+  - [Policy and decision](#policy-and-decision)
+  - [Foundations](#foundations)
+  - [Agent frameworks and research](#agent-frameworks-and-research)
+  - [Landscape and performance](#landscape-and-performance)
+
 Sandboxing discussions usually begin with the wrong noun. They ask whether untrusted code should run in a container, a microVM, gVisor, WASI, or a language runtime. Those choices matter, but they answer only **where computation happens**. They do not answer **what authority that computation can exercise**.
 
 A process inside a perfectly isolated VM can still exfiltrate source code through an allowed API, mutate a host-mounted repository, publish a poisoned artifact, spend cloud credentials, or invoke a token's full administrative authority. Compute isolation protects the host kernel and memory. It does not, by itself, protect resources deliberately exposed to the workload.
@@ -523,6 +566,35 @@ The capability-gateway abstraction makes the compute layer replaceable, but not 
 
 The same gateway concepts can serve both while the runtime optimization differs. Do not make one sandbox implementation serve every workload, and do not couple external authority to one runtime forever.
 
+## The landscape, scored against the contract
+
+Gondolin is one point in this space. Five others make the axes visible.
+
+| System | Compute boundary | What makes the gateway unavoidable | Filesystem mediation | Credentials | Gateway principal |
+| --- | --- | --- | --- | --- | --- |
+| **landrun** | Landlock on the host kernel | No gateway | Allow/deny on real host paths | Denied paths, or nothing | — |
+| **Codex CLI** | Seatbelt; Landlock, seccomp, and namespaces on Linux | No gateway; network is on or off | Allow/deny on real host paths | None | — |
+| **Claude Code** (`sandbox-runtime`) | Seatbelt; bubblewrap; a restricted token in a job object on Windows | Network namespace removed; one permitted loopback port; a WFP block keyed to the sandbox account's SID | Allow/deny on real host paths, with deny-then-allow reads | Optional injection when TLS is terminated | The sandbox instance |
+| **nono** | Landlock plus seccomp on the host kernel | seccomp user notification on `connect()`, checking the resolved destination | Allow/deny on real host paths | Phantom token, reverse-proxy injection | The command invocation |
+| **Gondolin** | QEMU/KVM microVM | The host stack is the guest's only network peer | Programmable VFS providers over virtio-serial RPC | Placeholder substitution in mediated traffic | The VM |
+| **Iron Proxy, agent-creds** | None of its own | Whatever routes the caller: nftables, TPROXY, a network namespace | — | Proxy tokens; macaroon caveats | The client |
+
+Five things fall out of that table.
+
+**The two jobs vary independently.** The first two rows are compute without a gateway. The last row is a gateway without compute. Nothing about a row's first column predicts its third or fifth. This is the article's thesis in tabular form: the interesting quantity is the composition, and most systems ship only one half of it.
+
+**Non-bypassability comes in four strengths.** An environment variable a program may ignore. A syscall filter that inspects each destination. An absent route, where the only descriptor reaching outside is a bind-mounted Unix socket and a program that ignores `HTTP_PROXY` does not escape but simply fails to connect. And a route that was never built, where the host is the peer and NAT does not exist. The last two differ from the second in failure mode: a filter has to be right about every destination, while absence has nothing to be right about. That is article 2's unnameability, applied at the network layer, and it is usually the cheaper of the two to implement.
+
+**Principal granularity runs opposite to compute strength.** A microVM gateway sees one principal, because the VM boundary destroys the process identities behind it. A host-kernel sandbox shares a kernel with its supervisor, so the supervisor can attribute a request to an exact command using facts the kernel vouches for: process ancestry, a per-command cgroup, a POSIX session id. nono brokers each tool invocation separately for this reason. Buying the stronger compute boundary costs the finer principal, and a guest that re-exports its own process identities is supplying evidence, not authority.
+
+**Mediation depth is its own ladder.** Domain allowlist, then a re-check of the resolved address, then request-level policy on method and path, then credential substitution, then protocol-specific authority. Every system here does the first two. Most stop there and say so plainly: filtering which hosts a workload may reach is not inspecting what it does there.
+
+**Only the microVM mediates the filesystem semantically.** Every host-kernel sandbox in the table allows or denies operations on real host paths. None can transform, shadow, redirect, or synthesize, because a kernel access-control hook answers yes or no and then gets out of the way. An RPC boundary is what turns the filesystem into a resource service.
+
+One entry also qualifies a claim made above. The enforcement-stack table lists "arbitrary code can bypass the tool interface" as the limit of tool-call policy. nono narrows that: its shims sit on `PATH` while Landlock denies execute on the real binaries, so `git` resolves to the broker and `/usr/bin/git` returns `EACCES`. The tool call becomes a kernel-enforced chokepoint rather than a cooperative one, and each invocation gets a fresh sandbox built from its own policy. A build tool and a deployment tool stop sharing authority merely because the same agent called both.
+
+The practical reading is to choose the compute layer from the threat model and the gateway from the set of effects, and to let neither choice decide the other.
+
 ## Recommended architecture
 
 For a high-assurance untrusted workload, the target stack is:
@@ -592,9 +664,9 @@ If the guest kernel itself is untrusted, guest transcripts and process identitie
 
 The cost is real. The guest trusts a MITM CA for mediated TLS, so end-to-end TLS authenticity no longer terminates at the original application. Certificate pinning may fail. The gateway becomes a trusted parser of hostile HTTP, TLS, Git, SQL, or other protocols. Semantic visibility is purchased by expanding the host-side trusted computing base.
 
-## Gondolin, and where this goes next
+## The seam nobody has named
 
-Gondolin is the concrete instance this article has been drawing on, and it already implements most of EXERCISE. A microVM contains the compute. Host-side VFS providers serve selected filesystem operations. A host network stack terminates and replays mediated traffic, applies destination and request hooks, and substitutes real secrets for guest-visible placeholders. The host is the guest's network peer, so unauthorized traffic never becomes an ordinary host connection — non-bypassability from topology, exactly as article 2 demands.
+Read the landscape table again and the common gap is not enforcement. Every system in it enforces something real, and the strongest of them enforce at a boundary a hostile guest kernel cannot reach. What none of them has is a decision point separable from the enforcement point.
 
 ```text
 guest agent
@@ -606,9 +678,13 @@ host PEP
  └─ external services
 ```
 
-What that architecture does not yet have is a decision point separable from the enforcement point. Policy is expressed as declarative matchers and JavaScript callbacks, evaluated in the same process that enforces them. That is the right starting place — it is simple, it is fast, and it has no availability coupling. It is also the arrangement article 2 warned about conflating: a PEP with a PDP baked into it cannot be governed by anyone who does not own the sandbox.
+Gondolin is the clearest case because it has the most policy to misplace. Its rules are declarative matchers and JavaScript callbacks, evaluated in the same process that enforces them. `sandbox-runtime` does the same thing with `filterRequest`. landrun and Codex have no policy layer to speak of, which is the same problem arrived at from the other side. In every case the arrangement is the one article 2 warned about conflating: a PEP with a PDP baked into it cannot be governed by anyone who does not own the sandbox.
 
-The evolution that keeps the architecture honest is to name the seam:
+That is the right starting place. It is simple, it is fast, and it couples nothing to an external service's availability. It stops being the right place the moment more than one team has to live with the answer.
+
+One system in the table has started to move. nono's Tool Sandbox defines webhook approval backends against a documented request protocol, with a combinator for requiring several of them to agree — a remote decision point in everything but name, even while its own capability-expansion prompts still go to a terminal. It got there by the practical route, needing someone other than the person at the keyboard to approve a `kubectl` invocation, rather than by setting out to split a PDP from a PEP. The two paths arrive at the same seam.
+
+Naming it is what keeps the architecture honest:
 
 ```text
 native effect
@@ -622,7 +698,7 @@ AuthorizationProvider
     └── remote AuthZEN PDP
 ```
 
-Nothing about enforcement changes. The providers still own the resources, still hold the credentials, still sit in the only path. What changes is that the decision becomes a thing an organization can own, version, audit, and share across every sandbox it runs — rather than a callback living in one deployment's config.
+Nothing about enforcement changes. The gateway still owns the resources, still holds the credentials, still sits in the only path. What changes is that the decision becomes a thing an organization can own, version, audit, and share across every sandbox it runs — rather than a callback living in one deployment's config.
 
 And then the second half, which is where the first article's pipeline finally lands somewhere real:
 
@@ -667,6 +743,12 @@ Which is why agents are worth the attention even if you never build one. They ta
 - [Gondolin — QEMU backend](https://earendil-works.github.io/gondolin/qemu/) — minimal device model and the decision to keep the host as the guest's network peer
 - [Iron Proxy](https://github.com/paradigmxyz/iron-proxy) — untrusted-client forward proxy, default-deny egress, proxy-token secret substitution, request transforms, auditing, and routing requirements
 - [agent-creds](https://github.com/dtkav/agent-creds) — per-sandbox Envoy proxy and shared credential vault; the guest holds only a macaroon whose caveats are verified before the vault injects a bearer, Basic, OAuth2, or SigV4 credential, with network-namespace isolation supplying non-bypassability
+- [sandbox-runtime](https://github.com/anthropic-experimental/sandbox-runtime) — the sandbox behind Claude Code's Bash tool: Seatbelt, bubblewrap with the network namespace removed and proxies reached over bind-mounted Unix sockets, a Windows WFP egress fence keyed to a separate account SID, resolved-address re-checking, and experimental TLS termination
+- [Claude Code — sandboxing](https://code.claude.com/docs/en/sandboxing) — configuration surface and the violation reporting that turns a denial into something the model can act on
+- [nono — security model](https://nono.sh/docs/cli/internals/security-model) — a capability model rather than a VM model, supervisor trust, and per-invocation command policy
+- [nono — Landlock](https://nono.sh/docs/cli/internals/landlock) and [networking](https://nono.sh/docs/cli/features/networking) — ABI v1–v6 access rights, seccomp user notification on `connect()` and `openat`, and the `io_uring_setup` denial that closes the syscall-filter gap
+- [landrun](https://github.com/Zouuup/landrun) — the minimal case: a Landlock wrapper with no gateway at all
+- [Codex CLI — agent approvals and security](https://developers.openai.com/codex/agent-approvals-security) — Seatbelt and Landlock/seccomp profiles with network off by default
 - [Using proxies to hide secrets from Claude Code](https://formal.ai/blog/using-proxies-claude-code/) — mitmproxy addons substituting a real API key for a dummy one, `NODE_EXTRA_CA_CERTS` to trust the intercepting CA, and separate proxy configuration for the harness process and its sandboxed subprocesses; forced by environment variable rather than by routing
 - [Lima — filesystem mounts](https://lima-vm.io/docs/config/mount/) — reverse-SSHFS, 9p, virtiofs, and mount behavior across VM drivers
 

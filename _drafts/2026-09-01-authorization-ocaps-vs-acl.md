@@ -10,6 +10,24 @@ date:   2026-09-01
 > 2. **How authority is enforced** — what makes those limits non-bypassable.
 > 3. **LLM sandbox = compute isolation + authority mediation** — how the two combine for agents.
 
+- [The matrix and its two projections](#the-matrix-and-its-two-projections)
+- [Capabilities are not transposed ACLs](#capabilities-are-not-transposed-acls)
+  - [Possession is authorization](#possession-is-authorization)
+- [The mainstream models all live on the ACL side](#the-mainstream-models-all-live-on-the-acl-side)
+- [Identity is not authority](#identity-is-not-authority)
+  - [Tokens as reified decisions](#tokens-as-reified-decisions)
+- [Delegation](#delegation)
+- [Revocation, propagation, review](#revocation-propagation-review)
+  - [The patches converge](#the-patches-converge)
+  - [The convergence is not symmetric](#the-convergence-is-not-symmetric)
+  - [Complete over the intended state, not the reachable state](#complete-over-the-intended-state-not-the-reachable-state)
+- [Policy and mechanism](#policy-and-mechanism)
+- [Local authority versus global knowledge](#local-authority-versus-global-knowledge)
+  - [What running both looks like](#what-running-both-looks-like)
+- [Where this leaves us](#where-this-leaves-us)
+- [References](#references)
+
+
 Ask what authorization is and you will get an answer about deciding. Can Alice read this file? Is this token valid? Does this role include that permission. Deciding matters, but it is the second question. The first is where the answer lives before anyone asks.
 
 A system has to put authority somewhere. It can keep a list at each resource naming who may touch it. It can hand each subject a set of unforgeable references to the things it may touch. It can keep a database of relationships and compute the answer on demand. These are not implementation details that wash out at scale. Each one makes a different set of questions cheap and a different set expensive, and the expensive questions are the ones that eventually break your architecture.

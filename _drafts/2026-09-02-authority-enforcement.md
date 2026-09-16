@@ -10,6 +10,23 @@ date:   2026-09-02
 > 2. **How authority is enforced** — what makes those limits non-bypassable.
 > 3. **LLM sandbox = compute isolation + authority mediation** — how the two combine for agents.
 
+- [The unit of analysis is the external effect](#the-unit-of-analysis-is-the-external-effect)
+- [The reference monitor](#the-reference-monitor)
+- [Decomposing the monitor](#decomposing-the-monitor)
+- [Unnameability versus adjudication](#unnameability-versus-adjudication)
+  - [The layering leaks, and it should](#the-layering-leaks-and-it-should)
+- [Three properties people conflate](#three-properties-people-conflate)
+  - [Non-bypassability is none of the three](#non-bypassability-is-none-of-the-three)
+- [Linux is a toolkit, not a primitive](#linux-is-a-toolkit-not-a-primitive)
+- [Interface and mechanism are separable](#interface-and-mechanism-are-separable)
+- [Two systems that got the shape right](#two-systems-that-got-the-shape-right)
+- [seL4 as the meeting point](#sel4-as-the-meeting-point)
+- [Runtime versus analysis time](#runtime-versus-analysis-time)
+- [The architecture is recursive](#the-architecture-is-recursive)
+- [What this does not solve](#what-this-does-not-solve)
+- [References](#references)
+
+
 The first article ended with a description and no teeth. A capability graph bounds what a component can reach. An ACL says who may touch a resource. Neither does anything to a program that declines to participate.
 
 Something has to make the description true. This article is about that something: what it must guarantee, where people put it, and the two fundamentally different strategies it can use.
