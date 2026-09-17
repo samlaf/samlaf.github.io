@@ -1,5 +1,5 @@
 ---
-title:  "LLM Sandbox = Compute Isolation + Authority Mediation"
+title:  "LLM sandboxing: making the gateway correct and unavoidable"
 category: programming
 date:   2026-09-03
 ---
@@ -8,7 +8,7 @@ date:   2026-09-03
 >
 > 1. **Where authority lives** — how a system represents authority, and how authority moves between principals.
 > 2. **How authority is enforced** — what makes those limits non-bypassable.
-> 3. **LLM sandbox = compute isolation + authority mediation** — how the two combine for agents.
+> 3. **LLM sandboxing** — making the gateway correct and unavoidable when the workload is an agent.
 
 - [Part 0 — Why agents break the assumptions](#part-0--why-agents-break-the-assumptions)
   - [Data becomes executable](#data-becomes-executable)
@@ -63,11 +63,15 @@ A complete design therefore consists of two coupled systems:
 
 The compute sandbox removes ambient access to the host. The capability gateway selectively reintroduces useful authority as narrow, adjudicated operations: read this workspace, call this API method, publish this artifact, connect using this database role. Raw credentials and host resources remain outside the guest.
 
-The word *coupled* is doing important work. A proxy is not enforcement if the workload can route around it. A VM does not contain authority if it directly mounts host state or receives durable credentials. The runtime must guarantee that every external effect crosses the gateway; the gateway must guarantee that every effect is evaluated under a host-authenticated sandbox identity.
+The word *coupled* is doing the work. A proxy is not enforcement if the workload can route around it. A VM does not contain authority if it directly mounts host state or receives durable credentials. These are not two systems cooperating: they are one reference monitor whose two required properties are supplied by different technologies. The gateway is the decision point and must be **correct** — right policy, right answer, real credential held outside the guest. The sandbox decides nothing and must make the gateway **unavoidable**, which is a claim about topology rather than about policy. That is the second article's PEP/PDP split, with the enforcement point's non-bypassability delegated to whatever substrate you chose. Drop either half and you do not have a weaker sandbox. You have no reference monitor at all.
 
-The first two articles supply the vocabulary. The first described how authority is represented and how it moves — ACLs, capabilities, attenuation, delegation, and Lampson's split between authority as execution and authority as administration. The second described what makes a limit real — the reference monitor, the PEP/PDP decomposition, unnameability versus adjudication, and the observation that non-bypassability is a property of topology rather than of policy.
+The condition to aim at is easier to state than to satisfy:
 
-This article is what happens when you point both at a program whose authority is not known until it runs.
+> **For every effect the workload can attempt, either no path to the resource exists, or every path passes through a point that decides.**
+
+Two disjuncts, and they correspond to the two things a sandbox can take away. Strip ambient *designation* and the resource becomes unnameable — there is no request to intercept, because there is nothing to ask for. Strip ambient *authority* and leave designation intact, and the request stays expressible while something adjudicates it. Every mechanism in this article is one of those two moves applied to one class of effect, and the engineering claim is never that a decision point exists. It is that the union of them leaves no path uncovered.
+
+The first two articles supply that vocabulary: how authority is represented and how it moves, then what makes a limit real. This article is what happens when you point both at a program whose authority is not known until it runs.
 
 ![sandboxing-taxonomy](/assets/llm-sandbox/confinement-hierarchy.png)
 

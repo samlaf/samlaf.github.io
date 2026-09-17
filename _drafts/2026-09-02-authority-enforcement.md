@@ -8,7 +8,7 @@ date:   2026-09-02
 >
 > 1. **Where authority lives** — how a system represents authority, and how authority moves between principals.
 > 2. **How authority is enforced** — what makes those limits non-bypassable.
-> 3. **LLM sandbox = compute isolation + authority mediation** — how the two combine for agents.
+> 3. **LLM sandboxing** — making the gateway correct and unavoidable when the workload is an agent.
 
 - [The unit of analysis is the external effect](#the-unit-of-analysis-is-the-external-effect)
 - [The reference monitor](#the-reference-monitor)
@@ -18,6 +18,7 @@ date:   2026-09-02
 - [Three properties people conflate](#three-properties-people-conflate)
   - [Non-bypassability is none of the three](#non-bypassability-is-none-of-the-three)
 - [Linux is a toolkit, not a primitive](#linux-is-a-toolkit-not-a-primitive)
+- [What can change between check and use](#what-can-change-between-check-and-use)
 - [Interface and mechanism are separable](#interface-and-mechanism-are-separable)
 - [Two systems that got the shape right](#two-systems-that-got-the-shape-right)
 - [seL4 as the meeting point](#sel4-as-the-meeting-point)
@@ -128,6 +129,8 @@ API not imported                   ACL check
 "there is nothing to ask for"      "you asked; the answer is no"
 ```
 
+The cleanest way to say what separates them is in the first article's vocabulary. A sandbox can take away ambient *designation*, ambient *authority*, or both. Remove designation and the resource is unnameable — there is no request to intercept, because there is nothing to ask for. Leave designation and remove authority, and the request stays expressible while something adjudicates it. In an object capability the two are fused, which is why an ocap system gets the first for free.
+
 These are functions, not technology categories. A mechanism may provide either or both. Namespaces alter the universe a process can name, one kernel-object class at a time. A VM does it for a whole machine. WASI does it by omitting APIs. Seccomp adjudicates entry to the syscall interface using syscall numbers and scalar arguments. LSMs adjudicate operations on resolved kernel objects.
 
 The strongest designs compose them: make the raw authority **unnameable**, then expose a **restricted, adjudicated** capability in its place.
@@ -205,6 +208,12 @@ These vary independently. An LSM is structurally legible, weakly programmable, a
 
 It is a property of the **topology**, not of a policy language or a hook. The question is only ever: can the workload reach the protected resource by some other path?
 
+Stated as a condition to satisfy:
+
+> **For every effect the workload can attempt, either no path to the resource exists, or every path passes through a point that decides.**
+
+The two disjuncts are the two strategies above, and the first one involves no enforcement point at all. Unnameability is not a check that reliably says no. It is the absence of anything to check. Which is also why "is there a PEP?" is never the interesting question — a PEP is always a PEP for some class of effect, and what you actually have to establish is that the union of them leaves no path uncovered.
+
 The clearest illustration is the humble proxy. `HTTP_PROXY` is a cooperative convention. A workload that wants to ignore it simply ignores it, and no amount of policy sophistication inside the proxy changes that. The same proxy becomes genuine enforcement when the topology closes: force routing with nftables or TPROXY, or give the workload a network peer that is the proxy, with no NAT and no alternate route.
 
 Same code, same policies, same expressivity. Enforcement in one deployment and decoration in the other. This is why arguing about policy languages before establishing the topology is almost always wasted effort.
@@ -236,6 +245,55 @@ That difference has a direct consequence for policy soundness. Path-based policy
 ![](/assets/authority-enforcement/linux-security-frontends.png)
 
 The same primitives wear different user-facing clothes, which is a large part of why the landscape looks more fragmented than it is.
+
+## What can change between check and use
+
+Always invoked, tamperproof, verifiable. All three can hold and the monitor can still authorize the wrong thing, because none of them says the decision was still true when the effect happened.
+
+The reason is that almost nothing in an authorization question is supplied directly. The subject and the object arrive as *references*, and each one resolves against state somebody else can modify.
+
+```text
+subject reference ──resolve──► subject state ──┐
+                                               │
+object reference  ──resolve──► object state ───┤
+                                               ├──► decision
+policy store      ──query──────────────────────┤
+                                               │
+environment       ─────────────────────────────┘
+```
+
+Four inputs, four independent clocks.
+
+**Object binding.** The classic case, and the reason the LSM hook sits where it does. A pathname gets resolved twice:
+
+```text
+t0   access("/tmp/foo")  →  inode A   → allowed
+t1   open("/tmp/foo")    →  inode B
+```
+
+Check and use named the same string and reached different objects. A file descriptor closes this by resolving once and binding the result — `read(7)` cannot be redirected by renaming anything. That is what `openat`, `O_PATH` and Capsicum are for, and it is the first article's designation-equals-authority showing up as a race.
+
+**Subject binding.** The same indirection exists on the other side and gets far less attention. Ambient credentials are a *reference to authority*, resolved at the moment of use. Check under one credential context and act under another — a dropped privilege, a changed EUID, a recycled thread pool — and you have the same bug with the axes swapped.
+
+```text
+pathname            indirect reference to an object
+ambient credential  indirect reference to authority
+```
+
+Both resolve late. Both can resolve differently.
+
+**Authorization state.** Neither binding has to move for the answer to change. Remove Alice from a group and every decision derived from that membership is stale, with the same subject and the same object throughout. This is not a race inside the monitor. It is the monitor's inputs having a lifetime, which is exactly why Flask needs a revocation channel: a cached access vector is a decision that outlived its premises.
+
+**Environment.** Device posture, time of day, risk score. Same shape, least often modelled, and the usual reason a "zero trust" deployment is less continuous than its diagram.
+
+Which makes the tension from the end of the first article concrete. Re-evaluate on every operation and the inputs stay fresh, but every operation pays the resolution cost and re-opens all four races. Materialize the decision into a capability and the bindings freeze — that is the point of it — but a frozen binding is indistinguishable from a stale one once the source of truth moves.
+
+```text
+re-evaluate    fresh inputs, repeated resolution races
+materialize    stable bindings, revocation debt
+```
+
+Neither end is safe on its own. A file descriptor eliminates the object-binding race and creates a revocation problem in the same stroke. That is not a defect in the mechanism. It is the trade that appears wherever a system caches a derived fact, and authorization gets no exemption from it.
 
 ## Interface and mechanism are separable
 

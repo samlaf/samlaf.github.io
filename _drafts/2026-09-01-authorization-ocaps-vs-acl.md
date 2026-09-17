@@ -8,7 +8,7 @@ date:   2026-09-01
 >
 > 1. **Where authority lives** — how a system represents authority, and how authority moves between principals.
 > 2. **How authority is enforced** — what makes those limits non-bypassable.
-> 3. **LLM sandbox = compute isolation + authority mediation** — how the two combine for agents.
+> 3. **LLM sandboxing** — making the gateway correct and unavoidable when the workload is an agent.
 
 - [The matrix and its two projections](#the-matrix-and-its-two-projections)
 - [Capabilities are not transposed ACLs](#capabilities-are-not-transposed-acls)
@@ -84,6 +84,10 @@ An object capability is an unforgeable reference that both *designates* an objec
 
 That last property is the real dividing line, and it is invisible in the matrix. In a Unix process, opening a file requires only a *name* — the authority comes from the process's identity, floating in the background. In an ocap system, the name *is* the authority, and you only have names someone handed you.
 
+It is worth saying exactly which half of the transposition survives, because one half does. The claim bundles two things: that the data sits at the subject rather than at the object, and that both representations carry the same information. For a capability list both are true, and the duality is real. For object capabilities only the first is.
+
+A matrix row is flat. Alice holding a reference to Bob, who holds a reference to X, is not the cell `Alice: rw X`. Bob mediates. Bob can refuse, revoke, log, or forward only a subset. The matrix has nowhere to write that down, no way to make Bob a row and a column at once, and no vocabulary for rights once "rights" means whatever interface Bob happens to expose.
+
 Three things get called capabilities and only one of them has these properties:
 
 ```text
@@ -132,11 +136,42 @@ ReBAC WHICH RELATIONSHIPS connect this subject to this resource
 
 Every one of these keeps authority at the resource, or in a policy store that speaks on the resource's behalf, and looks the subject up when a request arrives. They are refinements of the ACL projection, not alternatives to it. The subject presents an identity; the system decides.
 
+That ladder describes the subject. A second axis describes what happens to the access relation itself, and it is the more useful of the two:
+
+```text
+ACL     store the relation
+RBAC    factor the relation     subject → role → permission
+ABAC    compute the relation    a predicate over attributes
+ReBAC   derive the relation     a graph plus composition rules
+```
+
+Store, factor, compute, derive. Each is cheaper to administer than the one before and more expensive to evaluate, which is the entire trade.
+
+This also disposes of a confusion worth naming. RBAC is sometimes described as putting the ACL on the subject. It is not — that is a capability list. RBAC inserts a reusable layer *between* subject and permission, so that `Users × Permissions` factors into `(Users × Roles)` and `(Roles × Permissions)`. The saving comes from sharing the middle term across many subjects, not from changing which end of the matrix the data hangs off.
+
 The clean ladder also oversimplifies. MAC is not simply "RBAC plus levels": SELinux's type enforcement is a prerequisite for MAC and a first step toward multilevel security, and its security context is the full `user:role:type:level` tuple rather than a single clearance. Type enforcement and RBAC are complements in that design, not rungs.
 
 ABAC is where the industry landed for anything complicated, with XACML and OPA's Rego as the two main expressions. Both share a shape: a policy document, a set of facts about subject and resource and environment, and an engine that evaluates one against the other at request time.
 
 Which is exactly the cost capabilities are trying to avoid.
+
+There is a sharper way to state this section's title. Project every model onto the matrix and watch what happens to the information.
+
+```text
+ACL               reindex by column              exact, invertible
+capability list   reindex by row                 exact, invertible
+RBAC              expand the roles               exact
+ABAC              evaluate the predicate         exact
+ReBAC             run the check over every pair  exact
+
+ocap graph        flatten reachability           lossy
+```
+
+The first five are notations for a matrix. Running them backwards is underdetermined — you cannot recover which factorization, which predicate, or which tuples produced a given set of cells — but running them forwards is faithful. Each is a compression scheme for the same object, which is exactly why they form one family.
+
+Flattening an object-capability graph is not faithful. `Alice: rw X` is a true statement about what Alice can eventually cause and a false statement about the authority she holds, and that difference is the entire reason the graph exists. So an ocap graph is not a sixth notation for the matrix. It is not a notation for the matrix at all.
+
+One thing does survive the projection: a single cell can be materialized as a handle, which is the pipeline this article ends on. Materializing cells one at a time is not the same as recovering the structure.
 
 ## Identity is not authority
 
