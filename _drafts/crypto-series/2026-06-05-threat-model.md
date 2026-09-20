@@ -11,9 +11,9 @@ date: 2026-06-05
 > - **Prologue: The changing internet threat model** — forty years of the adversary migrating from the wire, to the identity binding, to the authenticated counterparty itself.
 > - **[Part 1: Cryptographic primitives](/programming/crypto-primitives.html)** — the atoms: PRFs and PRPs, block and stream ciphers, AEAD, MACs and signatures.
 > - **[Part 2: Key exchange & secure channels](/programming/secure-channels.html)** — establishing the shared secret, from a pre-shared key up to fully-negotiated TLS.
-> - **[Part 3: Authentication](/programming/authentication.html)** — knowing it's the right party: plaintext passwords to passkeys, and OAuth's parallel arc.
+> - **[Part 3: Proving you hold a key](/programming/authentication.html)** — from plaintext passwords to passkeys: what the prover holds, what the verifier stores, and what crosses the wire.
 > - **[Part 4: Keys](/programming/keys.html)** — the life of a key: the entropy that seeds it, where it lives, and how it's wrapped.
-> - **[Part 5: Roots of trust & attestation](/programming/roots-of-trust-and-attestation.html)** — where every chain of trust terminates: out-of-band anchors, and the hardware that proves a key sits behind one.
+> - **[Part 5: What a secure channel doesn't give you](/programming/secure-channel-capstone.html)** — the capstone: the channel is the easy part, and thirteen things it leaves for you.
 
 All the machinery in this series — keys, channels, authentication, attestation — exists to defend against an adversary. The interesting question is *where* you assume that adversary lives, and over forty years the frontier has moved.
 
@@ -51,7 +51,7 @@ So the wire is the *solved* part: modern AEAD usage is airtight, and TLS 1.3 har
 
 **Threat.** A perfectly secure channel to the *wrong party*. The attacker breaks no crypto at all — he hands you his own public key, and you faithfully encrypt everything to him.
 
-**Theory.** [Diffie–Hellman][dh] (1976) gave us public keys, but a key is not a name. *Binding* a given key to the right identity — proving this key really is `example.com`'s — is a separate, unglamorous problem, and exactly the one PKI exists to solve. (That's distinct from *naming*: whether a human-meaningful name can simultaneously be unforgeable and decentralized is a further trilemma — Zooko's triangle — which shows up a layer up, in the [capstone](/programming/roots-of-trust-and-attestation.html).)
+**Theory.** [Diffie–Hellman][dh] (1976) gave us public keys, but a key is not a name. *Binding* a given key to the right identity — proving this key really is `example.com`'s — is a separate, unglamorous problem, and exactly the one [PKI exists to solve](/programming/identity-of-hosts.html). It is not a cryptographic problem at all, which is why it gets its own [series on identity](/programming/identity-series-intro.html). (That's distinct from *naming*: whether a human-meaningful name can simultaneously be unforgeable and decentralized is a further trilemma — [Zooko's triangle](/programming/keys-are-not-names.html#zookos-triangle) — which shows up a layer up again.)
 
 **Implementation (and its breaks).** [PKI][web-pki] — X.509, certificate authorities, the Web PKI (1990s–2000s) — turned identity binding into infrastructure, so each protocol stopped solving "who am I talking to" from scratch. Its failures are about trusting the wrong *issuer*: the Comodo and DigiNotar CA compromises (2011) minted valid certificates for domains they had no business signing, which is what drove [Certificate Transparency][ct] (2013+). Crucially, PKI solved *impersonation* — and *only* impersonation. It says nothing about whether the correctly-identified party is honest, which is exactly the next threat.
 
@@ -65,7 +65,7 @@ And it was never only theoretical. A hostile endpoint has been part of the inter
 
 Arkko's sharper point is that the cryptographic endpoints often aren't the *real* ends at all. A CDN terminates your TLS, so the "server" you share a key with isn't the origin. And a [delegated-authorization flow like OAuth](/programming/authentication.html) is a triangle, not a line — it deliberately splits a trusted server-to-server *back channel* from a browser-mediated *front channel*, because those legs face different attackers (front-channel authorization-code interception is exactly why PKCE exists). Every delegate and intermediary is one more authenticated party you're trusting, so the two-party "secure channel" is, at internet scale, a convenient fiction.
 
-**Implementation (the live frontier).** This is the unsolved layer. [Confidential computing and attestation](/programming/roots-of-trust-and-attestation.html) try to defend against malicious *infrastructure* — a hostile cloud host running your workload. But the authenticated counterparty is increasingly your own software: the [xz backdoor][xz-backdoor] (2024) was a trusted maintainer who spent two years earning commit rights and then shipped a backdoor, and malware on [npm, PyPI, and the AUR][aur-malware] is now routine; even the primitive itself can be subverted ([Dual_EC_DRBG][dual-ec]). And LLMs change the economics: they cheapen the attacks whose rarity used to bound the model, and an AI agent acting with your credentials under a prompt-injected instruction is *exactly* Lowe's legitimate-participant-gone-rogue — now running inside your own tooling.
+**Implementation (the live frontier).** This is the unsolved layer. [Confidential computing and attestation](/programming/identity-of-workloads.html) try to defend against malicious *infrastructure* — a hostile cloud host running your workload. But the authenticated counterparty is increasingly your own software: the [xz backdoor][xz-backdoor] (2024) was a trusted maintainer who spent two years earning commit rights and then shipped a backdoor, and malware on [npm, PyPI, and the AUR][aur-malware] is now routine; even the primitive itself can be subverted ([Dual_EC_DRBG][dual-ec]). And LLMs change the economics: they cheapen the attacks whose rarity used to bound the model, and an AI agent acting with your credentials under a prompt-injected instruction is *exactly* Lowe's legitimate-participant-gone-rogue — now running inside your own tooling.
 
 ## Aside - Adversary Model
 
@@ -81,7 +81,9 @@ TODO: related with content of this thread: https://x.com/ittaia/status/202096384
 
 The story isn't that the threat *moved* on its own — it's that we kept *solving* the inner layers, so the adversary kept relocating to whatever was still open. The wire took thirty-five years to genuinely secure (Dolev–Yao's 1983 model to TLS 1.3 in 2018); identity binding became infrastructure; and what's left is the threat Lowe already saw in 1995, now at the scale of cloud providers, upstream maintainers, and AI agents — all correctly authenticated, any of them potentially hostile. The protocol's role structure, not the channel, is where the adversary lives.
 
-That's the lens for the rest of the series: each post defends a *different* assumed adversary, and the frontier today is the authenticated-but-untrustworthy counterparty — which is exactly what [attestation](/programming/roots-of-trust-and-attestation.html) tries to pin down.
+That's the lens for the rest of the series: each post defends a *different* assumed adversary, and the frontier today is the authenticated-but-untrustworthy counterparty — which is exactly what [attestation](/programming/identity-of-workloads.html) tries to pin down.
+
+It is also the lens for two more series, because the three layers are three bodies of work. The wire is this series: primitives, channels, keys. The identity binding is the [identity series](/programming/identity-series-intro.html): DNS, the Web PKI, identity providers, attestation, and the roots they all bottom out in. And the authenticated-but-hostile counterparty is the [authorization series](/programming/authorization-series-intro.html), which asks what a correctly identified party may do, and how to make the answer stick when the party is an LLM agent running inside your own tooling.
 
 ## References <!-- omit in toc -->
 

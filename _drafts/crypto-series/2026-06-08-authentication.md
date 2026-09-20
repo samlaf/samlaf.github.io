@@ -1,5 +1,5 @@
 ---
-title:  "Authentication"
+title:  "Proving You Hold a Key"
 series: "Applied Crypto, Part 3"
 series_url: "/programming/crypto-series-intro.html"
 category: programming
@@ -11,11 +11,13 @@ date: 2026-06-08
 > - **[Prologue: The changing internet threat model](/programming/threat-model.html)** — forty years of the adversary migrating from the wire, to the identity binding, to the authenticated counterparty itself.
 > - **[Part 1: Cryptographic primitives](/programming/crypto-primitives.html)** — the atoms: PRFs and PRPs, block and stream ciphers, AEAD, MACs and signatures.
 > - **[Part 2: Key exchange & secure channels](/programming/secure-channels.html)** — establishing the shared secret, from a pre-shared key up to fully-negotiated TLS.
-> - **Part 3: Authentication** — knowing it's the right party: plaintext passwords to passkeys, and OAuth's parallel arc.
+> - **Part 3: Proving you hold a key** — from plaintext passwords to passkeys: what the prover holds, what the verifier stores, and what crosses the wire.
 > - **[Part 4: Keys](/programming/keys.html)** — the life of a key: the entropy that seeds it, where it lives, and how it's wrapped.
-> - **[Part 5: Roots of trust & attestation](/programming/roots-of-trust-and-attestation.html)** — where every chain of trust terminates: out-of-band anchors, and the hardware that proves a key sits behind one.
+> - **[Part 5: What a secure channel doesn't give you](/programming/secure-channel-capstone.html)** — the capstone: the channel is the easy part, and thirteen things it leaves for you.
 
-This is the identity arm of the [duality](/programming/crypto-series-intro.html): proving *who* a party is, as opposed to protecting *what* they send (that's [Key Exchange & Secure Channels](/programming/secure-channels.html)). The two are usually fused in a handshake, but they're separable — and authentication has its own 50-year story worth telling on its own.
+This is the second half of the [duality](/programming/crypto-series-intro.html): a live party proving it *holds a key or secret*, as opposed to protecting *what* it sends (that's [Key Exchange & Secure Channels](/programming/secure-channels.html)). The two are usually fused in a handshake, but they're separable — and proof of possession has its own 50-year story worth telling on its own.
+
+One thing this post deliberately does not do is say *who* the key belongs to. Everything below is key-relative: the server learns that the party on the wire holds the secret registered under an account, and nothing more. Turning that into a name — an identity — is a separate binding, and it is the subject of the [identity series](/programming/identity-series-intro.html). Read the arc below as a story about *custody*: what the prover holds, what the verifier stores, and what crosses the wire.
 
 - [The actors](#the-actors)
 - [History of User Authentication](#history-of-user-authentication)
@@ -59,7 +61,7 @@ TOTP apps, SMS codes, hardware tokens. Doesn't replace the password, augments it
 
 #### Phase 5: Federated identity (Kerberos 1980s, SAML/OAuth/OIDC 2000s–)
 
-Rather than every website holding credentials, delegate auth to an identity provider. Fewer places hold passwords, which reduces breach surface. But it still fundamentally relies on password auth somewhere, just centralized. The delegation protocols themselves — OAuth's arc from signed requests to bearer tokens and back toward key-bound ones — are [a story about handing over authority](/programming/capabilities.html), not about proving identity, and they live in the authorization series.
+Rather than every website holding credentials, delegate auth to an identity provider. Fewer places hold passwords, which reduces breach surface. But it still fundamentally relies on password auth somewhere, just centralized. This phase is the one that is not really about proof of possession at all: an identity provider issues a signed *assertion* that binds a name to a session, and that is identity, not custody. The lineage from Kerberos through SAML to OpenID Connect is the [humans post](/programming/identity-of-humans.html) of the identity series. The delegation protocol that rides alongside it — OAuth's arc from signed requests to bearer tokens and back toward key-bound ones — is [a story about handing over authority](/programming/capabilities.html), and lives in the authorization series.
 
 #### Phase 6: PAKE — password-authenticated key exchange
 
@@ -75,6 +77,8 @@ Consequences:
 - A server breach yields public keys, which are useless to an attacker.
 - Phishing becomes near-impossible because the browser binds each credential to an origin — a fake gooogle.com simply cannot produce a valid google.com signature.
 - Password reuse disappears as a concept.
+
+One thing to notice about the registration step: the server trusts whatever public key shows up at sign-up. That is a name → key binding written on first use, and everything after it is proof of possession against that binding. The [identity series](/programming/binding-without-a-ca.html#trust-on-first-use) has more to say about what first-use bindings can and cannot promise.
 
 Passkeys are the endpoint of a 50-year trajectory, and the industry is actively pushing there. Apple, Google, and Microsoft all now ship passkey support by default, and major sites (GitHub, Amazon, Google, PayPal) support passkey-only login.
 

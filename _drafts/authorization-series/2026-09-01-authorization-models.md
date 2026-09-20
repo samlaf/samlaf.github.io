@@ -342,7 +342,7 @@ Pulled apart, there are five separable concerns:
 ```text
 1  identity & authentication   who is this?
                                passwords, passkeys, mTLS, OIDC
-                               → the crypto series
+                               → the identity series
 
 2  policy & decision           f(subject, action, resource, context)
                                OPA, Cedar, Zanzibar, XACML, AuthZEN

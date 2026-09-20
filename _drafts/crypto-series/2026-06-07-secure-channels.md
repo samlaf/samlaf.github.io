@@ -11,9 +11,9 @@ date: 2026-06-07
 > - **[Prologue: The changing internet threat model](/programming/threat-model.html)** — forty years of the adversary migrating from the wire, to the identity binding, to the authenticated counterparty itself.
 > - **[Part 1: Cryptographic primitives](/programming/crypto-primitives.html)** — the atoms: PRFs and PRPs, block and stream ciphers, AEAD, MACs and signatures.
 > - **Part 2: Key exchange & secure channels** — establishing the shared secret, from a pre-shared key up to fully-negotiated TLS.
-> - **[Part 3: Authentication](/programming/authentication.html)** — knowing it's the right party: plaintext passwords to passkeys, and OAuth's parallel arc.
+> - **[Part 3: Proving you hold a key](/programming/authentication.html)** — from plaintext passwords to passkeys: what the prover holds, what the verifier stores, and what crosses the wire.
 > - **[Part 4: Keys](/programming/keys.html)** — the life of a key: the entropy that seeds it, where it lives, and how it's wrapped.
-> - **[Part 5: Roots of trust & attestation](/programming/roots-of-trust-and-attestation.html)** — where every chain of trust terminates: out-of-band anchors, and the hardware that proves a key sits behind one.
+> - **[Part 5: What a secure channel doesn't give you](/programming/secure-channel-capstone.html)** — the capstone: the channel is the easy part, and thirteen things it leaves for you.
 
 This is the data-protection arm of the [identity / data-protection duality](/programming/crypto-series-intro.html): how two parties agree on a shared key and protect bytes in transit. (The identity arm — proving *who* the other party is — gets its own [Authentication](/programming/authentication.html) post; the two are usually fused in practice but conceptually separate.)
 
@@ -24,7 +24,7 @@ This is the data-protection arm of the [identity / data-protection duality](/pro
 - [AEAD](#aead)
 - [Side channels](#side-channels)
 
-The whole post rests on one observation: **once two parties share a secret, an AEAD turns it into a secure channel almost trivially.** So the entire difficulty is *safely establishing that shared secret* — which is what everything below is about. (The other half of the problem, knowing the secret is shared with the *right* party, is [Authentication](/programming/authentication.html) and [Roots of Trust & Attestation](/programming/roots-of-trust-and-attestation.html).)
+The whole post rests on one observation: **once two parties share a secret, an AEAD turns it into a secure channel almost trivially.** So the entire difficulty is *safely establishing that shared secret* — which is what everything below is about. (The other half of the problem splits in two: proving the far end *holds* the key is [Proving You Hold a Key](/programming/authentication.html), and knowing *whose* key it is — the binding, and the roots it chains to — is the [identity series](/programming/identity-series-intro.html).)
 
 Any real system has to answer two orthogonal questions for every byte that moves: who is this from (identity) and who else can see it (data protection). Both questions get answered at multiple layers, and the layers compose.
 1. Identity layers: TLS server cert (transport), mTLS client cert or app-layer login — password/passkey/OAuth (request), session token — cookie/JWT (subsequent requests in a session), workload identity for service-to-service.
@@ -95,7 +95,7 @@ Signal's choreography is denser because it has to be async. Alice can't ECDH aga
 
 Once a handshake has produced session keys, the bytes themselves are protected with an AEAD (AES-GCM, ChaCha20-Poly1305). The mechanics — how an AEAD fuses a stream-cipher mode with a MAC so you can't forget the integrity half — live in the MACs & Signatures section of [Cryptographic Primitives](/programming/crypto-primitives.html).
 
-Establishing the key is the easy, well-understood part. Everything a secure channel *doesn't* give you — naming, authorization, revocation, replay protection across sessions, group keying — is surveyed in the series capstone at the end of [Roots of Trust & Attestation](/programming/roots-of-trust-and-attestation.html).
+Establishing the key is the easy, well-understood part. Everything a secure channel *doesn't* give you — naming, authorization, revocation, replay protection across sessions, group keying — is surveyed in the series capstone, [What a Secure Channel Doesn't Give You](/programming/secure-channel-capstone.html).
 
 ## Side channels
 
