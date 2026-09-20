@@ -6,7 +6,21 @@ category: programming
 date: 2026-06-06
 ---
 
+> This is Part 1 of a six-part [series on applied cryptography](/programming/crypto-series-intro.html).
+>
+> - **[Prologue: The changing internet threat model](/programming/threat-model.html)** — forty years of the adversary migrating from the wire, to the identity binding, to the authenticated counterparty itself.
+> - **Part 1: Cryptographic primitives** — the atoms: PRFs and PRPs, block and stream ciphers, AEAD, MACs and signatures.
+> - **[Part 2: Key exchange & secure channels](/programming/secure-channels.html)** — establishing the shared secret, from a pre-shared key up to fully-negotiated TLS.
+> - **[Part 3: Authentication](/programming/authentication.html)** — knowing it's the right party: plaintext passwords to passkeys, and OAuth's parallel arc.
+> - **[Part 4: Keys](/programming/keys.html)** — the life of a key: the entropy that seeds it, where it lives, and how it's wrapped.
+> - **[Part 5: Roots of trust & attestation](/programming/roots-of-trust-and-attestation.html)** — where every chain of trust terminates: out-of-band anchors, and the hardware that proves a key sits behind one.
+
 Cryptographic primitives are the atoms everything else is built from. The same machinery serves confidentiality, authentication, key derivation, and randomness alike — the recurring punchline below is that a single primitive (a PRF) is hiding behind most of them.
+
+- [Primitives: PRFs vs PRPs](#primitives-prfs-vs-prps)
+  - [Block vs Stream Cipher](#block-vs-stream-cipher)
+- [Tweakable Encryption](#tweakable-encryption)
+- [MACs \& Signatures](#macs--signatures)
 
 ## Primitives: PRFs vs PRPs
 

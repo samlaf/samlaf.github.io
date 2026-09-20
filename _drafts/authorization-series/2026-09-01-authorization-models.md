@@ -1,10 +1,12 @@
 ---
 title:  "Authorization models: what every system computes"
+series: "Authorization, Part 1"
+series_url: "/programming/authorization-series-intro.html"
 category: programming
 date:   2026-09-01
 ---
 
-> This is the first of four articles on authorization.
+> This is Part 1 of a four-part [series on authorization](/programming/authorization-series-intro.html).
 >
 > 1. **Authorization models** — what every system computes, and who may change it.
 > 2. **[Capabilities](/programming/capabilities.html)** — authority you hold, not authority you are.

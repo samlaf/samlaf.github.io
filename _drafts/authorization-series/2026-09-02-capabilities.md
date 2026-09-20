@@ -1,10 +1,12 @@
 ---
 title:  "Capabilities: authority you hold, not authority you are"
+series: "Authorization, Part 2"
+series_url: "/programming/authorization-series-intro.html"
 category: programming
 date:   2026-09-02
 ---
 
-> This is the second of four articles on authorization.
+> This is Part 2 of a four-part [series on authorization](/programming/authorization-series-intro.html).
 >
 > 1. **[Authorization models](/programming/authorization-models.html)** — what every system computes, and who may change it.
 > 2. **Capabilities** — authority you hold, not authority you are.

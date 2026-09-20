@@ -6,7 +6,28 @@ category: programming
 date: 2026-06-10
 ---
 
+> This is Part 5 of a six-part [series on applied cryptography](/programming/crypto-series-intro.html).
+>
+> - **[Prologue: The changing internet threat model](/programming/threat-model.html)** — forty years of the adversary migrating from the wire, to the identity binding, to the authenticated counterparty itself.
+> - **[Part 1: Cryptographic primitives](/programming/crypto-primitives.html)** — the atoms: PRFs and PRPs, block and stream ciphers, AEAD, MACs and signatures.
+> - **[Part 2: Key exchange & secure channels](/programming/secure-channels.html)** — establishing the shared secret, from a pre-shared key up to fully-negotiated TLS.
+> - **[Part 3: Authentication](/programming/authentication.html)** — knowing it's the right party: plaintext passwords to passkeys, and OAuth's parallel arc.
+> - **[Part 4: Keys](/programming/keys.html)** — the life of a key: the entropy that seeds it, where it lives, and how it's wrapped.
+> - **Part 5: Roots of trust & attestation** — where every chain of trust terminates: out-of-band anchors, and the hardware that proves a key sits behind one.
+
 The last post, and where the *right-party* arm of the series bottoms out. Every chain of trust we've followed — a TLS cert, a passkey, a session key — terminates at some anchor you trusted *before* the connection began. This post is about those anchors (roots of trust), the mechanism that proves a key really lives behind one (attestation), and it closes with a series capstone: everything a secure channel still doesn't give you.
+
+- [What ultimately authenticates a key?](#what-ultimately-authenticates-a-key)
+- [Root of Trust](#root-of-trust)
+- [Attestation: the REMITS lens](#attestation-the-remits-lens)
+- [TPM](#tpm)
+- [CVMs](#cvms)
+  - [AMD](#amd)
+  - [Intel DCAP](#intel-dcap)
+- [Cloud Attestation of CVMs: to vTPM or not](#cloud-attestation-of-cvms-to-vtpm-or-not)
+  - [vTPM (Azure)](#vtpm-azure)
+  - [Real TPM (Google)](#real-tpm-google)
+- [Capstone: what a secure channel still doesn't give you](#capstone-what-a-secure-channel-still-doesnt-give-you)
 
 ## What ultimately authenticates a key?
 

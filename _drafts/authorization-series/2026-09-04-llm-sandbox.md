@@ -1,10 +1,12 @@
 ---
 title:  "LLM sandboxing: making the gateway correct and unavoidable"
+series: "Authorization, Part 4"
+series_url: "/programming/authorization-series-intro.html"
 category: programming
-date:   2026-09-03
+date:   2026-09-04
 ---
 
-> This is the fourth of four articles on authorization.
+> This is Part 4 of a four-part [series on authorization](/programming/authorization-series-intro.html).
 >
 > 1. **[Authorization models](/programming/authorization-models.html)** — what every system computes, and who may change it.
 > 2. **[Capabilities](/programming/capabilities.html)** — authority you hold, not authority you are.

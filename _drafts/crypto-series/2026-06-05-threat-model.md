@@ -6,7 +6,23 @@ category: programming
 date: 2026-06-05
 ---
 
+> This is the prologue to a six-part [series on applied cryptography](/programming/crypto-series-intro.html).
+>
+> - **Prologue: The changing internet threat model** — forty years of the adversary migrating from the wire, to the identity binding, to the authenticated counterparty itself.
+> - **[Part 1: Cryptographic primitives](/programming/crypto-primitives.html)** — the atoms: PRFs and PRPs, block and stream ciphers, AEAD, MACs and signatures.
+> - **[Part 2: Key exchange & secure channels](/programming/secure-channels.html)** — establishing the shared secret, from a pre-shared key up to fully-negotiated TLS.
+> - **[Part 3: Authentication](/programming/authentication.html)** — knowing it's the right party: plaintext passwords to passkeys, and OAuth's parallel arc.
+> - **[Part 4: Keys](/programming/keys.html)** — the life of a key: the entropy that seeds it, where it lives, and how it's wrapped.
+> - **[Part 5: Roots of trust & attestation](/programming/roots-of-trust-and-attestation.html)** — where every chain of trust terminates: out-of-band anchors, and the hardware that proves a key sits behind one.
+
 All the machinery in this series — keys, channels, authentication, attestation — exists to defend against an adversary. The interesting question is *where* you assume that adversary lives, and over forty years the frontier has moved.
+
+- [1 · On the wire: the network between endpoints](#1--on-the-wire-the-network-between-endpoints)
+- [2 · In the identity binding: *is this key really Bob's?*](#2--in-the-identity-binding-is-this-key-really-bobs)
+- [3 · Inside the session: the authenticated counterparty itself](#3--inside-the-session-the-authenticated-counterparty-itself)
+- [Aside - Adversary Model](#aside---adversary-model)
+- [Where the frontier is now](#where-the-frontier-is-now)
+
 
 There are three places a threat can live:
 

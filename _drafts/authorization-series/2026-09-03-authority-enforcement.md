@@ -1,10 +1,12 @@
 ---
 title:  "How authority is enforced: reference monitors and sandboxes"
+series: "Authorization, Part 3"
+series_url: "/programming/authorization-series-intro.html"
 category: programming
-date:   2026-09-02
+date:   2026-09-03
 ---
 
-> This is the third of four articles on authorization.
+> This is Part 3 of a four-part [series on authorization](/programming/authorization-series-intro.html).
 >
 > 1. **[Authorization models](/programming/authorization-models.html)** — what every system computes, and who may change it.
 > 2. **[Capabilities](/programming/capabilities.html)** — authority you hold, not authority you are.

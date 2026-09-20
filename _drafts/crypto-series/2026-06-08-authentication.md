@@ -6,7 +6,27 @@ category: programming
 date: 2026-06-08
 ---
 
+> This is Part 3 of a six-part [series on applied cryptography](/programming/crypto-series-intro.html).
+>
+> - **[Prologue: The changing internet threat model](/programming/threat-model.html)** — forty years of the adversary migrating from the wire, to the identity binding, to the authenticated counterparty itself.
+> - **[Part 1: Cryptographic primitives](/programming/crypto-primitives.html)** — the atoms: PRFs and PRPs, block and stream ciphers, AEAD, MACs and signatures.
+> - **[Part 2: Key exchange & secure channels](/programming/secure-channels.html)** — establishing the shared secret, from a pre-shared key up to fully-negotiated TLS.
+> - **Part 3: Authentication** — knowing it's the right party: plaintext passwords to passkeys, and OAuth's parallel arc.
+> - **[Part 4: Keys](/programming/keys.html)** — the life of a key: the entropy that seeds it, where it lives, and how it's wrapped.
+> - **[Part 5: Roots of trust & attestation](/programming/roots-of-trust-and-attestation.html)** — where every chain of trust terminates: out-of-band anchors, and the hardware that proves a key sits behind one.
+
 This is the identity arm of the [duality](/programming/crypto-series-intro.html): proving *who* a party is, as opposed to protecting *what* they send (that's [Key Exchange & Secure Channels](/programming/secure-channels.html)). The two are usually fused in a handshake, but they're separable — and authentication has its own 50-year story worth telling on its own.
+
+- [The actors](#the-actors)
+- [History of User Authentication](#history-of-user-authentication)
+    - [Phase 1: Plaintext passwords (1960s–70s)](#phase-1-plaintext-passwords-1960s70s)
+    - [Phase 2: Hashed passwords (1979, Unix crypt)](#phase-2-hashed-passwords-1979-unix-crypt)
+    - [Phase 3: Salted slow hashes (1990s–2010s)](#phase-3-salted-slow-hashes-1990s2010s)
+    - [Phase 4: Something-you-have (2FA, ~2010s mainstream)](#phase-4-something-you-have-2fa-2010s-mainstream)
+    - [Phase 5: Federated identity (Kerberos 1980s, SAML/OAuth/OIDC 2000s–)](#phase-5-federated-identity-kerberos-1980s-samloauthoidc-2000s)
+    - [Phase 6: PAKE — password-authenticated key exchange](#phase-6-pake--password-authenticated-key-exchange)
+    - [Phase 7: Public-key authentication — WebAuthn / Passkeys (2018–)](#phase-7-public-key-authentication--webauthn--passkeys-2018)
+- [Picking an Auth method: security hierarchy](#picking-an-auth-method-security-hierarchy)
 
 ## The actors
 
