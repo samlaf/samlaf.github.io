@@ -6,8 +6,9 @@ category: programming
 date:   2026-09-04
 ---
 
-> This is Part 4 of a four-part [series on authorization](/programming/authorization-series-intro.html).
+> This is Part 4 of a five-part [series on authorization](/programming/authorization-series-intro.html).
 >
+> 0. **[Prologue: Who is the adversary](/programming/who-is-the-adversary.html)** — five positions the attacker has occupied, and why identity stopped being the useful thing to key on.
 > 1. **[Authorization models](/programming/authorization-models.html)** — what every system computes, and who may change it.
 > 2. **[Capabilities](/programming/capabilities.html)** — authority you hold, not authority you are.
 > 3. **[How authority is enforced](/programming/authority-enforcement.html)** — what makes any of it binding.
@@ -538,17 +539,36 @@ agent-creds shows one way to make that binding structural. Its guest-visible han
 
 The unnameability/adjudication split from the enforcement article hides trust placement. In particular, "malicious code defeats adjudication" is true of in-guest adjudication but false of a host gateway designed to distrust the guest kernel.
 
-| Threat | Compute boundary | Guest LSM | Capability gateway | Semantic governance | Upstream controls |
-| --- | --- | --- | --- | --- | --- |
-| **G1** Confused or buggy destructive process | Contains guest damage; snapshots roll it back | Restricts processes internally | Protects host and durable effects | Catches obvious actions | Limited |
-| **G2** Actively malicious code or compromised guest kernel | Protects host kernel and memory | Defeated with the guest kernel | Still protects external authority | Arbitrary code can bypass its harness | Protects the remote resource |
-| **G3** Persistence into later execution | Makes local guest state disposable | Restricts dangerous guest writes | Controls host VFS writes and publication | Sees hooks, CI edits, and similar intent | Branch, signing, and deployment policy |
-| **G4** Exfiltration through an allowed host | Little once a route is deliberately granted | Limited | Constrains request semantics and credential use | May recognize suspicious intent | Least-privilege API and token scope |
-| **G5** Lateral movement to localhost, RFC1918, or metadata | Removes raw host routes | Restricts guest sockets | Rejects internal destinations and rebinding | Secondary | Network-side controls |
-| **G6** Resource exhaustion | CPU, memory, and device ceilings | Weak | Request, bandwidth, and parser-work quotas | Weak | Rate limits |
-| **G7** Microarchitectural side channels | Limited; requires scheduling/hardware measures | None | None | None | Confidential computing may change host trust |
+Making that precise means asking two questions instead of one: *which adversary* is a plane rated against, and *which harm* is it meant to prevent. Collapsing them into a single list is how sandboxes end up compared on a number nobody can define. The [prologue](/programming/who-is-the-adversary.html) supplies the first axis — three rungs, by how much of the machine the attacker owns, plus two that sit off the ladder and combine with any rung.
 
-The table exposes the central division:
+Rated against the rungs, the planes sort cleanly, and the sort is the entire argument for composing them:
+
+| Enforcement plane | Attacker controls the input | Attacker runs code | Attacker owns the guest kernel |
+| --- | --- | --- | --- |
+| Tool-call policy | Holds, bounded by policy completeness | Falls — code routes below the tool API | Falls |
+| Guest resource universe | Holds | Holds | Falls |
+| Guest syscall mediation | Holds | Holds | Falls |
+| Guest object mediation | Holds | Holds | Falls |
+| VM boundary | Holds | Holds | Holds, absent a VMM escape |
+| Host capability gateway | Holds | Holds | Holds |
+| Upstream resource policy | Holds | Holds | Holds |
+
+Read down the third column and the recommended architecture writes itself. Everything above the VM boundary is defense in depth; everything at or below it is what you are actually relying on once the guest is fully lost. Read across the first row and you get the honest limit of semantic governance: it is the most legible plane and the first one to go.
+
+The two off-ladder adversaries cut across every row rather than appearing in one. An attacker who splits a single intent across several individually-permitted requests defeats all seven equally, because every one of them adjudicates one effect at a time. An attacker who can edit the policy artifacts defeats whichever plane reads them — which is the sharpest argument for buying non-bypassability with topology rather than with rules.
+
+The second axis is harm, and it is what the planes are *for*:
+
+| Harm | Compute boundary | Guest LSM | Capability gateway | Semantic governance | Upstream controls |
+| --- | --- | --- | --- | --- | --- |
+| **H1** Destruction of local or durable state | Contains guest damage; snapshots roll it back | Restricts processes internally | Protects host and durable effects | Catches obvious actions | Branch protection, backups, deletion policy |
+| **H2** Persistence into later execution | Makes local guest state disposable | Restricts dangerous guest writes | Controls host VFS writes and publication | Sees hooks, CI edits, and similar intent | Signing, branch rules, deployment gates |
+| **H3** Exfiltration through an allowed path | Little once a route is deliberately granted | Limited | Constrains request semantics and credential use | May recognize suspicious intent | Least-privilege API and token scope |
+| **H4** Lateral movement to localhost, RFC1918, or metadata | Removes raw host routes | Restricts guest sockets | Rejects internal destinations and rebinding | Secondary | Network-side controls |
+| **H5** Resource exhaustion | CPU, memory, and device ceilings | Weak | Request, bandwidth, and parser-work quotas | Weak | Rate limits |
+| **H6** Microarchitectural side channels | Limited; requires scheduling or hardware measures | None | None | None | Confidential computing may change host trust |
+
+Together the two tables expose the central division:
 
 > **The compute boundary contains execution. The capability gateway contains authority.**
 
@@ -682,6 +702,8 @@ They need not be separate deployments. They should be separate architectural int
 # Part IV — What is left over
 
 ## Agent-specific threats
+
+The table below is the same two axes applied to what is specific about agents. A1 is the input-controlling adversary from the prologue, arriving through a channel the agent needs open; the rest are harms peculiar to a delegate whose plan is discovered at runtime.
 
 | Threat | Compute boundary | Guest LSM | Capability gateway | Semantic governance | Upstream controls |
 | --- | --- | --- | --- | --- | --- |

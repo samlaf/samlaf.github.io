@@ -6,8 +6,9 @@ category: programming
 date:   2026-09-02
 ---
 
-> This is Part 2 of a four-part [series on authorization](/programming/authorization-series-intro.html).
+> This is Part 2 of a five-part [series on authorization](/programming/authorization-series-intro.html).
 >
+> 0. **[Prologue: Who is the adversary](/programming/who-is-the-adversary.html)** — five positions the attacker has occupied, and why identity stopped being the useful thing to key on.
 > 1. **[Authorization models](/programming/authorization-models.html)** — what every system computes, and who may change it.
 > 2. **Capabilities** — authority you hold, not authority you are.
 > 3. **[How authority is enforced](/programming/authority-enforcement.html)** — what makes any of it binding.

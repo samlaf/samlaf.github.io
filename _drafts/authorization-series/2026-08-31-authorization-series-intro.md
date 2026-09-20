@@ -20,6 +20,8 @@ That shape is the settled part. The industry converged on it and then standardiz
 2. **Mutation.** Who may change the answer, and where do they go to do it? The models differ more on this than on anything else, and almost nobody sorts them by it. Most answers amount to "someone with administrative standing," supplied from outside the model entirely.
 3. **Enforcement.** What stops a program from ignoring the description? A representation is a description. A program that does not participate is not violating the model — it is operating outside it. Something has to guarantee that every attempt to cause an effect actually meets the check.
 
+Those three sort into the two halves people usually mean by *policy* and *mechanism*. Representation and mutation are the policy half — what the rules are and who edits them. Enforcement is the mechanism half. Both are answers, and an answer is only as good as the question it was measured against: every claim in this series — non-bypassable, unnameable, correct — is a claim about one specific adversary, and the same mechanism goes from sufficient to decorative when that adversary changes. So the series opens with a prologue on who the adversary is, and where they have sat over the last fifty years.
+
 ## The word that breaks the survey
 
 One word appears in every part of this series and means something different each time. "Capability" names at least four distinct things: a row of the access matrix, a scoped token, an artifact carrying its own caveats, and an unforgeable reference that is simultaneously how you name a thing and your authority over it.
@@ -34,6 +36,7 @@ What is needed is a replaceable compute sandbox coupled to a non-bypassable capa
 
 ## The articles
 
+- **[Prologue: Who is the adversary](/programming/who-is-the-adversary.html)** — five positions the attacker has occupied, from a stranger at the gate to the data your delegate reads. Why identity stopped being the useful thing to key on, and where to find a technical threat model.
 - **[Part 1: Authorization models](/programming/authorization-models.html)** — what every system computes, and who may change it. The access matrix and its two projections, why DAC and MAC are answers to the mutation question rather than rungs of a ladder, and the five separable concerns that most authorization arguments confuse for one.
 - **[Part 2: Capabilities](/programming/capabilities.html)** — authority you hold, not authority you are. Four things get called capabilities; only one of them makes designation and authority the same act, which is why the confused deputy is structural rather than a bug. Ends with the three classic objections and which of them survive.
 - **[Part 3: How authority is enforced](/programming/authority-enforcement.html)** — what makes any of it binding. The reference monitor and its three properties, unnameability versus adjudication as the two enforcement strategies, why Linux is a toolkit rather than a primitive, and what can change between the check and the use.

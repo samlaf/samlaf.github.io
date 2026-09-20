@@ -6,8 +6,9 @@ category: programming
 date:   2026-09-01
 ---
 
-> This is Part 1 of a four-part [series on authorization](/programming/authorization-series-intro.html).
+> This is Part 1 of a five-part [series on authorization](/programming/authorization-series-intro.html).
 >
+> 0. **[Prologue: Who is the adversary](/programming/who-is-the-adversary.html)** — five positions the attacker has occupied, and why identity stopped being the useful thing to key on.
 > 1. **Authorization models** — what every system computes, and who may change it.
 > 2. **[Capabilities](/programming/capabilities.html)** — authority you hold, not authority you are.
 > 3. **[How authority is enforced](/programming/authority-enforcement.html)** — what makes any of it binding.
@@ -29,6 +30,7 @@ date:   2026-09-01
   - [Where, and when](#where-and-when)
   - [Tokens as reified decisions](#tokens-as-reified-decisions)
 - [Five concerns, not one axis](#five-concerns-not-one-axis)
+- [Properties worth asking for](#properties-worth-asking-for)
 - [Where this leaves us](#where-this-leaves-us)
 - [References](#references)
 
@@ -120,6 +122,8 @@ Bob   → File B: rw, Device C: use
 The same information, transposed. This is the observation that makes people say ACLs and capabilities are dual, and at this level they are. A file descriptor is a capability; `/etc/passwd`'s mode bits are an ACL; both describe cells of the same matrix.
 
 Hold that claim loosely. The matrix describes permissions at an instant. It says nothing about how a cell got filled in, who is allowed to fill in another one, or what happens when Alice hands Bob something. The [next article](/programming/capabilities.html) is mostly about dismantling the duality this suggests. This one stays with the snapshot and asks the one dynamic question the matrix can almost answer: who edits it?
+
+Worth knowing what the matrix cannot answer before leaning on it. Once cells can be edited, the question you most want to ask — *can this permission ever reach that subject, by any sequence of legal edits* — is undecidable in the general case. Harrison, Ruzzo and Ullman proved it in 1976, and the result is why every tractable model since is a deliberate restriction of the general protection system rather than an implementation of it: take-grant, typed matrices, and the bounded schemes real engines actually ship. Keep it in view for the [next article](/programming/capabilities.html), where the same question comes back as the thing capabilities are worst at.
 
 ### `open` is the conversion
 
@@ -361,6 +365,18 @@ Pulled apart, there are five separable concerns:
 Most real systems mix and match. OAuth is a delegation protocol plus a credential format that leaves policy and communication entirely alone. Zanzibar is a policy engine with nothing to say about credentials. A macaroon is a credential that happens to carry its own attenuation rules. Cap'n Proto is a communication model that carries authority as a side effect of how you address things.
 
 Which is the useful frame for the rest of the series. The industry has spent twenty years building columns two, three and four, and they are genuinely good now. Column five is nearly empty, almost nobody treats it as an authorization concern at all — and it is the only place where the property that distinguishes capabilities from tokens can live.
+
+## Properties worth asking for
+
+The five concerns say what a complete system has to cover. They say nothing about whether what you built is any good, and the criteria for that turn out to be mostly independent of what the policy says.
+
+**Answerable.** Two administrative questions decide whether you can operate the thing day to day: *who can reach this resource*, and *revoke everything derived from that grant*. Some representations answer both cheaply. Others cannot answer either without enumerating the world. This is the axis the [next article](/programming/capabilities.html) keeps returning to, because it is the one capabilities are worst at and the reason almost nobody ships them alone.
+
+**Fail-closed.** When the decision point is unreachable, slow, or confused, the default has to be denial. That sounds too obvious to state and is violated constantly — usually by a cache that keeps answering after its source of truth is gone, or by a check that throws into a handler that logs and continues.
+
+**Recoverable when it denies.** A policy that cannot be widened without a deploy is a policy that gets widened to `*` in advance. The cost of granting a legitimate exception is a security property, not an ergonomics complaint, and it is the one that decides whether the system is still enforcing anything six months later.
+
+**Bounded when it is wrong.** Every policy is wrong sometimes. What matters then is what the decision point can do on its worst day, which is a fact about the authority it holds rather than about the rules it evaluates. The [third article](/programming/authority-enforcement.html) makes this the question people skip.
 
 ## Where this leaves us
 
