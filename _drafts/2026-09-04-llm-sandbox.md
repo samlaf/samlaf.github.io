@@ -4,11 +4,12 @@ category: programming
 date:   2026-09-03
 ---
 
-> This is the third of three articles on authorization.
+> This is the fourth of four articles on authorization.
 >
-> 1. **Where authority lives** — how a system represents authority, and how authority moves between principals.
-> 2. **How authority is enforced** — what makes those limits non-bypassable.
-> 3. **LLM sandboxing** — making the gateway correct and unavoidable when the workload is an agent.
+> 1. **[Authorization models](/programming/authorization-models.html)** — what every system computes, and who may change it.
+> 2. **[Capabilities](/programming/capabilities.html)** — authority you hold, not authority you are.
+> 3. **[How authority is enforced](/programming/authority-enforcement.html)** — what makes any of it binding.
+> 4. **LLM sandboxing** — the gateway, correct and unavoidable.
 
 - [Part 0 — Why agents break the assumptions](#part-0--why-agents-break-the-assumptions)
   - [Data becomes executable](#data-becomes-executable)
@@ -23,6 +24,7 @@ date:   2026-09-03
   - [From decision to capability](#from-decision-to-capability)
   - [Authority is temporal](#authority-is-temporal)
   - [Why not just call the PDP on everything, forever](#why-not-just-call-the-pdp-on-everything-forever)
+  - [How far up does the property survive](#how-far-up-does-the-property-survive)
 - [Part III — EXERCISE](#part-iii--exercise)
   - [Two coupled subsystems](#two-coupled-subsystems)
     - [1. The compute sandbox](#1-the-compute-sandbox)
@@ -63,7 +65,7 @@ A complete design therefore consists of two coupled systems:
 
 The compute sandbox removes ambient access to the host. The capability gateway selectively reintroduces useful authority as narrow, adjudicated operations: read this workspace, call this API method, publish this artifact, connect using this database role. Raw credentials and host resources remain outside the guest.
 
-The word *coupled* is doing the work. A proxy is not enforcement if the workload can route around it. A VM does not contain authority if it directly mounts host state or receives durable credentials. These are not two systems cooperating: they are one reference monitor whose two required properties are supplied by different technologies. The gateway is the decision point and must be **correct** — right policy, right answer, real credential held outside the guest. The sandbox decides nothing and must make the gateway **unavoidable**, which is a claim about topology rather than about policy. That is the second article's PEP/PDP split, with the enforcement point's non-bypassability delegated to whatever substrate you chose. Drop either half and you do not have a weaker sandbox. You have no reference monitor at all.
+The word *coupled* is doing the work. A proxy is not enforcement if the workload can route around it. A VM does not contain authority if it directly mounts host state or receives durable credentials. These are not two systems cooperating: they are one reference monitor whose two required properties are supplied by different technologies. The gateway is the decision point and must be **correct** — right policy, right answer, real credential held outside the guest. The sandbox decides nothing and must make the gateway **unavoidable**, which is a claim about topology rather than about policy. That is the [enforcement article](/programming/authority-enforcement.html)'s PEP/PDP split, with the enforcement point's non-bypassability delegated to whatever substrate you chose. Drop either half and you do not have a weaker sandbox. You have no reference monitor at all.
 
 The condition to aim at is easier to state than to satisfy:
 
@@ -71,7 +73,7 @@ The condition to aim at is easier to state than to satisfy:
 
 Two disjuncts, and they correspond to the two things a sandbox can take away. Strip ambient *designation* and the resource becomes unnameable — there is no request to intercept, because there is nothing to ask for. Strip ambient *authority* and leave designation intact, and the request stays expressible while something adjudicates it. Every mechanism in this article is one of those two moves applied to one class of effect, and the engineering claim is never that a decision point exists. It is that the union of them leaves no path uncovered.
 
-The first two articles supply that vocabulary: how authority is represented and how it moves, then what makes a limit real. This article is what happens when you point both at a program whose authority is not known until it runs.
+The first three articles supply that vocabulary: how authority is represented, what the capability property actually is and where it can be bought, then what makes a limit real. This article is what happens when you point both at a program whose authority is not known until it runs.
 
 ![sandboxing-taxonomy](/assets/llm-sandbox/confinement-hierarchy.png)
 
@@ -87,13 +89,17 @@ Compute containment and capability mediation primarily govern outbound effects. 
 
 The practical answer is not an "input sandbox." It is to assume intent can be corrupted and ensure that resulting effects still encounter narrow capabilities, trusted enforcement, and upstream policy.
 
+There is an older name for this failure, and using it changes what you look for. **Prompt injection is a confused deputy attack.** Injected text utters a designator — a path, a URL, a repository, a tool name. The agent's ambient authority supplies the rest. The agent is Hardy's compiler: not malicious, not compromised, simply unable to tell which of its powers a given request was entitled to invoke, because the request carried a name and the authority came from somewhere else.
+
+That reframing is useful because the confused deputy has a known cure and it is not "be more careful." You cannot fix the model's judgment, and every mitigation that depends on the agent correctly distinguishing instruction from data is ACL-plus-context — the correct answer is expressible, and the deputy still has to ask. What you can do is shrink the set of designators that mean anything. If the agent holds a reference to one file rather than a `read_file` tool plus a path argument, the injected instruction has nothing to designate.
+
 ## The confined workload is also a delegate
 
 Traditional confinement limits software you want to do as little as possible. An agent is valuable precisely because it can act broadly on a user's behalf.
 
 The core tension is not merely least privilege. It is **useful delegation without ambient authority**.
 
-The first article supplied the underlying object-capability model: do not hand a delegate a global name and durable credential. Hand it a reference to a narrower operation, with contextual caveats, and retain the ability to revoke or decline each invocation. Agents make that old design problem continuous. They form new subgoals, encounter new resources, and request new authority throughout a run, so capability issuance becomes part of the runtime protocol rather than a one-time launch configuration.
+The [capabilities article](/programming/capabilities.html) supplied the underlying object-capability model: do not hand a delegate a global name and durable credential. Hand it a reference to a narrower operation, with contextual caveats, and retain the ability to revoke or decline each invocation. Agents make that old design problem continuous. They form new subgoals, encounter new resources, and request new authority throughout a run, so capability issuance becomes part of the runtime protocol rather than a one-time launch configuration.
 
 ## Policy cannot be enumerated in advance
 
@@ -139,7 +145,7 @@ For a protected branch, a `PreToolUse` hook can reject `git push --force`; an HT
 
 ## The shape of the answer
 
-Take those four together and the architecture writes itself as three phases. Each one is a question the previous two articles prepared:
+Take those four together and the architecture writes itself as three phases. Each one is a question the previous three articles prepared:
 
 ```text
 DECIDE      What authority should exist for this task?
@@ -148,11 +154,11 @@ DECIDE      What authority should exist for this task?
                     ↓
 DELEGATE    Give the agent that authority and nothing else.
             Materialized, attenuated, scoped, expiring —
-            article 1's capability story.
+            the capability story.
                     ↓
 EXERCISE    Ensure every effect stays inside it.
             Complete mediation in a trust domain the agent
-            cannot reach — article 2's reference monitor.
+            cannot reach — the reference monitor.
 ```
 
 Mapped onto components:
@@ -175,7 +181,7 @@ Most of this article is about EXERCISE. Not because the first two phases are eas
 
 ## The decision point, with a task in it
 
-Article 2 established the decomposition: a PEP sits in the path and cannot be bypassed, a PDP evaluates policy and need not be in the path at all. Nothing about that changes for agents. What changes is what the PDP can be asked.
+The enforcement article established the decomposition: a PEP sits in the path and cannot be bypassed, a PDP evaluates policy and need not be in the path at all. Nothing about that changes for agents. What changes is what the PDP can be asked.
 
 A traditional PDP answers a question about a subject and a resource. An agent PDP has more to work with, and needs it:
 
@@ -209,7 +215,9 @@ Context    everything else        { ... }
         ──► decision: true | false, plus optional context
 ```
 
-That four-part request is the whole idea, and its value is compositional. Any enforcement point that can normalize its native effect into S/A/R/C can be governed by any decision engine that speaks the protocol:
+That is `f(subject, action, resource, context)` from the [first article](/programming/authorization-models.html), promoted from a way of describing what every model computes into a wire format anything can speak.
+
+The four-part request is the whole idea, and its value is compositional. Any enforcement point that can normalize its native effect into S/A/R/C can be governed by any decision engine that speaks the protocol:
 
 ```text
                    ┌── local Cedar
@@ -218,15 +226,15 @@ PEP ──AuthZEN──►   ├── local Rego / OPA
                    └── the corporate authorization system
 ```
 
-Swap the engine without touching the enforcement points. Add an enforcement point without touching the engine. This is the policy/mechanism seam from article 1, standardized as a protocol.
+Swap the engine without touching the enforcement points. Add an enforcement point without touching the engine. This is the policy/mechanism seam from the capabilities article, standardized as a protocol.
 
-Two honest caveats. First, AuthZEN is a moving specification — the evaluation API is the stable core, with batch evaluation and search endpoints at varying maturity, so check the current draft before building against details. Second, and more important: a standard request shape does nothing for non-bypassability. Article 2's point stands unchanged. A beautifully normalized S/A/R/C request from a PEP the workload can route around is decoration. The protocol standardizes the question; the topology decides whether the question gets asked.
+Two honest caveats. First, AuthZEN is a moving specification — the evaluation API is the stable core, with batch evaluation and search endpoints at varying maturity, so check the current draft before building against details. Second, and more important: a standard request shape does nothing for non-bypassability. The enforcement article's point stands unchanged. A beautifully normalized S/A/R/C request from a PEP the workload can route around is decoration. The protocol standardizes the question; the topology decides whether the question gets asked.
 
 # Part II — DELEGATE
 
 ## From decision to capability
 
-Article 1 ended with a one-directional pipeline and the note that the interesting engineering is in the arrow:
+The [capabilities article](/programming/capabilities.html) ended with a one-directional pipeline and the note that the interesting engineering is in the arrow:
 
 ```text
 global, queryable policy
@@ -240,7 +248,7 @@ capability
 
 For agents, that arrow is where the design happens. A PDP returns a boolean. What you do with it determines everything about the system's behaviour under load, under partition, and under compromise.
 
-Consume it and discard it, and you have a pure adjudication architecture: every effect is a fresh round trip, policy is always current, and the PDP is in the critical path of everything. Materialize it, and the decision becomes a thing the agent holds — which is exactly article 1's capability, now produced by a policy engine rather than handed over by a person.
+Consume it and discard it, and you have a pure adjudication architecture: every effect is a fresh round trip, policy is always current, and the PDP is in the critical path of everything. Materialize it, and the decision becomes a thing the agent holds — which is exactly a capability, now produced by a policy engine rather than handed over by a person.
 
 The crucial detail is *who* holds it. The materialized capability lives on the host:
 
@@ -256,6 +264,8 @@ guest receives an opaque handle
 ```
 
 The guest holds a name for the lease. The host holds the lease. This is unnameability applied to the grant itself, and it is what separates possession from use: stealing the handle gets you nothing you could not already ask the gateway to do.
+
+Worth naming what that is. A handle table the host owns, holding entries the guest can only reference by index, where the reference both designates the operation and conveys the right to invoke it, and where the guest can only pass a handle to something it already reaches through the gateway — that is an object-capability system. Model 4, in the capabilities article's terms, built from scratch for the host–guest boundary. The interesting question for the rest of this article is how far up the stack that property survives.
 
 The macaroon variant makes the same binding structural rather than remembered. Instead of an opaque string whose meaning lives in gateway state, the handle *is* an attenuated grant carrying its own caveats — host, method, path, validity window — verified cryptographically before any real credential is substituted. A stolen handle is then worth exactly what its caveats already permitted. The constraint travels with the artifact instead of living in a table somewhere.
 
@@ -296,11 +306,37 @@ every effect is a round trip   effects are local and fast
 central visibility of use  attenuated delegation is free
 ```
 
-This is Lampson's split from article 1, wearing operational clothes. The PDP is excellent at the administrative and query questions — who can do this, what can this user reach, revoke everything derived from that grant. The capability is excellent at the execution question — may the holder of this do this, right now, with no network.
+This is Lampson's split from the capabilities article, wearing operational clothes. The PDP is excellent at the administrative and query questions — who can do this, what can this user reach, revoke everything derived from that grant. The capability is excellent at the execution question — may the holder of this do this, right now, with no network.
 
 Agents want both, badly. They make many effects per second, so round-tripping everything is unaffordable. They also change what they are doing constantly, so a long-lived grant is over-broad within minutes.
 
-The resolution is not novel, and article 2 already showed it: Flask solved this in 1999. Cache the decision where enforcement happens, and pair the cache with a revocation channel so a policy change invalidates what was cached. An access vector cache plus a notification is structurally the same thing as a host-held lease plus an epoch bump. The agent case differs only in that the invalidating event is usually the agent's own subgoal closing rather than an administrator editing policy.
+The resolution is not novel, and the enforcement article already showed it: Flask solved this in 1999. Cache the decision where enforcement happens, and pair the cache with a revocation channel so a policy change invalidates what was cached. An access vector cache plus a notification is structurally the same thing as a host-held lease plus an epoch bump. The agent case differs only in that the invalidating event is usually the agent's own subgoal closing rather than an administrator editing policy.
+
+## How far up does the property survive
+
+The capabilities article ends on a precondition. Object capabilities need Property F — you can only pass a capability to someone you can already reach — and Property F requires a substrate that can deny communication. That is why every object-capability system that has ever worked lives inside a kernel, a language runtime, an RPC overlay, or a VM boundary, and why the open internet is a Model 3 world.
+
+An agent sandbox has that substrate. The host controls every channel the guest has; that is the definition of the sandbox. So this is one of the rare places where the property is nearly free, and it is worth walking the layers to see where it is taken and where it is thrown away.
+
+```text
+host ↔ guest handle table       Model 4 already, as above
+gateway ↔ your own services     free choice, usually not taken
+agent ↔ subagent                Model 1 today
+agent ↔ tools (MCP)             Model 1 today
+agent ↔ the world (git, curl)   Model 3, permanently, and correctly
+```
+
+**The bottom row is not a failure.** The agent runs `git push`, `curl`, `npm install`, `psql`, and you cannot hand `git` an object reference. Object capabilities require both ends of an interface to speak the model, and the premise of the whole design is that one end is the existing tool ecosystem. So legacy egress gets adjudication forever, and macaroons are the right credential there precisely because they are Model 3 done as well as Model 3 can be done: attenuable without a round trip, caveats travelling with the artifact, verifiable by a resource server that has never heard of your gateway.
+
+**The middle two rows are the interesting ones,** because they carry no legacy constraint at all. Nobody is locked in. They were designed recently, by people who could have chosen either way.
+
+A tool call is `{"name": "read_file", "arguments": {"path": "/etc/passwd"}}`. The tool name is a string in a global namespace, the argument is a designator anyone can utter, and the authority to act comes from the connection's ambient grant. That is Model 1 — an ACL, keyed by session, consulted by name — and it is the exact shape that makes prompt injection work. The injected sentence supplies a designator; the session supplies the authority.
+
+Subagent spawning has the same shape and a more obvious fix. A parent holding repository write should be able to spawn a child holding read on one subdirectory, by wrapping the reference it already holds, with no policy round trip and no way to hand on more than it has. That is the attenuation chain, and it is the one place in this architecture where it is unarguably the right answer.
+
+**Going further is possible and someone should.** Cap'n Proto is the obvious vehicle for the rows you own, and Cloudflare's `workerd` is the existence proof: untrusted third-party code holding capability bindings to storage and to other workers rather than credentials for them, at scale. Three costs to weigh before committing. Three-party handoff — passing agent C a capability you got from agent B without proxying through B — is specified but, at the time of writing, unimplemented in the C++ runtime, so multi-agent topologies proxy through the introducer. Persistence is application-implemented, so epoch-bound revocable leases are still yours to build. And every service you want to reach this way needs a capability-shaped interface, which for services you own is a weekend and for the open world is a facade per service, forever.
+
+That last cost is the honest reason nobody has done it, and it is also why the line in the table above sits where it does. Take the property where you control the substrate. Expect Model 3 where you do not.
 
 # Part III — EXERCISE
 
@@ -343,6 +379,8 @@ The capability gateway owns external effects:
 
 The gateway is not merely a firewall. It is a **programmable authority broker**. The guest receives a name, placeholder, or restricted handle. The host retains the actual file, token, socket, key, database credential, or durable resource and decides how each attempted use maps to a real effect.
 
+Notice the shape of what that is. The sandbox half is pure subtraction — no route, no mount, no credential — and subtraction alone would leave a workload that can do nothing useful. So the gateway adds the one thing subtraction cannot express: an entity in the middle that holds the real authority and speaks a protocol. The enforcement article's rule applies exactly. Subtraction plus mediation is construction, and this table is a capability system being rebuilt one resource class at a time.
+
 Gondolin currently combines a microVM runtime with two important gateway families. Its host-side VFS providers serve selected filesystem operations, while its host network stack terminates and replays mediated HTTP/TLS traffic, applies destination and request hooks, and substitutes real secrets for guest-visible placeholders. Iron Proxy isolates the latter idea as an egress product: untrusted workloads receive proxy tokens, real credentials remain at the proxy, and an ordered transform pipeline applies default-deny routing, secret substitution, auditing, and protocol-specific policy.
 
 The abstraction generalizes:
@@ -355,6 +393,14 @@ The abstraction generalizes:
 | SSH private key | Restricted SSH request | Authenticate and perform an approved operation |
 | Database credential | Broker session | Authenticate, select a role, and constrain queries |
 | Durable deployment state | Publication handle | Validate and commit an approved artifact |
+
+Two rows of that table sit at different rungs, and the difference is worth naming because it is where the gateway's own confused deputy lives.
+
+The broker session is Model 4. The guest holds a handle to a thing with operations on it, and there is no designator to supply.
+
+The placeholder token is Model 3. The guest holds an opaque string, chooses a destination, and the gateway matches that destination against policy and substitutes real authority. Designator and authority arrive by separate paths and the gateway recombines them — which is the precise configuration Miller warns produces confused deputies. Any route by which an agent gets an attacker-chosen request to match an approved destination converts the gateway's authority into the agent's: an open redirect on an allowed host, a request-splitting bug, an allowed API that proxies a URL parameter.
+
+The contract below names this (credentials inserted only into approved destinations and fields), and that mitigation is real. It is also exactly ACL-plus-context: the correct answer is expressible and the gateway still has to ask, on every request, forever. A handle to *writer on repository X* has no wrong question available. Where you can afford the facade, prefer the broker-session shape; where you cannot, know that the placeholder row is the one carrying the residual risk.
 
 ## The runtime–gateway contract
 
@@ -488,7 +534,7 @@ agent-creds shows one way to make that binding structural. Its guest-visible han
 
 ## Threat model by enforcement plane
 
-The unnameability/adjudication split from the second article hides trust placement. In particular, "malicious code defeats adjudication" is true of in-guest adjudication but false of a host gateway designed to distrust the guest kernel.
+The unnameability/adjudication split from the enforcement article hides trust placement. In particular, "malicious code defeats adjudication" is true of in-guest adjudication but false of a host gateway designed to distrust the guest kernel.
 
 | Threat | Compute boundary | Guest LSM | Capability gateway | Semantic governance | Upstream controls |
 | --- | --- | --- | --- | --- | --- |
@@ -587,7 +633,7 @@ Five things fall out of that table.
 
 **The two jobs vary independently.** The first two rows are compute without a gateway. The last row is a gateway without compute. Nothing about a row's first column predicts its third or fifth. This is the article's thesis in tabular form: the interesting quantity is the composition, and most systems ship only one half of it.
 
-**Non-bypassability comes in four strengths.** An environment variable a program may ignore. A syscall filter that inspects each destination. An absent route, where the only descriptor reaching outside is a bind-mounted Unix socket and a program that ignores `HTTP_PROXY` does not escape but simply fails to connect. And a route that was never built, where the host is the peer and NAT does not exist. The last two differ from the second in failure mode: a filter has to be right about every destination, while absence has nothing to be right about. That is article 2's unnameability, applied at the network layer, and it is usually the cheaper of the two to implement.
+**Non-bypassability comes in four strengths.** An environment variable a program may ignore. A syscall filter that inspects each destination. An absent route, where the only descriptor reaching outside is a bind-mounted Unix socket and a program that ignores `HTTP_PROXY` does not escape but simply fails to connect. And a route that was never built, where the host is the peer and NAT does not exist. The last two differ from the second in failure mode: a filter has to be right about every destination, while absence has nothing to be right about. That is the enforcement article's unnameability, applied at the network layer, and it is usually the cheaper of the two to implement.
 
 **Principal granularity runs opposite to compute strength.** A microVM gateway sees one principal, because the VM boundary destroys the process identities behind it. A host-kernel sandbox shares a kernel with its supervisor, so the supervisor can attribute a request to an exact command using facts the kernel vouches for: process ancestry, a per-command cgroup, a POSIX session id. nono brokers each tool invocation separately for this reason. Buying the stronger compute boundary costs the finer principal, and a guest that re-exports its own process identities is supplying evidence, not authority.
 
@@ -682,7 +728,7 @@ host PEP
  └─ external services
 ```
 
-Gondolin is the clearest case because it has the most policy to misplace. Its rules are declarative matchers and JavaScript callbacks, evaluated in the same process that enforces them. `sandbox-runtime` does the same thing with `filterRequest`. landrun and Codex have no policy layer to speak of, which is the same problem arrived at from the other side. In every case the arrangement is the one article 2 warned about conflating: a PEP with a PDP baked into it cannot be governed by anyone who does not own the sandbox.
+Gondolin is the clearest case because it has the most policy to misplace. Its rules are declarative matchers and JavaScript callbacks, evaluated in the same process that enforces them. `sandbox-runtime` does the same thing with `filterRequest`. landrun and Codex have no policy layer to speak of, which is the same problem arrived at from the other side. In every case the arrangement is the one the enforcement article warned about conflating: a PEP with a PDP baked into it cannot be governed by anyone who does not own the sandbox.
 
 That is the right starting place. It is simple, it is fast, and it couples nothing to an external service's availability. It stops being the right place the moment more than one team has to live with the answer.
 
@@ -704,7 +750,7 @@ AuthorizationProvider
 
 Nothing about enforcement changes. The gateway still owns the resources, still holds the credentials, still sits in the only path. What changes is that the decision becomes a thing an organization can own, version, audit, and share across every sandbox it runs — rather than a callback living in one deployment's config.
 
-And then the second half, which is where the first article's pipeline finally lands somewhere real:
+And then the second half, which is where the capabilities article's pipeline finally lands somewhere real:
 
 ```text
 PDP decision
@@ -733,9 +779,15 @@ The architecture is therefore not a single best sandbox. It is a composition:
 
 The compute sandbox determines which universe the workload inhabits. The capability gateway determines which external authority that universe may exercise. The contract between them is the boundary.
 
-The three articles were really one argument, arriving in three parts. Authority has to be *represented* somewhere, and the choice between a list at the resource and a reference in the subject's hand decides which questions stay cheap. A representation is inert until something *enforces* it, and enforcement is a reference monitor placed in a trust domain, using unnameability or adjudication or both. And an agent is the case that will not let you separate those two concerns in time, because it discovers what it needs while it runs.
+The four articles were really one argument, arriving in four parts. Authority has to be *represented* somewhere, and the choice between a list at the resource and a reference in the subject's hand decides which questions stay cheap. The strong version of the second choice — designation and authority as one thing — has a precondition, which is a substrate that can deny communication. A representation of either kind is inert until something *enforces* it, and enforcement is a reference monitor placed in a trust domain, using unnameability or adjudication or both. And an agent is the case that will not let you separate those concerns in time, because it discovers what it needs while it runs.
 
-Which is why agents are worth the attention even if you never build one. They take a design problem that was previously solvable at configuration time and force it to be solved at runtime, in the open, where the tradeoffs are visible.
+There is one last thing worth saying plainly, because it is the part I did not expect to find. The capabilities article ends pessimistically: Model 4 is purchasable only where something mediates communication, the open internet mediates nothing, and so the deployed world is Model 3 and the old objections to capabilities remain true of everything anyone ships.
+
+An agent sandbox is the exception. It mediates every channel the workload has, by construction, as its entire purpose. It is one of the few places where the property is available for free.
+
+We built it at the boundary the host already controlled, and then shipped Model 1 everywhere above it — tools named by strings, authority supplied by the session, subagents inheriting the parent's whole grant. Prompt injection is the bill for that, and it is a fifty-year-old bug with a fifty-year-old cure.
+
+Which is why agents are worth the attention even if you never build one. They take a design problem that was previously solvable at configuration time and force it to be solved at runtime, in the open, where the tradeoffs are visible — and where the consequences of getting the representation wrong show up within a week rather than within a decade.
 
 # References
 
