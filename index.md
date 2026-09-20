@@ -5,31 +5,31 @@
 
 <!-- "Programming Articles" -->
 <h2> <a style="color:#000000" href="blog"> Programming </a> </h2>
-<ul>
+<ul style="list-style:none; padding-left:0;">
 {% for post in site.posts %}
 	{% if post.category == "programming" %}
-		<li><a href="{{ post.url }}">{{ post.title }}{% if post.series %} ({{ post.series }}){% endif %}</a> <span style="color:#888; font-size:0.85em;">({{ post.date | date: "%Y-%m-%d" }})</span></li>
+		<li><span style="color:#888; font-size:0.85em; display:inline-block; width:6.5em;">{{ post.date | date: "%Y-%m-%d" }}</span>{% if post.series %}{% assign parts = post.series | replace: ", Part ", ", " | split: ", " %}<span style="font-size:0.85em;">[{% if post.series_url %}<a href="{{ post.series_url }}">{{ parts[0] }}</a>{% else %}{{ parts[0] }}{% endif %}]</span> {% endif %}<a href="{{ post.url }}">{% if post.series and parts[1] %}{{ parts[1] }}. {% endif %}{{ post.title }}</a></li>
 	{% endif %}
 {% endfor %}
 </ul>
 
 <!-- "Blockchain Articles" -->
 <h2> <a style="color:#000000" href="blog"> Blockchain </a> </h2>
-<ul>
+<ul style="list-style:none; padding-left:0;">
 {% assign blockchain_posts = site.posts | where: "category", "blockchain" %}
 <!-- external articles are listed under _data/external_posts -->
 {% assign all_posts = blockchain_posts | concat: site.data.external_posts.blockchain | sort: "date" | reverse %}
 {% for post in all_posts %}
-	<li><a href="{{ post.url }}">{{ post.title }}</a> <span style="color:#888; font-size:0.85em;">({{ post.date | date: "%Y-%m-%d" }})</span></li>
+	<li><span style="color:#888; font-size:0.85em; display:inline-block; width:6.5em;">{{ post.date | date: "%Y-%m-%d" }}</span><a href="{{ post.url }}">{{ post.title }}</a></li>
 {% endfor %}
 </ul>
 
 <!-- "Other Blog Posts"  -->
 <h2> <a style="color:#000000" href="blog"> Miscellaneous </a> </h2>
-<ul>
+<ul style="list-style:none; padding-left:0;">
 {% for post in site.posts %}
 	{% if post.category != "blockchain" and post.category != "programming" %}
-		<li><a href="{{ post.url }}">{{ post.title }}</a> <span style="color:#888; font-size:0.85em;">({{ post.date | date: "%Y-%m-%d" }})</span></li>
+		<li><span style="color:#888; font-size:0.85em; display:inline-block; width:6.5em;">{{ post.date | date: "%Y-%m-%d" }}</span><a href="{{ post.url }}">{{ post.title }}</a></li>
 	{% endif %}
 {% endfor %}
 </ul>
