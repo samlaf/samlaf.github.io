@@ -1,0 +1,282 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1520 1352" width="1520" height="1352" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="aS" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#64748b"/></marker>
+    <marker id="aT" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#0f7d8c"/></marker>
+    <marker id="aI" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5b5bd6"/></marker>
+    <marker id="aM" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#a33b7a"/></marker>
+    <marker id="aO" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#c2793a"/></marker>
+    <marker id="aG" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#3f7d52"/></marker>
+    <marker id="aD" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#334155"/></marker>
+  </defs>
+
+  <rect width="1520" height="1352" fill="#fdfdfc"/>
+
+  <text x="36" y="36" font-size="21" font-weight="700" fill="#0f172a">Data models: one family, one notation</text>
+  <text x="36" y="58" font-size="12" fill="#64748b">Every model below computes the same function. The same example runs through all of them: Alice and Bob, two files and a device.</text>
+
+  <!-- ═══ the matrix ═══ -->
+  <rect x="510" y="84" width="500" height="178" rx="8" fill="#f8fafc" stroke="#0f172a" stroke-width="1.6"/>
+  <text x="530" y="110" font-size="14.5" font-weight="700" fill="#0f172a">ACCESS-CONTROL MATRIX</text>
+  <text x="530" y="129" font-size="10.5" font-style="italic" fill="#64748b">f(subject, action, resource) tabulated. Mostly empty, so nobody stores it.</text>
+
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12.5">
+    <text x="715" y="158" fill="#475569" text-anchor="middle">File A</text>
+    <text x="830" y="158" fill="#475569" text-anchor="middle">File B</text>
+    <text x="945" y="158" fill="#475569" text-anchor="middle">Device C</text>
+    <line x1="530" y1="166" x2="990" y2="166" stroke="#cbd5e1"/>
+
+    <text x="545" y="192" fill="#0f172a" font-weight="700">Alice</text>
+    <rect x="673" y="174" width="84" height="26" rx="4" fill="#e2e8f0"/>
+    <text x="715" y="192" fill="#0f172a" text-anchor="middle">rw</text>
+    <rect x="788" y="174" width="84" height="26" rx="4" fill="#e2e8f0"/>
+    <text x="830" y="192" fill="#0f172a" text-anchor="middle">r</text>
+    <text x="945" y="192" fill="#cbd5e1" text-anchor="middle">·</text>
+
+    <text x="545" y="228" fill="#0f172a" font-weight="700">Bob</text>
+    <text x="715" y="228" fill="#cbd5e1" text-anchor="middle">·</text>
+    <rect x="788" y="210" width="84" height="26" rx="4" fill="#e2e8f0"/>
+    <text x="830" y="228" fill="#0f172a" text-anchor="middle">rw</text>
+    <rect x="903" y="210" width="84" height="26" rx="4" fill="#e2e8f0"/>
+    <text x="945" y="228" fill="#0f172a" text-anchor="middle">use</text>
+  </g>
+  <text x="760" y="253" font-size="10" fill="#94a3b8" text-anchor="middle">Lampson, 1974 — subjects down one axis, objects across the other</text>
+
+  <!-- projection arrows -->
+  <path d="M700,266 C 620,296 520,292 460,322" fill="none" stroke="#0f7d8c" stroke-width="1.4" marker-end="url(#aT)"/>
+  <path d="M820,266 C 900,296 1000,292 1060,322" fill="none" stroke="#5b5bd6" stroke-width="1.4" marker-end="url(#aI)"/>
+  <text x="556" y="288" font-size="11" font-style="italic" fill="#0f7d8c" text-anchor="middle">reindex by column</text>
+  <text x="966" y="288" font-size="11" font-style="italic" fill="#5b5bd6" text-anchor="middle">reindex by row</text>
+
+  <!-- ═══ ACL ═══ -->
+  <rect x="200" y="330" width="520" height="250" rx="8" fill="#e9f3f5" stroke="#0f7d8c" stroke-width="1.5"/>
+  <text x="222" y="362" font-size="15" font-weight="700" fill="#0b6270">ACCESS CONTROL LIST</text>
+  <text x="222" y="382" font-size="10.5" font-style="italic" fill="#4b7c84">store the relation by column, at the resource</text>
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13">
+    <text x="222" y="424" fill="#0b6270" font-weight="700">File A</text>
+    <text x="304" y="424" fill="#94a3b8">→</text>
+    <text x="334" y="424" fill="#0f172a">Alice: rw</text>
+    <text x="222" y="456" fill="#0b6270" font-weight="700">File B</text>
+    <text x="304" y="456" fill="#94a3b8">→</text>
+    <text x="334" y="456" fill="#0f172a">Alice: r</text>
+    <text x="446" y="456" fill="#0f172a">Bob: rw</text>
+    <text x="222" y="488" fill="#0b6270" font-weight="700">Device C</text>
+    <text x="304" y="488" fill="#94a3b8">→</text>
+    <text x="334" y="488" fill="#0f172a">Bob: use</text>
+  </g>
+  <line x1="222" y1="512" x2="698" y2="512" stroke="#b9d5da"/>
+  <text x="222" y="533" font-size="10.5" fill="#4b7c84">exact and invertible — the matrix, transposed and nothing else</text>
+  <text x="222" y="551" font-size="10.5" fill="#4b7c84">to give Bob everything Alice has, you visit every object</text>
+  <text x="222" y="569" font-size="10.5" fill="#4b7c84">mutation: the owner (DAC)</text>
+
+  <!-- ═══ capability list ═══ -->
+  <rect x="800" y="330" width="520" height="250" rx="8" fill="#f2f1fd" stroke="#5b5bd6" stroke-width="1.5"/>
+  <text x="822" y="362" font-size="15" font-weight="700" fill="#4340ac">CAPABILITY LIST</text>
+  <text x="822" y="382" font-size="10.5" font-style="italic" fill="#6b6bb8">store the relation by row, at the subject</text>
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13">
+    <text x="822" y="424" fill="#4340ac" font-weight="700">Alice</text>
+    <text x="890" y="424" fill="#94a3b8">→</text>
+    <text x="920" y="424" fill="#0f172a">File A: rw</text>
+    <text x="1050" y="424" fill="#0f172a">File B: r</text>
+    <text x="822" y="456" fill="#4340ac" font-weight="700">Bob</text>
+    <text x="890" y="456" fill="#94a3b8">→</text>
+    <text x="920" y="456" fill="#0f172a">File B: rw</text>
+    <text x="1050" y="456" fill="#0f172a">Device C: use</text>
+  </g>
+  <line x1="822" y1="512" x2="1298" y2="512" stroke="#c9c7ef"/>
+  <text x="822" y="533" font-size="10.5" fill="#6b6bb8">exact and invertible — the same information, transposed</text>
+  <text x="822" y="551" font-size="10.5" fill="#6b6bb8">to give Bob everything Alice has, you go to Alice</text>
+  <text x="822" y="569" font-size="10.5" fill="#6b6bb8">mutation: still the administrator</text>
+
+  <text transform="translate(766,462) rotate(-90)" font-size="10" font-style="italic" fill="#94a3b8" text-anchor="middle">transpose</text>
+  <line x1="726" y1="430" x2="794" y2="430" stroke="#cbd5e1" stroke-width="1.2" marker-start="url(#aS)" marker-end="url(#aS)"/>
+
+  <!-- ═══ RBAC ═══ -->
+  <rect x="36" y="640" width="466" height="290" rx="8" fill="#fbeff6" stroke="#a33b7a" stroke-width="1.5"/>
+  <text x="56" y="670" font-size="15" font-weight="700" fill="#8d2d68">RBAC</text>
+  <text x="56" y="690" font-size="10.5" font-style="italic" fill="#a05b86">factor the relation: subject → role → permission</text>
+
+  <g font-size="10.5">
+    <text x="92" y="708" fill="#a05b86" text-anchor="middle">users</text>
+    <text x="236" y="708" fill="#a05b86" text-anchor="middle">roles</text>
+    <text x="405" y="708" fill="#a05b86" text-anchor="middle">permissions</text>
+  </g>
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11.5">
+    <rect x="50" y="716" width="84" height="24" rx="5" fill="#fff" stroke="#d99cc0"/><text x="92" y="732" fill="#0f172a" text-anchor="middle">Alice</text>
+    <rect x="50" y="748" width="84" height="24" rx="5" fill="#fff" stroke="#e8c6da"/><text x="92" y="764" fill="#94a3b8" text-anchor="middle">Carol</text>
+    <rect x="50" y="780" width="84" height="24" rx="5" fill="#fff" stroke="#e8c6da"/><text x="92" y="796" fill="#94a3b8" text-anchor="middle">Dan</text>
+    <rect x="50" y="826" width="84" height="24" rx="5" fill="#fff" stroke="#d99cc0"/><text x="92" y="842" fill="#0f172a" text-anchor="middle">Bob</text>
+
+    <rect x="190" y="742" width="92" height="24" rx="5" fill="#a33b7a"/><text x="236" y="758" fill="#fff" text-anchor="middle">editor</text>
+    <rect x="190" y="826" width="92" height="24" rx="5" fill="#a33b7a"/><text x="236" y="842" fill="#fff" text-anchor="middle">operator</text>
+
+    <rect x="330" y="712" width="150" height="24" rx="5" fill="#fff" stroke="#d99cc0"/><text x="405" y="728" fill="#0f172a" text-anchor="middle">rw File A</text>
+    <rect x="330" y="744" width="150" height="24" rx="5" fill="#fff" stroke="#d99cc0"/><text x="405" y="760" fill="#0f172a" text-anchor="middle">r File B</text>
+    <rect x="330" y="812" width="150" height="24" rx="5" fill="#fff" stroke="#d99cc0"/><text x="405" y="828" fill="#0f172a" text-anchor="middle">rw File B</text>
+    <rect x="330" y="844" width="150" height="24" rx="5" fill="#fff" stroke="#d99cc0"/><text x="405" y="860" fill="#0f172a" text-anchor="middle">use Device C</text>
+  </g>
+  <g fill="none" stroke="#a33b7a" stroke-width="1.2">
+    <path d="M134,728 C 162,728 162,754 188,754" marker-end="url(#aM)"/>
+    <path d="M134,760 C 162,760 162,754 188,754" marker-end="url(#aM)"/>
+    <path d="M134,792 C 162,792 162,754 188,754" marker-end="url(#aM)"/>
+    <path d="M134,838 C 162,838 162,838 188,838" marker-end="url(#aM)"/>
+    <path d="M282,754 C 306,754 306,724 328,724" marker-end="url(#aM)"/>
+    <path d="M282,754 C 306,754 306,756 328,756" marker-end="url(#aM)"/>
+    <path d="M282,838 C 306,838 306,824 328,824" marker-end="url(#aM)"/>
+    <path d="M282,838 C 306,838 306,856 328,856" marker-end="url(#aM)"/>
+  </g>
+  <line x1="56" y1="884" x2="482" y2="884" stroke="#e8c6da"/>
+  <text x="56" y="903" font-size="10.5" fill="#a05b86">exact — expand the roles and the matrix comes back</text>
+  <text x="56" y="920" font-size="10.5" fill="#a05b86">the saving is sharing the middle term, not changing which end the data hangs off</text>
+
+  <!-- ═══ ABAC ═══ -->
+  <rect x="526" y="640" width="466" height="290" rx="8" fill="#fdf3e9" stroke="#c2793a" stroke-width="1.5"/>
+  <text x="546" y="670" font-size="15" font-weight="700" fill="#a55f22">ABAC</text>
+  <text x="546" y="690" font-size="10.5" font-style="italic" fill="#b07a45">do not tabulate — compute the relation, per request</text>
+
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11">
+    <text x="546" y="718" fill="#a55f22">subject</text>
+    <text x="630" y="718" fill="#0f172a">Alice · dept=eng · mgr=true</text>
+    <text x="546" y="737" fill="#a55f22">resource</text>
+    <text x="630" y="737" fill="#0f172a">File A · dept=eng</text>
+    <text x="546" y="756" fill="#a55f22">action</text>
+    <text x="630" y="756" fill="#0f172a">write</text>
+    <text x="546" y="775" fill="#a55f22">context</text>
+    <text x="630" y="775" fill="#0f172a">14:20 · device=managed</text>
+  </g>
+  <path d="M760,784 L760,800" stroke="#c2793a" stroke-width="1.4" marker-end="url(#aO)"/>
+  <rect x="546" y="806" width="426" height="82" rx="6" fill="#fff" stroke="#e0b184"/>
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11.5">
+    <text x="562" y="826" fill="#a55f22" font-weight="700">permit if</text>
+    <text x="562" y="845" fill="#0f172a">   subject.dept == resource.dept</text>
+    <text x="562" y="864" fill="#0f172a">   and 09:00 ≤ context.time ≤ 17:00</text>
+    <text x="562" y="881" fill="#0f172a">   and context.device == "managed"</text>
+  </g>
+  <text x="546" y="906" font-size="10.5" fill="#b07a45">exact — evaluate the predicate over every pair and the matrix comes back</text>
+  <text x="546" y="923" font-size="10.5" fill="#b07a45">context is a first-class argument here; a table has no axis for it</text>
+
+  <!-- ═══ ReBAC ═══ -->
+  <rect x="1016" y="640" width="466" height="290" rx="8" fill="#edf6f0" stroke="#3f7d52" stroke-width="1.5"/>
+  <text x="1036" y="670" font-size="15" font-weight="700" fill="#2f6741">ReBAC</text>
+  <text x="1036" y="690" font-size="10.5" font-style="italic" fill="#5a8a6a">derive the relation from a graph of tuples</text>
+
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="10.5" fill="#0f172a">
+    <text x="1036" y="716">folder:Projects#owner@Alice</text>
+    <text x="1036" y="733">file:A#parent@folder:Projects</text>
+    <text x="1036" y="750">group:ops#member@Bob</text>
+    <text x="1036" y="767">device:C#use@group:ops</text>
+  </g>
+
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="10.5">
+    <rect x="1036" y="794" width="74" height="24" rx="12" fill="#fff" stroke="#8cb79a"/><text x="1073" y="810" fill="#0f172a" text-anchor="middle">Alice</text>
+    <rect x="1178" y="794" width="88" height="24" rx="5" fill="#fff" stroke="#8cb79a"/><text x="1222" y="810" fill="#0f172a" text-anchor="middle">Projects</text>
+    <rect x="1334" y="794" width="88" height="24" rx="5" fill="#fff" stroke="#8cb79a"/><text x="1378" y="810" fill="#0f172a" text-anchor="middle">File A</text>
+
+    <rect x="1036" y="842" width="74" height="24" rx="12" fill="#fff" stroke="#8cb79a"/><text x="1073" y="858" fill="#0f172a" text-anchor="middle">Bob</text>
+    <rect x="1178" y="842" width="88" height="24" rx="5" fill="#fff" stroke="#8cb79a"/><text x="1222" y="858" fill="#0f172a" text-anchor="middle">ops</text>
+    <rect x="1334" y="842" width="88" height="24" rx="5" fill="#fff" stroke="#8cb79a"/><text x="1378" y="858" fill="#0f172a" text-anchor="middle">Device C</text>
+  </g>
+  <g fill="none" stroke="#3f7d52" stroke-width="1.3">
+    <path d="M1110,806 L1174,806" marker-end="url(#aG)"/>
+    <path d="M1266,806 L1330,806" marker-end="url(#aG)"/>
+    <path d="M1110,854 L1174,854" marker-end="url(#aG)"/>
+    <path d="M1266,854 L1330,854" marker-end="url(#aG)"/>
+  </g>
+  <g font-size="9" font-style="italic" fill="#2f6741" text-anchor="middle">
+    <text x="1142" y="802">owner</text>
+    <text x="1298" y="802">parent</text>
+    <text x="1142" y="850">member</text>
+    <text x="1298" y="850">use</text>
+  </g>
+  <text x="1036" y="906" font-size="10.5" fill="#5a8a6a">exact — run the check over every pair and the matrix comes back</text>
+  <text x="1036" y="923" font-size="10.5" fill="#5a8a6a">a check asks: is the resource reachable from the subject along an allowed path?</text>
+
+  <!-- ═══ the trade ═══ -->
+  <line x1="300" y1="962" x2="1220" y2="962" stroke="#cbd5e1" stroke-width="1.2" marker-end="url(#aS)"/>
+  <rect x="560" y="950" width="400" height="24" rx="4" fill="#fdfdfc"/>
+  <text x="760" y="967" font-size="11" font-style="italic" fill="#64748b" text-anchor="middle">smaller storage, easier administration, more work at request time</text>
+  <text x="256" y="967" font-size="11" font-weight="700" fill="#94a3b8" text-anchor="end">store</text>
+  <text x="1264" y="967" font-size="11" font-weight="700" fill="#94a3b8">derive</text>
+
+  <!-- ═══ divider ═══ -->
+  <line x1="36" y1="1006" x2="1484" y2="1006" stroke="#cbd5e1" stroke-width="1.2" stroke-dasharray="7 5"/>
+  <rect x="470" y="995" width="580" height="22" rx="4" fill="#fdfdfc"/>
+  <text x="760" y="1011" font-size="11" font-style="italic" fill="#94a3b8" text-anchor="middle">the five above are notations for that rectangle. The one below is a different matrix.</text>
+
+  <!-- ═══ object capability ═══ -->
+  <rect x="36" y="1032" width="1448" height="296" rx="8" fill="#f1f5f9" stroke="#334155" stroke-width="1.5"/>
+  <text x="58" y="1062" font-size="15" font-weight="700" fill="#1e293b">OBJECT CAPABILITY — square the matrix</text>
+  <text x="58" y="1082" font-size="10.5" font-style="italic" fill="#64748b">both axes range over the same set of entities. A cell reads: which of Y's operations may X invoke?</text>
+
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11.5">
+    <text x="250" y="1112" fill="#475569" text-anchor="middle">Alice</text>
+    <text x="350" y="1112" fill="#475569" text-anchor="middle">Bob</text>
+    <text x="450" y="1112" fill="#475569" text-anchor="middle">File A</text>
+    <text x="560" y="1112" fill="#475569" text-anchor="middle">Logger</text>
+    <line x1="74" y1="1120" x2="614" y2="1120" stroke="#cbd5e1"/>
+
+    <text x="74" y="1146" fill="#0f172a" font-weight="700">Alice</text>
+    <text x="250" y="1146" fill="#cbd5e1" text-anchor="middle">—</text>
+    <rect x="308" y="1128" width="84" height="26" rx="4" fill="#dbe4ee"/><text x="350" y="1146" fill="#0f172a" text-anchor="middle">call</text>
+    <rect x="408" y="1128" width="84" height="26" rx="4" fill="#dbe4ee"/><text x="450" y="1146" fill="#0f172a" text-anchor="middle">rw</text>
+    <text x="560" y="1146" fill="#cbd5e1" text-anchor="middle">—</text>
+
+    <text x="74" y="1178" fill="#0f172a" font-weight="700">Bob</text>
+    <text x="250" y="1178" fill="#cbd5e1" text-anchor="middle">—</text>
+    <text x="350" y="1178" fill="#cbd5e1" text-anchor="middle">—</text>
+    <rect x="408" y="1160" width="84" height="26" rx="4" fill="#dbe4ee"/><text x="450" y="1178" fill="#0f172a" text-anchor="middle">r</text>
+    <rect x="514" y="1160" width="92" height="26" rx="4" fill="#dbe4ee"/><text x="560" y="1178" fill="#0f172a" text-anchor="middle">write</text>
+
+    <text x="74" y="1210" fill="#0f172a" font-weight="700">File A</text>
+    <text x="250" y="1210" fill="#cbd5e1" text-anchor="middle">—</text>
+    <text x="350" y="1210" fill="#cbd5e1" text-anchor="middle">—</text>
+    <text x="450" y="1210" fill="#cbd5e1" text-anchor="middle">—</text>
+    <text x="560" y="1210" fill="#cbd5e1" text-anchor="middle">—</text>
+
+    <text x="74" y="1242" fill="#0f172a" font-weight="700">Logger</text>
+    <text x="250" y="1242" fill="#cbd5e1" text-anchor="middle">—</text>
+    <text x="350" y="1242" fill="#cbd5e1" text-anchor="middle">—</text>
+    <text x="450" y="1242" fill="#cbd5e1" text-anchor="middle">—</text>
+    <text x="560" y="1242" fill="#cbd5e1" text-anchor="middle">—</text>
+  </g>
+  <text x="74" y="1278" font-size="10.5" fill="#64748b">ACL and capability lists are the special case where the entity set splits in two,</text>
+  <text x="74" y="1295" font-size="10.5" fill="#64748b">so the bottom-left block is empty by construction and you may as well draw it rectangular.</text>
+
+  <!-- mediation picture -->
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11">
+    <rect x="672" y="1118" width="86" height="26" rx="13" fill="#fff" stroke="#94a3b8"/><text x="715" y="1136" fill="#0f172a" text-anchor="middle">Alice</text>
+    <rect x="672" y="1198" width="86" height="26" rx="13" fill="#fff" stroke="#94a3b8"/><text x="715" y="1216" fill="#0f172a" text-anchor="middle">Bob</text>
+    <rect x="880" y="1156" width="86" height="26" rx="5" fill="#fff" stroke="#94a3b8"/><text x="923" y="1174" fill="#0f172a" text-anchor="middle">File A</text>
+    <rect x="880" y="1238" width="86" height="26" rx="5" fill="#fff" stroke="#94a3b8"/><text x="923" y="1256" fill="#0f172a" text-anchor="middle">Logger</text>
+  </g>
+  <g fill="none" stroke="#334155" stroke-width="1.3">
+    <path d="M715,1146 L715,1194" marker-end="url(#aD)"/>
+    <path d="M758,1206 L876,1176" marker-end="url(#aD)"/>
+    <path d="M758,1218 L876,1248" marker-end="url(#aD)"/>
+  </g>
+  <g font-size="9.5" font-style="italic" fill="#334155">
+    <text x="724" y="1174">call</text>
+    <text x="808" y="1182">r</text>
+    <text x="808" y="1246">write</text>
+  </g>
+  <text x="672" y="1281" font-size="10" font-style="italic" fill="#94a3b8">Alice: rw File A is a true statement about what</text>
+  <text x="672" y="1295" font-size="10" font-style="italic" fill="#94a3b8">Alice can eventually cause, and a false one about</text>
+  <text x="672" y="1309" font-size="10" font-style="italic" fill="#94a3b8">the authority she holds. The path is the difference.</text>
+
+  <!-- three notes -->
+  <g>
+    <rect x="1000" y="1104" width="464" height="60" rx="6" fill="#fff" stroke="#cbd5e1"/>
+    <text x="1018" y="1126" font-size="12" font-weight="700" fill="#1e293b">Mediation</text>
+    <text x="1018" y="1145" font-size="10.5" fill="#475569">Bob is a row and a column. Alice → Bob → File A is two cells, not one,</text>
+    <text x="1018" y="1159" font-size="10.5" fill="#475569">and Bob may refuse, revoke, log, or forward only a subset.</text>
+
+    <rect x="1000" y="1174" width="464" height="60" rx="6" fill="#fff" stroke="#cbd5e1"/>
+    <text x="1018" y="1196" font-size="12" font-weight="700" fill="#1e293b">Communication is an access decision</text>
+    <text x="1018" y="1215" font-size="10.5" fill="#475569">The cell (Alice, Bob) asks whether Alice may talk to Bob at all —</text>
+    <text x="1018" y="1229" font-size="10.5" fill="#475569">a question a rectangular matrix has nowhere to put.</text>
+
+    <rect x="1000" y="1244" width="464" height="60" rx="6" fill="#fff" stroke="#cbd5e1"/>
+    <text x="1018" y="1266" font-size="12" font-weight="700" fill="#1e293b">A mutation rule in the matrix's own terms</text>
+    <text x="1018" y="1285" font-size="10.5" fill="#475569">Alice may write into Bob's row only if her own row already reaches</text>
+    <text x="1018" y="1299" font-size="10.5" fill="#475569">both Bob and the thing she is granting. Authority moves along existing edges.</text>
+  </g>
+</svg>

@@ -14,84 +14,78 @@ date:   2026-09-01
 > 3. **[How authority is enforced](/programming/authority-enforcement.html)** — what makes any of it binding.
 > 4. **[LLM sandboxing](/programming/llm-sandbox.html)** — the gateway, correct and unavoidable.
 
-- [The shape of the question](#the-shape-of-the-question)
-  - [Every model is a way of not evaluating f](#every-model-is-a-way-of-not-evaluating-f)
-  - [Context is the term the table cannot hold](#context-is-the-term-the-table-cannot-hold)
-- [The matrix and its two projections](#the-matrix-and-its-two-projections)
-  - [`open` is the conversion](#open-is-the-conversion)
-  - [Make both axes the same set](#make-both-axes-the-same-set)
-- [Who may change a cell](#who-may-change-a-cell)
+- [Mathematical Framework](#mathematical-framework)
+- [Data Models](#data-models)
+  - [Access Control Matrix: ACL and Capability Lists](#access-control-matrix-acl-and-capability-lists)
+  - [RBAC](#rbac)
+  - [ABAC](#abac)
+  - [Capabilities: make both axes the same set](#capabilities-make-both-axes-the-same-set)
+- [Real World Examples](#real-world-examples)
+  - [Linux: `open` and FDs](#linux-open-and-fds)
+- [Policy Modification](#policy-modification)
   - [DAC and MAC are not rungs](#dac-and-mac-are-not-rungs)
   - [Policies compose, and the rule is not the same as the edit right](#policies-compose-and-the-rule-is-not-the-same-as-the-edit-right)
-  - [What the factoring costs](#what-the-factoring-costs)
-  - [One family, one notation](#one-family-one-notation)
 - [Identity is not authority](#identity-is-not-authority)
   - [The four steps](#the-four-steps)
   - [Where, and when](#where-and-when)
   - [Tokens as reified decisions](#tokens-as-reified-decisions)
 - [Five concerns, not one axis](#five-concerns-not-one-axis)
-- [Properties worth asking for](#properties-worth-asking-for)
-- [Where this leaves us](#where-this-leaves-us)
 - [References](#references)
 
-Ask what authorization is and you will get an answer about deciding. Can Alice read this file? Is this token valid? Does this role include that permission. Deciding matters, but it is the second question. The first is where the answer lives before anyone asks.
+Despite security and authorization having been parts of computer science and programming for decades, the field is still evolving rapidly. Despite still being quite fragmented in practice, there is a growing understanding of the underlying principles that govern how authority is represented and managed, and we are starting to see a convergence on the fundamental abstractions that underlie all models.
 
-A system has to put authority somewhere. It can keep a list at each resource naming who may touch it. It can hand each subject a set of unforgeable references to the things it may touch. It can keep a database of relationships and compute the answer on demand. These are not implementation details that wash out at scale. Each one makes a different set of questions cheap and a different set expensive, and the expensive questions are the ones that eventually break your architecture.
-
-Underneath both sits a question that is easy to skip: **who is allowed to change the answer, and where do they go to do it?** The models differ more on that than on anything else, and almost nobody sorts them by it.
-
-This article is about representation and mutation only. It deliberately does not answer *what authority should exist* — that is a policy question, and it belongs to Part 4. It also does not answer what stops a program from ignoring the representation entirely. That is Part 3.
-
-![image](/assets/authorization/auth-models.png)
+![](/assets/authorization/auth-timeline.png)
 
 *From [The State of the Union of Authorization][state-union-authorization].*
 
-## The shape of the question
+We will follow the categorization created by https://idpro.org/authorization-terminology-is-a-mess-lets-fix-it/
 
-Deciding is the second question, but it is still worth writing down precisely what gets decided — because every model below is a different way of *avoiding* that computation.
+![Authorization Terminology](/assets/authorization/authorization-terminology.png)
 
-Strip away the storage and every authorization system evaluates the same function:
+and look at:
+- Data Model: expressivess of the policy
+- Data Representation: how it's encoded and transmitted and where it's stored
+- Mutation Model: who can change the answer and how
+- How it's enforced
+
+TODO: I simplified his 6 axes into these 4 but now I think his 6 axes can be located on the xacml diagram in the intro... so maybe we should move all of this there.
+
+## Mathematical Framework
+
+Abstractly, every authorization system evaluates a function of the form[^authzen-shape]:
 
 ```text
 f(subject, action, resource, context) → allow | deny
 ```
 
-**Subject** is who is asking. **Action** is what they want to do. **Resource** is what they want it done to. **Context** is everything else that bears on the answer and belongs to none of the first three: time of day, device posture, network location, risk score, whether the country is at war.
+where:
+- **Subject** is who is asking
+- **Action** is what they want to do
+- **Resource** is what they want it done to
+- **Context** is everything else that bears on the answer and belongs to none of the first three: time of day, device information, network location, risk score, whether the country is at war, etc.
 
-That signature is not a convenient abstraction I am imposing. The industry converged on it and then standardized it. [AuthZEN][authzen], the OpenID Foundation's decision-point protocol, defines its request as exactly those four objects — subject, action, resource, context — and its response as a boolean. It deliberately says nothing about how the answer is reached. It standardizes only the shape of the question, which is a strong signal that the shape is the settled part.
+## Data Models
 
-### Every model is a way of not evaluating f
+The authorization function is stateful, and hence there are different ways to represent it and manage it.
 
-Nobody stores `f`. It is astronomically large and it changes constantly. So every access control model is a scheme for producing `f`'s answers without ever writing `f` down, and they differ in which argument they attack:
+![Data models](/assets/authorization/data-models.svg)
 
-```text
-ACL               tabulate f, indexed by resource
-capability list   tabulate f, indexed by subject
+Six ways to write down the same `f`, on one running example. The first five are notations for the rectangle; the last is a different matrix. Going down from ACL to ReBAC, each step means smaller storage and easier to administer, with more work at request time, and that is the whole trade.
 
-RBAC              factor the subject      f(role(s), a, r)
-MAC               factor both ends        label(s) ⊒ label(r)
-ABAC              do not tabulate         a predicate over s, a, r, c
-ReBAC             derive from a graph     is r reachable from s
-                                          along an allowed path?
+| model | how `f` is represented | subject | resource | context | projected back onto the matrix |
+| --- | --- | --- | --- | --- | --- |
+| **ACL** | stored, indexed by resource | enumerated identity | one list per object | none | reindex by column — exact, invertible |
+| **capability list** | stored, indexed by subject | enumerated identity | one list per subject | none | reindex by row — exact, invertible |
+| **RBAC** | factored: subject → role → permission | coarsened into roles, the shared middle term | enumerated per role | none; faking it explodes the role set | expand the roles — exact |
+| **ABAC** | not stored; a predicate evaluated per request | attributes, open-ended | attributes | first-class, the axis a table does not have | evaluate the predicate over every pair — exact |
+| **ReBAC** | derived from a graph of tuples | graph node, reached through groups | fine-grained through hierarchy, without enumeration | none in Zanzibar; per-edge caveats in SpiceDB and OpenFGA | run the check over every pair — exact |
+| **object capability** | held as references, over a square matrix | any entity | any entity — subjects and resources are one set | n/a: authority is held, not decided per request | flatten reachability — **lossy** |
 
-object capability tabulate f by subject, over a square matrix
-```
+The last column is what makes them one family. Each model is a denormalized encoding of the same matrix, and a check is that encoding reified into a view for a single `(subject, action, resource, context)` point. Forwards is faithful. Backwards is underdetermined — you cannot recover which factorization, which predicate, or which tuples produced a given set of cells.
 
-Read that list and the usual ladder stops looking like increasing sophistication. RBAC is a factoring. MAC is a different factoring. ABAC gives up on tabulation and computes. ReBAC gives up on enumeration and derives. Each buys smaller storage with more work at request time, and that is the whole trade.
+Only the last row is lossy, and it is worth saying exactly where. An object-capability graph *is* a matrix — the square one. What is not faithful is squashing it back into a rectangle by declaring some entities to be subjects and the rest to be resources. `Alice: rw X` is a true statement about what Alice can eventually cause and a false statement about the authority she holds: the projection computes reachability and throws away the path, so Bob disappears from a description of a system whose entire structure is that Bob is in the middle. Two more things go with him: every cell that was a subject talking to a subject, and the rule that said which cells could be written next.
 
-The last line is the one this series is really about, and notice how little it differs from the second. An object capability evaluates `f` the same way a capability list does: look in the subject's row. Whatever makes it interesting is not in this column at all. The word *square* is doing all the work, and the rest of the article is about unpacking it.
-
-### Context is the term the table cannot hold
-
-One argument of `f` deserves separate attention, because its arrival is what broke the older models.
-
-A table indexed by subject and resource has two axes. Action fits in the cell. Context fits nowhere. There is no coordinate for "between 9 and 5," or "from a managed device," or "while the incident is open." You can fake it by multiplying out subjects — a `finance-daytime` role — but that is role explosion arriving on schedule.
-
-This is the real reason ABAC and its risk-adaptive variants exist. Not because subjects needed richer description, but because `f` grew a fourth argument and the table had no axis for it. Once you are evaluating a predicate at request time, context is free.
-
-It is also the argument with the worst behaviour over time, and [Part 3](/programming/authority-enforcement.html) takes that apart: each of `f`'s terms resolves against state someone else can change, on its own clock, and context is the one people model least and check least.
-
-## The matrix and its two projections
+### Access Control Matrix: ACL and Capability Lists
 
 Tabulating `f` over subjects and resources gives the picture everything else is a reaction to. Start with the simplest model that captures the problem. Lampson's access-control matrix has subjects down one axis, objects across the other, and permitted operations in the cells.
 
@@ -111,7 +105,7 @@ File B → Alice: r, Bob: rw
 Device C → Bob: use
 ```
 
-Store it by row, at the subject, and you get a **capability list**:
+Store it by row, at the subject, and you get a **capability list**[^access-profile]:
 
 ```text
 Alice → File A: rw, File B: r
@@ -124,17 +118,21 @@ Hold that claim loosely. The matrix describes permissions at an instant. It says
 
 Worth knowing what the matrix cannot answer before leaning on it. Once cells can be edited, the question you most want to ask — *can this permission ever reach that subject, by any sequence of legal edits* — is undecidable in the general case. Harrison, Ruzzo and Ullman proved it in 1976, and the result is why every tractable model since is a deliberate restriction of the general protection system rather than an implementation of it: take-grant, typed matrices, and the bounded schemes real engines actually ship. Keep it in view for the [next article](/programming/capabilities.html), where the same question comes back as the thing capabilities are worst at.
 
-### `open` is the conversion
+### RBAC
 
-The two projections meet in a system call you use every day, and it is worth sitting with because the difference is visible in the types.
+RBAC inserts a reusable layer *between* subject and permission, so that `Users × Permissions` factors into `(Users × Roles)` and `(Roles × Permissions)`. The saving comes from sharing the middle term across many subjects, not from changing which end of the matrix the data hangs off.
 
-A pathname is plain data. It names a slot in a global namespace, anyone can utter one, and uttering it conveys nothing. The descriptor `open` returns is a handle in a small per-process table that previous authorization decisions populated. You cannot guess one, and holding it is the whole of your permission to act.
+### ABAC
 
-So `open` converts a name into a handle, and the check happens exactly once, at the conversion. [`pidfd` does the same for processes](/programming/everything-is-a-file.html), turning a guessable, reusable integer into possession of one specific object.
+ABAC is where the industry landed for anything complicated, with XACML and OPA's Rego as the two main expressions. Both share a shape: a policy document, a set of facts about subject and resource and environment, and an engine that evaluates one against the other at request time.
 
-Every architecture in these four articles is a variation on where you put that conversion and how much you can do on the far side of it.
+A table indexed by subject and resource has two axes. Action fits in the cell. Context fits nowhere. There is no coordinate for "between 9 and 5," or "from a managed device," or "while the incident is open." You can fake it by multiplying out subjects — a `finance-daytime` role — but that is role explosion arriving on schedule.
 
-### Make both axes the same set
+This is the real reason ABAC and its risk-adaptive variants exist. Not because subjects needed richer description, but because `f` grew a fourth argument and the table had no axis for it. Once you are evaluating a predicate at request time, context is free.
+
+### Capabilities: make both axes the same set
+
+TODO: this belongs in the next article... is it just duplicate? If not find a way to incorporate it there.
 
 The matrix assumes something it never argues for: that the world divides cleanly into subjects who act and resources that are acted upon. Alice is a row. File A is a column. Nothing is both.
 
@@ -162,9 +160,29 @@ Three of them, and each is a rung the older models could not reach.
 
 That last one is the whole of the next article compressed into a sentence, and it is why the entity set also has to be allowed to grow: attenuation means minting a new proxy, which is a new row and a new column appearing at runtime.
 
-## Who may change a cell
+## Real World Examples
 
-Everything so far is about evaluating `f`. There is a second question underneath it that gets far less attention and turns out to matter more: **who is allowed to change `f`, and where do they go to do it?**
+| system | model |
+| --- | --- |
+| POSIX mode bits, NT ACLs, Postgres `GRANT`, S3 bucket policies | ACL |
+| Linux file descriptors, `CAP_*` bounding sets | capability list |
+| LDAP / Active Directory groups, Kubernetes RBAC, GitHub org roles | RBAC |
+| SELinux type enforcement | type-based compression of the matrix, with MAC mutation |
+| XACML / Axiomatics, OPA / Rego, AWS IAM condition keys | ABAC |
+| Zanzibar, Ory Keto | ReBAC |
+| SpiceDB, OpenFGA | ReBAC with per-edge context (caveats, conditions) |
+| Cedar / AWS Verified Permissions, Oso, Aserto Topaz | ReBAC and ABAC in one language |
+| KeyKOS, EROS, seL4, Fuchsia, Cap'n Proto, WASI Preview 2 | object capability |
+
+### Linux: `open` and FDs
+
+The two projections meet in a system call you use every day, and it is worth sitting with because the difference is visible in the types.
+
+A pathname is plain data. It names a slot in a global namespace, anyone can utter one, and uttering it conveys nothing. The descriptor `open` returns is a handle in a small per-process table that previous authorization decisions populated. You cannot guess one, and holding it is the whole of your permission to act.
+
+## Policy Modification
+
+Everything so far is about evaluating `f`. There is a second question underneath it that gets far less attention and turns out to matter more: **who is allowed to change `f`, and where do they go to do it?**. A policy that cannot be widened without a deploy is a policy that gets widened to `*` in advance. The cost of granting a legitimate exception is a security property, not an ergonomics complaint, and it is the one that decides whether the system is still enforcing anything six months later.
 
 Karp puts his finger on why it gets neglected. Writing about the earliest identity-based systems:
 
@@ -211,47 +229,6 @@ The owner may still edit the discretionary half freely. They simply cannot relax
 Once you look for it, composition is everywhere and rarely specified. XACML names its combining algorithms explicitly — deny-overrides, permit-overrides, first-applicable — which is more than most systems do. Real deployments stack an organizational policy, a team policy, a resource owner's settings and a per-request grant, and the rule for combining them is usually whatever the code happens to do.
 
 Part 4 runs into this directly. An agent's effective authority is the conjunction of an org policy, the user's grant, the repository's branch protection and the tool's own rules — four policies, four owners, and no agreed account of how they combine.
-
-### What the factoring costs
-
-Read the evaluation list as a cost curve and it is a genuine progression:
-
-```text
-ACL     store the relation
-RBAC    factor the relation     subject → role → permission
-ABAC    compute the relation    a predicate over attributes
-ReBAC   derive the relation     a graph plus composition rules
-```
-
-Store, factor, compute, derive. Each is cheaper to administer than the one before and more expensive to evaluate, which is the entire trade.
-
-![image](/assets/authorization/access-control-models.png)
-
-This also disposes of a confusion worth naming. RBAC is sometimes described as putting the ACL on the subject. It is not — that is a capability list. RBAC inserts a reusable layer *between* subject and permission, so that `Users × Permissions` factors into `(Users × Roles)` and `(Roles × Permissions)`. The saving comes from sharing the middle term across many subjects, not from changing which end of the matrix the data hangs off.
-
-ABAC is where the industry landed for anything complicated, with XACML and OPA's Rego as the two main expressions. Both share a shape: a policy document, a set of facts about subject and resource and environment, and an engine that evaluates one against the other at request time.
-
-### One family, one notation
-
-There is a sharper way to state what the evaluation list shows. Project every model back onto the matrix and watch what happens to the information.
-
-```text
-ACL               reindex by column              exact, invertible
-capability list   reindex by row                 exact, invertible
-RBAC              expand the roles               exact
-ABAC              evaluate the predicate         exact
-ReBAC             run the check over every pair  exact
-
-ocap graph        flatten reachability           lossy
-```
-
-The first five are notations for a matrix. Running them backwards is underdetermined — you cannot recover which factorization, which predicate, or which tuples produced a given set of cells — but running them forwards is faithful. Each computes the same `f`, which is exactly why they form one family.
-
-The last line is the lossy one, and now we can say exactly which step loses the information. An object-capability graph *is* a matrix — the square one. What is not faithful is squashing it back into a rectangle by declaring some entities to be subjects and the rest to be resources.
-
-`Alice: rw X` is a true statement about what Alice can eventually cause and a false statement about the authority she holds. The projection computes reachability and throws away the path, so Bob disappears from a description of a system whose entire structure is that Bob is in the middle. Two more things go with him: every cell that was a subject talking to a subject, and the rule that said which cells could be written next.
-
-One thing does survive. A single cell can be materialized as a handle, which is the pipeline Part 4 is built on. Materializing cells one at a time is not the same as recovering the structure.
 
 ## Identity is not authority
 
@@ -338,6 +315,8 @@ That is attenuation as a property of the artifact rather than of a process profi
 
 Everything above treats authorization as one question with competing answers. It is not, and a great many arguments about it are category errors — comparing a policy engine to a credential format to a communication model as though they were rival answers to the same thing.
 
+TODO: this diagram needs to be reconciled with https://idpro.org/authorization-terminology-is-a-mess-lets-fix-it/ as well as with the perspecdtive from the zbac article.
+
 ![image](/assets/authorization/authorization-concerns.png)
 
 Pulled apart, there are five separable concerns:
@@ -365,28 +344,6 @@ Most real systems mix and match. OAuth is a delegation protocol plus a credentia
 
 Which is the useful frame for the rest of the series. The industry has spent twenty years building columns two, three and four, and they are genuinely good now. Column five is nearly empty, almost nobody treats it as an authorization concern at all — and it is the only place where the property that distinguishes capabilities from tokens can live.
 
-## Properties worth asking for
-
-The five concerns say what a complete system has to cover. They say nothing about whether what you built is any good, and the criteria for that turn out to be mostly independent of what the policy says.
-
-**Answerable.** Two administrative questions decide whether you can operate the thing day to day: *who can reach this resource*, and *revoke everything derived from that grant*. Some representations answer both cheaply. Others cannot answer either without enumerating the world. This is the axis the [next article](/programming/capabilities.html) keeps returning to, because it is the one capabilities are worst at and the reason almost nobody ships them alone.
-
-**Fail-closed.** When the decision point is unreachable, slow, or confused, the default has to be denial. That sounds too obvious to state and is violated constantly — usually by a cache that keeps answering after its source of truth is gone, or by a check that throws into a handler that logs and continues.
-
-**Recoverable when it denies.** A policy that cannot be widened without a deploy is a policy that gets widened to `*` in advance. The cost of granting a legitimate exception is a security property, not an ergonomics complaint, and it is the one that decides whether the system is still enforcing anything six months later.
-
-**Bounded when it is wrong.** Every policy is wrong sometimes. What matters then is what the decision point can do on its worst day, which is a fact about the authority it holds rather than about the rules it evaluates. [Part 3](/programming/authority-enforcement.html) makes this the question people skip.
-
-## Where this leaves us
-
-We have a way to say what authority exists, a way to say who may change it, and a vocabulary for the five jobs a complete system has to do. What we do not yet have is a straight answer about the one word that keeps appearing in every column.
-
-"Capability" has meant four different things in this article alone — a row of the matrix, a scoped token, an artifact carrying caveats, an unforgeable reference. Those are not the same thing, most of the famous objections are true of some and false of others, and the differences decide what you can build. That is the next article.
-
-And none of it stops anything. A representation is a description. A program that ignores the description is not violating the model — it is operating outside it. Something has to make the description true: has to guarantee that every attempt to cause an effect actually encounters the check, that the check cannot be tampered with, and that no path around it exists.
-
-That is the reference monitor, and it is Part 3.
-
 ## References
 
 1. [The State of the Union of Authorization][state-union-authorization] — the landscape diagram
@@ -406,7 +363,14 @@ That is the reference monitor, and it is Part 3.
 [macaroons-cookies-with-contextual]: https://static.googleusercontent.com/media/research.google.com/en/us/pubs/archive/41892.pdf "Macaroons: Cookies with Contextual Caveats"
 [oauth-2-0-rfc]: https://www.rfc-editor.org/rfc/rfc6749.html "OAuth 2.0, RFC 6749"
 [protection]: https://www.microsoft.com/en-us/research/publication/protection/ "Protection"
+[rfc4949]: https://datatracker.ietf.org/doc/html/rfc4949 "RFC 4949: Internet Security Glossary, Version 2"
 [state-union-authorization]: https://idpro.org/the-state-of-the-union-of-authorization/ "The State of the Union of Authorization"
 [type-enforcement]: https://en.wikipedia.org/wiki/Type_enforcement "Type Enforcement"
 [ultimate-guide-choosing-right]: https://axiomatics.com/wp-content/uploads/2024/10/the-ultimate-guide-to-choosing-the-right-authorization-language-whitepaper-axiomatics-10-16-2024.pdf "The Ultimate Guide to Choosing the Right Authorization Language"
 [zanzibar-google-s-consistent]: https://research.google/pubs/pub48190/ "Zanzibar: Google's Consistent, Global Authorization System"
+
+## Footnotes <!-- omit in toc -->
+
+[^authzen-shape]: This signature doesn't generalize all authorization models by coincidence; it is also the signature that the industry converged on it and is in the process of standardizing via [AuthZEN][authzen], the OpenID Foundation's decision-point protocol. It deliberately says nothing about how the answer is reached. It standardizes only the shape of the question, which is a strong signal that the shape is the settled part.
+
+[^access-profile]: [RFC 4949][rfc4949], the Internet Security Glossary, has a name for this row that keeps it away from the word capability: defining the access control matrix, it says "each row is equivalent to an *access profile* for the subject." The glossary does not actually recommend the term — `access profile` is marked "O", meaning non-Internet origin and not for use in Internet documents, and its entry reads only "synonym for capability list." `capability list` is the entry it recommends. The distinction RFC 4949 does draw is the one worth holding on to: a *capability list* enumerates what a subject may reach, while a *capability token* is an unforgeable object whose possession is itself the proof. Part 2 lives in the gap between those two. I keep "capability list" here, which also matches the Linux sense of the word — `CAP_NET_ADMIN` and friends are a per-process list of permitted operations, a row and not a token.
