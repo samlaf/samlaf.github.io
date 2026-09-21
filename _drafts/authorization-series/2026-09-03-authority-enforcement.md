@@ -32,7 +32,6 @@ date:   2026-09-03
 - [What this does not solve](#what-this-does-not-solve)
 - [References](#references)
 
-
 The first two articles ended with a description and no teeth. A capability graph bounds what a component can reach. An ACL says who may touch a resource. Neither does anything to a program that declines to participate.
 
 Something has to make the description true. This article is about that something: what it must guarantee, where people put it, and the two fundamentally different strategies it can use.
@@ -86,7 +85,7 @@ The third requirement was close to aspirational when it was written. Anderson kn
 
 ## Decomposing the monitor
 
-"Reference monitor" names a function, not a component. In practice that function splits, and the split has a standard vocabulary worth fixing now because the fourth article leans on it.
+"Reference monitor" names a function, not a component. In practice that function splits, and the split has a standard vocabulary worth fixing now because Part 4 leans on it.
 
 ```text
 request ──► PEP ──────► PDP
@@ -109,7 +108,7 @@ PEP   policy enforcement point      sits in the path, applies the answer
 
 The distinction is logical. All four can be one kernel function, or four services in different datacenters. What matters is that only the PEP has to satisfy Anderson's first two properties. The PDP must be *correct*; the PEP must be *unavoidable*. Conflating them is how people end up with an authorization system that is beautifully expressive and trivially routed around.
 
-The [Flask architecture](https://www.cs.cmu.edu/~dga/papers/flask-usenixsec99.pdf) is the cleanest instantiation, and the direct ancestor of SELinux. Flask separates **object managers**, which own resources and enforce decisions, from a **security server**, which evaluates policy. An object manager asks whether a subject may perform an operation on an object, caches the returned access vector, and — the part people forget — receives notifications when a policy change requires revoking what it cached.
+The [Flask architecture][flask-security-architecture] is the cleanest instantiation, and the direct ancestor of SELinux. Flask separates **object managers**, which own resources and enforce decisions, from a **security server**, which evaluates policy. An object manager asks whether a subject may perform an operation on an object, caches the returned access vector, and — the part people forget — receives notifications when a policy change requires revoking what it cached.
 
 That revocation channel is the honest cost of caching a decision. The [capabilities article](/programming/capabilities.html) ended with the pipeline
 
@@ -193,7 +192,7 @@ Which produces the pattern worth carrying into the rest of this article:
 
 > **Subtraction plus mediation is construction.**
 
-The moment removal is not enough and you need to interpose, you introduce something that holds the real authority and speaks a protocol — a FUSE daemon, a proxy inside the network namespace, a broker. That thing is a membrane. You have rebuilt the capability system in a different vocabulary, one resource class at a time, and the fourth article is a long worked example of exactly that.
+The moment removal is not enough and you need to interpose, you introduce something that holds the real authority and speaks a protocol — a FUSE daemon, a proxy inside the network namespace, a broker. That thing is a membrane. You have rebuilt the capability system in a different vocabulary, one resource class at a time, and Part 4 is a long worked example of exactly that.
 
 ACLs do not have this property. An ACL is purely a representation, and it is inert until some object manager consults it. That asymmetry is the single most useful thing to carry out of these two articles, and it explains why capabilities keep reappearing in both halves of the discussion while ACLs stay firmly in the first.
 
@@ -270,7 +269,7 @@ Linux has no single sandbox primitive. It has a collection of mechanisms, each c
 
 ![](/assets/authority-enforcement/linux-security-mechanisms.png)
 
-Items 1 and 6 are one mechanism seen twice, and [`setpriv`](https://man7.org/linux/man-pages/man1/setpriv.1.html) is where it becomes usable. A single `exec` sets the uid and gid, clears supplementary groups, trims the inheritable, ambient and bounding capability sets, locks securebits, requests an LSM label, and sets `no_new_privs`. The whole credential tuple, chosen by the launcher rather than by the program. Hand-rolling it is a bug farm: unchecked `setuid` return values, supplementary groups left behind, a bounding set trimmed after the point where it would have mattered.
+Items 1 and 6 are one mechanism seen twice, and [`setpriv`][setpriv] is where it becomes usable. A single `exec` sets the uid and gid, clears supplementary groups, trims the inheritable, ambient and bounding capability sets, locks securebits, requests an LSM label, and sets `no_new_privs`. The whole credential tuple, chosen by the launcher rather than by the program. Hand-rolling it is a bug farm: unchecked `setuid` return values, supplementary groups left behind, a bounding set trimmed after the point where it would have mattered.
 
 `no_new_privs` is the load-bearing bit. Without it the restriction is not monotonic — exec a setuid binary and the authority comes back — and an unprivileged process cannot install a seccomp filter at all. It is the precondition for everything further down the list that a workload applies to itself.
 
@@ -324,7 +323,7 @@ policy store      ──query─────────────────
 environment       ─────────────────────────────┘
 ```
 
-Four inputs, four independent clocks. They are the four terms of the function the [first article](/programming/authorization-models.html) started from — `f(subject, action, resource, context)` — and the useful observation is that three of them arrive as references that resolve late, while one does not. The action is supplied literally in the request. It is the only argument that cannot go stale, and correspondingly the only one nobody writes a CVE about.
+Four inputs, four independent clocks. They are the four terms of the function [Part 1](/programming/authorization-models.html) started from — `f(subject, action, resource, context)` — and the useful observation is that three of them arrive as references that resolve late, while one does not. The action is supplied literally in the request. It is the only argument that cannot go stale, and correspondingly the only one nobody writes a CVE about.
 
 **Object binding.** The classic case, and the reason the LSM hook sits where it does. A pathname gets resolved twice:
 
@@ -415,7 +414,7 @@ seL4 stores capabilities in kernel objects called CNodes. Userspace never touche
 
 Two mechanisms make the graph governable rather than merely descriptive:
 
-**The grant right.** Holding a capability does not imply the ability to share it. Passing a capability over an endpoint requires the `grant` right on that endpoint. From the [seL4 retrospective](https://microkerneldude.org/2019/08/06/10-years-sel4-still-the-best-still-getting-better):
+**The grant right.** Holding a capability does not imply the ability to share it. Passing a capability over an endpoint requires the `grant` right on that endpoint. From the [seL4 retrospective][10-years-sel4]:
 
 > Capabilities also cleanly solved another issue with original L4, that of limiting communication. The original model relied on an (inflexible) process hierarchy and redirection to a monitor process ("chief") to limit data flow. Capabilities provide a cleaner, simpler and low-overhead model: Having a privilege does not in itself imply the ability to share that privilege, an additional grant right is needed to pass on capabilities.
 
@@ -474,22 +473,41 @@ Modern workloads do not have that shape. A single logical operation crosses a pr
 
 The answer is not that the reference monitor becomes distributed. It is that it gets **relocated and replicated**: several monitors, each complete within its own boundary, each seeing a different vocabulary, each surviving a different failure. The guest kernel mediates guest objects. The host mediates external effects. The resource server enforces its own invariant. No single one of them is complete, and the composition has to be designed rather than assumed.
 
-Which is exactly the problem LLM agents force you to confront, because an agent's authority is not known until it runs. That is the fourth article.
+Which is exactly the problem LLM agents force you to confront, because an agent's authority is not known until it runs. That is Part 4.
 
 ## References
 
-- [Computer Security Technology Planning Study](https://csrc.nist.gov/csrc/media/publications/conference-paper/1998/10/08/proceedings-of-the-21st-nissc-1998/documents/early-cs-papers/ande72.pdf) — Anderson, 1972; the reference monitor
-- [The Flask Security Architecture](https://www.cs.cmu.edu/~dga/papers/flask-usenixsec99.pdf) — object managers, security server, access-vector caching, revocation
-- [Linux Security Modules: General Security Support for the Linux Kernel](https://www.usenix.org/legacy/publications/library/proceedings/sec02/full_papers/wright/wright_html/) — the original LSM design
-- [Linux Security Module usage](https://docs.kernel.org/admin-guide/LSM/index.html) and [development](https://docs.kernel.org/security/lsm-development.html)
-- [AppArmor — Where Do LSMs Fit?](https://apparmor.net/about/lsm_introduction/) — syscall filtering versus DAC, MAC, and resolved-object hooks
-- [Landlock](https://docs.kernel.org/userspace-api/landlock.html) — unprivileged monotonic self-restriction
-- [BPF LSM programs](https://docs.kernel.org/bpf/prog_lsm.html)
-- [Linux namespaces](https://man7.org/linux/man-pages/man7/namespaces.7.html) and [capabilities](https://man7.org/linux/man-pages/man7/capabilities.7.html)
-- [`setpriv`](https://man7.org/linux/man-pages/man1/setpriv.1.html) — the credential tuple in one exec: uid, gid, the three capability sets, securebits, `no_new_privs`, LSM labels, Landlock and seccomp
-- [Software isolation in Linux](https://nikmav.blogspot.com/2015/06/software-isolation-in-linux_15.html) — the mechanism inventory
-- [Capsicum: Practical Capabilities for UNIX](https://www.usenix.org/conference/usenixsecurity10/capsicum-practical-capabilities-unix)
-- [10 years seL4](https://microkerneldude.org/2019/08/06/10-years-sel4-still-the-best-still-getting-better) — the grant right and what verification bought
-- [seL4 reference manual](https://sel4.systems/Info/Docs/seL4-manual-latest.pdf) — CNodes, untyped retyping, the capability derivation tree, `Revoke`
-- [WebAssembly Component Model](https://component-model.bytecodealliance.org/design/components.html) and [WASI security principles](https://github.com/bytecodealliance/wasi.dev/blob/main/docs/security.md)
-- [Handling Algebraic Effects](https://arxiv.org/abs/1312.1399) — effect handlers as programmable interpretations
+1. [Computer Security Technology Planning Study][computer-security-technology-planning] — Anderson, 1972; the reference monitor
+2. [The Flask Security Architecture][flask-security-architecture] — object managers, security server, access-vector caching, revocation
+3. [Linux Security Modules: General Security Support for the Linux Kernel][linux-security-modules-general] — the original LSM design
+4. [Linux Security Module usage][linux-security-module-usage] and [LSM development][lsm-development]
+5. [AppArmor — Where Do LSMs Fit?][apparmor-where-do-lsms] — syscall filtering versus DAC, MAC, and resolved-object hooks
+6. [Landlock][landlock] — unprivileged monotonic self-restriction
+7. [BPF LSM programs][bpf-lsm-programs]
+8. [Linux namespaces][linux-namespaces] and [capabilities][linux-capabilities]
+9. [`setpriv`][setpriv] — the credential tuple in one exec: uid, gid, the three capability sets, securebits, `no_new_privs`, LSM labels, Landlock and seccomp
+10. [Software isolation in Linux][software-isolation-linux] — the mechanism inventory
+11. [Capsicum: Practical Capabilities for UNIX][capsicum-practical-capabilities-unix]
+12. [10 years seL4][10-years-sel4] — the grant right and what verification bought
+13. [seL4 reference manual][sel4-reference-manual] — CNodes, untyped retyping, the capability derivation tree, `Revoke`
+14. [WebAssembly Component Model][webassembly-component-model] and [WASI security principles][wasi-security-principles]
+15. [Handling Algebraic Effects][handling-algebraic-effects] — effect handlers as programmable interpretations
+
+[10-years-sel4]: https://microkerneldude.org/2019/08/06/10-years-sel4-still-the-best-still-getting-better "10 years seL4"
+[apparmor-where-do-lsms]: https://apparmor.net/about/lsm_introduction/ "AppArmor — Where Do LSMs Fit?"
+[bpf-lsm-programs]: https://docs.kernel.org/bpf/prog_lsm.html "BPF LSM programs"
+[linux-capabilities]: https://man7.org/linux/man-pages/man7/capabilities.7.html "capabilities"
+[capsicum-practical-capabilities-unix]: https://www.usenix.org/conference/usenixsecurity10/capsicum-practical-capabilities-unix "Capsicum: Practical Capabilities for UNIX"
+[computer-security-technology-planning]: https://csrc.nist.gov/csrc/media/publications/conference-paper/1998/10/08/proceedings-of-the-21st-nissc-1998/documents/early-cs-papers/ande72.pdf "Computer Security Technology Planning Study"
+[lsm-development]: https://docs.kernel.org/security/lsm-development.html "LSM development"
+[flask-security-architecture]: https://www.cs.cmu.edu/~dga/papers/flask-usenixsec99.pdf "The Flask Security Architecture"
+[handling-algebraic-effects]: https://arxiv.org/abs/1312.1399 "Handling Algebraic Effects"
+[landlock]: https://docs.kernel.org/userspace-api/landlock.html "Landlock"
+[linux-namespaces]: https://man7.org/linux/man-pages/man7/namespaces.7.html "Linux namespaces"
+[linux-security-module-usage]: https://docs.kernel.org/admin-guide/LSM/index.html "Linux Security Module usage"
+[linux-security-modules-general]: https://www.usenix.org/legacy/publications/library/proceedings/sec02/full_papers/wright/wright_html/ "Linux Security Modules: General Security Support for the Linux Kernel"
+[sel4-reference-manual]: https://sel4.systems/Info/Docs/seL4-manual-latest.pdf "seL4 reference manual"
+[setpriv]: https://man7.org/linux/man-pages/man1/setpriv.1.html "`setpriv`"
+[software-isolation-linux]: https://nikmav.blogspot.com/2015/06/software-isolation-in-linux_15.html "Software isolation in Linux"
+[wasi-security-principles]: https://github.com/bytecodealliance/wasi.dev/blob/main/docs/security.md "WASI security principles"
+[webassembly-component-model]: https://component-model.bytecodealliance.org/design/components.html "WebAssembly Component Model"

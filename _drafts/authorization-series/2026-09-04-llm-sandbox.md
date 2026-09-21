@@ -14,7 +14,7 @@ date:   2026-09-04
 > 3. **[How authority is enforced](/programming/authority-enforcement.html)** — what makes any of it binding.
 > 4. **LLM sandboxing** — the gateway, correct and unavoidable.
 
-- [Part 0 — Why agents break the assumptions](#part-0--why-agents-break-the-assumptions)
+- [Why agents break the assumptions](#why-agents-break-the-assumptions)
   - [Data becomes executable](#data-becomes-executable)
   - [The confined workload is also a delegate](#the-confined-workload-is-also-a-delegate)
   - [Policy cannot be enumerated in advance](#policy-cannot-be-enumerated-in-advance)
@@ -80,7 +80,7 @@ The first three articles supply that vocabulary: how authority is represented, w
 
 ![sandboxing-taxonomy](/assets/llm-sandbox/confinement-hierarchy.png)
 
-# Part 0 — Why agents break the assumptions
+# Why agents break the assumptions
 
 Most writing on "AI sandboxing" is really writing on sandboxing, with agents supplying the motivation. That framing undersells the delta. Four assumptions that hold for ordinary untrusted code fail for agents, and each failure moves work from configuration time to runtime.
 
@@ -207,7 +207,7 @@ The cost is that the PDP now depends on facts the agent itself supplied. A state
 
 Here is the practical problem. An agent deployment has an unusual number of enforcement points, and they are all different: a filesystem provider, an HTTP gateway, an MCP broker, a database proxy, a tool hook, a CI check. Left alone, each grows its own policy configuration format, and the organization ends up with six half-policies and no way to reason about their union.
 
-[AuthZEN](https://openid.net/wg/authzen/), from the OpenID Foundation, standardizes the wire contract between PEP and PDP. It is explicitly **not** a policy language. It says nothing about how a decision is reached. It standardizes the shape of the question and the shape of the answer:
+[AuthZEN][authzen], from the OpenID Foundation, standardizes the wire contract between PEP and PDP. It is explicitly **not** a policy language. It says nothing about how a decision is reached. It standardizes the shape of the question and the shape of the answer:
 
 ```text
 Subject    who is asking          { type, id, properties }
@@ -218,7 +218,7 @@ Context    everything else        { ... }
         ──► decision: true | false, plus optional context
 ```
 
-That is `f(subject, action, resource, context)` from the [first article](/programming/authorization-models.html), promoted from a way of describing what every model computes into a wire format anything can speak.
+That is `f(subject, action, resource, context)` from [Part 1](/programming/authorization-models.html), promoted from a way of describing what every model computes into a wire format anything can speak.
 
 The four-part request is the whole idea, and its value is compositional. Any enforcement point that can normalize its native effect into S/A/R/C can be governed by any decision engine that speaks the protocol:
 
@@ -817,48 +817,83 @@ Which is why agents are worth the attention even if you never build one. They ta
 
 ## Primary implementation sources
 
-- [Gondolin — security design](https://earendil-works.github.io/gondolin/security/) — threat model, host trust boundary, network mediation, secret substitution, filesystem confinement, and explicit limitations
-- [Gondolin — architecture](https://earendil-works.github.io/gondolin/architecture/) — VM lifecycle, `vm.exec` over virtio-serial, `sandboxd`, VFS RPC, and host/guest component placement
-- [Gondolin — VFS providers](https://earendil-works.github.io/gondolin/vfs/) — programmable resource providers, real-filesystem hardening, read-only and shadow layers, and provider composition
-- [Gondolin — QEMU backend](https://earendil-works.github.io/gondolin/qemu/) — minimal device model and the decision to keep the host as the guest's network peer
-- [Iron Proxy](https://github.com/paradigmxyz/iron-proxy) — untrusted-client forward proxy, default-deny egress, proxy-token secret substitution, request transforms, auditing, and routing requirements
-- [agent-creds](https://github.com/dtkav/agent-creds) — per-sandbox Envoy proxy and shared credential vault; the guest holds only a macaroon whose caveats are verified before the vault injects a bearer, Basic, OAuth2, or SigV4 credential, with network-namespace isolation supplying non-bypassability
-- [sandbox-runtime](https://github.com/anthropic-experimental/sandbox-runtime) — the sandbox behind Claude Code's Bash tool: Seatbelt, bubblewrap with the network namespace removed and proxies reached over bind-mounted Unix sockets, a Windows WFP egress fence keyed to a separate account SID, resolved-address re-checking, and experimental TLS termination
-- [Claude Code — sandboxing](https://code.claude.com/docs/en/sandboxing) — configuration surface and the violation reporting that turns a denial into something the model can act on
-- [nono — security model](https://nono.sh/docs/cli/internals/security-model) — a capability model rather than a VM model, supervisor trust, and per-invocation command policy
-- [nono — Landlock](https://nono.sh/docs/cli/internals/landlock) and [networking](https://nono.sh/docs/cli/features/networking) — ABI v1–v6 access rights, seccomp user notification on `connect()` and `openat`, and the `io_uring_setup` denial that closes the syscall-filter gap
-- [landrun](https://github.com/Zouuup/landrun) — the minimal case: a Landlock wrapper with no gateway at all
-- [Codex CLI — agent approvals and security](https://developers.openai.com/codex/agent-approvals-security) — Seatbelt and Landlock/seccomp profiles with network off by default
-- [Using proxies to hide secrets from Claude Code](https://formal.ai/blog/using-proxies-claude-code/) — mitmproxy addons substituting a real API key for a dummy one, `NODE_EXTRA_CA_CERTS` to trust the intercepting CA, and separate proxy configuration for the harness process and its sandboxed subprocesses; forced by environment variable rather than by routing
-- [Lima — filesystem mounts](https://lima-vm.io/docs/config/mount/) — reverse-SSHFS, 9p, virtiofs, and mount behavior across VM drivers
+1. [Gondolin — security design][gondolin-security-design] — threat model, host trust boundary, network mediation, secret substitution, filesystem confinement, and explicit limitations
+2. [Gondolin — architecture][gondolin-architecture] — VM lifecycle, `vm.exec` over virtio-serial, `sandboxd`, VFS RPC, and host/guest component placement
+3. [Gondolin — VFS providers][gondolin-vfs-providers] — programmable resource providers, real-filesystem hardening, read-only and shadow layers, and provider composition
+4. [Gondolin — QEMU backend][gondolin-qemu-backend] — minimal device model and the decision to keep the host as the guest's network peer
+5. [Iron Proxy][iron-proxy] — untrusted-client forward proxy, default-deny egress, proxy-token secret substitution, request transforms, auditing, and routing requirements
+6. [agent-creds][agent-creds] — per-sandbox Envoy proxy and shared credential vault; the guest holds only a macaroon whose caveats are verified before the vault injects a bearer, Basic, OAuth2, or SigV4 credential, with network-namespace isolation supplying non-bypassability
+7. [sandbox-runtime][sandbox-runtime] — the sandbox behind Claude Code's Bash tool: Seatbelt, bubblewrap with the network namespace removed and proxies reached over bind-mounted Unix sockets, a Windows WFP egress fence keyed to a separate account SID, resolved-address re-checking, and experimental TLS termination
+8. [Claude Code — sandboxing][claude-code-sandboxing] — configuration surface and the violation reporting that turns a denial into something the model can act on
+9. [nono — security model][nono-security-model] — a capability model rather than a VM model, supervisor trust, and per-invocation command policy
+10. [nono — Landlock][nono-landlock] and [networking][nono-networking] — ABI v1–v6 access rights, seccomp user notification on `connect()` and `openat`, and the `io_uring_setup` denial that closes the syscall-filter gap
+11. [landrun][landrun] — the minimal case: a Landlock wrapper with no gateway at all
+12. [Codex CLI — agent approvals and security][codex-cli-agent-approvals] — Seatbelt and Landlock/seccomp profiles with network off by default
+13. [Using proxies to hide secrets from Claude Code][using-proxies-hide-secrets] — mitmproxy addons substituting a real API key for a dummy one, `NODE_EXTRA_CA_CERTS` to trust the intercepting CA, and separate proxy configuration for the harness process and its sandboxed subprocesses; forced by environment variable rather than by routing
+14. [Lima — filesystem mounts][lima-filesystem-mounts] — reverse-SSHFS, 9p, virtiofs, and mount behavior across VM drivers
 
 ## Policy and decision
 
-- [AuthZEN](https://openid.net/wg/authzen/) — OpenID Foundation working group standardizing the PEP/PDP contract; the Authorization API and its subject/action/resource/context request shape
-- [Cedar](https://www.cedarpolicy.com/) and [OPA/Rego](https://www.openpolicyagent.org/docs/latest/policy-language/) — two policy languages that can sit behind an AuthZEN seam
-- [Zanzibar: Google's Consistent, Global Authorization System](https://research.google/pubs/pub48190/) — relationship-based authorization and the reverse-indexability problem
-- [The Flask Security Architecture](https://www.cs.cmu.edu/~dga/papers/flask-usenixsec99.pdf) — decision caching paired with a revocation channel, the 1999 answer to the freshness/locality tradeoff
+15. [AuthZEN][authzen] — OpenID Foundation working group standardizing the PEP/PDP contract; the Authorization API's [information model][authzen-spec] is where the subject/action/resource/context request shape is defined
+16. [Cedar][cedar] and [OPA/Rego][opa-rego] — two policy languages that can sit behind an AuthZEN seam
+17. [Zanzibar: Google's Consistent, Global Authorization System][zanzibar-google-s-consistent] — relationship-based authorization and the reverse-indexability problem
+18. [The Flask Security Architecture][flask-security-architecture] — decision caching paired with a revocation channel, the 1999 answer to the freshness/locality tradeoff
 
 ## Foundations
 
-The first two articles in this series cover these properly. Listed here because this article leans on them directly.
+Parts 1 and 2 cover these properly. Listed here because this article leans on them directly.
 
-- [The Protection of Information in Computer Systems](https://www.cs.virginia.edu/~evans/cs551/saltzer/) — Saltzer and Schroeder's design principles, including complete mediation and least privilege
-- [Capability Myths Demolished](https://cgi.cse.unsw.edu.au/~cs9242/20/papers/Miller_YS_03.pdf) — designation, authority, and confinement
-- [The Confused Deputy](https://www.cs.utexas.edu/~witchel/S25-380L/papers/hardy88confused.pdf) — the failure mode every credential broker must avoid
-- [Macaroons: Cookies with Contextual Caveats](https://static.googleusercontent.com/media/research.google.com/en/us/pubs/archive/41892.pdf) — attenuable grants that carry their own constraints
-- [WASI security principles](https://github.com/bytecodealliance/wasi.dev/blob/main/docs/security.md) — capability-oriented host access
-- [Landlock](https://docs.kernel.org/userspace-api/landlock.html) — unprivileged monotonic self-restriction
+19. [The Protection of Information in Computer Systems][protection-information-computer-systems] — Saltzer and Schroeder's design principles, including complete mediation and least privilege
+20. [Capability Myths Demolished][capability-myths-demolished] — designation, authority, and confinement
+21. [The Confused Deputy][confused-deputy] — the failure mode every credential broker must avoid
+22. [Macaroons: Cookies with Contextual Caveats][macaroons-cookies-with-contextual] — attenuable grants that carry their own constraints
+23. [WASI security principles][wasi-security-principles] — capability-oriented host access
+24. [Landlock][landlock] — unprivileged monotonic self-restriction
 
 ## Agent frameworks and research
 
-- [The Agent Sandbox Taxonomy](https://github.com/kajogo777/the-agent-sandbox-taxonomy) — defense layers, threats, strength, granularity, and action governance
-- [Lingering Authority: Revocable Resource-and-Effect Capabilities for Coding Agents](https://arxiv.org/abs/2606.22504) — epoch-bound capability handles and the request–grant–invoke lifecycle
-- [Recursive Language Models](https://alexzhang13.github.io/blog/2025/rlm/) — context as a live variable and recursive partition-and-map workloads
-- [Inspect](https://inspect.aisi.org.uk/) — an agent/evaluation harness with model and tool semantics
+25. [The Agent Sandbox Taxonomy][agent-sandbox-taxonomy] — defense layers, threats, strength, granularity, and action governance
+26. [Lingering Authority: Revocable Resource-and-Effect Capabilities for Coding Agents][lingering-authority-revocable-resource] — epoch-bound capability handles and the request–grant–invoke lifecycle
+27. [Recursive Language Models][recursive-language-models] — context as a live variable and recursive partition-and-map workloads
+28. [Inspect][inspect] — an agent/evaluation harness with model and tool semantics
 
 ## Landscape and performance
 
-- [AI agent sandbox technologies: a 2026 comparison](https://grigio.org/ai-agent-sandbox-technologies-a-complete-2026-comparison/) — startup, memory, eBPF network mediation, and confidential-computing comparisons
-- [Best microVM sandboxes for AI code execution](https://modal.com/resources/best-microvm-sandboxes-ai-code-execution) — vendor-authored comparison including filesystem, directory, and memory snapshot capabilities
-- [List of coding agent sandboxes](https://gist.github.com/wincent/2752d8d97727577050c043e4ff9e386e) — curated index of OS primitives, application kernels, microVM runtimes, and local CLI sandboxes
+29. [AI agent sandbox technologies: a 2026 comparison][ai-agent-sandbox-technologies] — startup, memory, eBPF network mediation, and confidential-computing comparisons
+30. [Best microVM sandboxes for AI code execution][best-microvm-sandboxes-ai] — vendor-authored comparison including filesystem, directory, and memory snapshot capabilities
+31. [List of coding agent sandboxes][list-coding-agent-sandboxes] — curated index of OS primitives, application kernels, microVM runtimes, and local CLI sandboxes
+
+[agent-creds]: https://github.com/dtkav/agent-creds "agent-creds"
+[agent-sandbox-taxonomy]: https://github.com/kajogo777/the-agent-sandbox-taxonomy "The Agent Sandbox Taxonomy"
+[ai-agent-sandbox-technologies]: https://grigio.org/ai-agent-sandbox-technologies-a-complete-2026-comparison/ "AI agent sandbox technologies: a 2026 comparison"
+[authzen]: https://openid.net/wg/authzen/ "AuthZEN - OpenID Foundation working group"
+[authzen-spec]: https://openid.net/specs/authorization-api-1_0.html#name-information-model "Authorization API 1.0: information model - OpenID Foundation"
+[best-microvm-sandboxes-ai]: https://modal.com/resources/best-microvm-sandboxes-ai-code-execution "Best microVM sandboxes for AI code execution"
+[capability-myths-demolished]: https://cgi.cse.unsw.edu.au/~cs9242/20/papers/Miller_YS_03.pdf "Capability Myths Demolished"
+[cedar]: https://www.cedarpolicy.com/ "Cedar"
+[claude-code-sandboxing]: https://code.claude.com/docs/en/sandboxing "Claude Code — sandboxing"
+[codex-cli-agent-approvals]: https://developers.openai.com/codex/agent-approvals-security "Codex CLI — agent approvals and security"
+[confused-deputy]: https://www.cs.utexas.edu/~witchel/S25-380L/papers/hardy88confused.pdf "The Confused Deputy"
+[flask-security-architecture]: https://www.cs.cmu.edu/~dga/papers/flask-usenixsec99.pdf "The Flask Security Architecture"
+[gondolin-architecture]: https://earendil-works.github.io/gondolin/architecture/ "Gondolin — architecture"
+[gondolin-qemu-backend]: https://earendil-works.github.io/gondolin/qemu/ "Gondolin — QEMU backend"
+[gondolin-security-design]: https://earendil-works.github.io/gondolin/security/ "Gondolin — security design"
+[gondolin-vfs-providers]: https://earendil-works.github.io/gondolin/vfs/ "Gondolin — VFS providers"
+[inspect]: https://inspect.aisi.org.uk/ "Inspect"
+[iron-proxy]: https://github.com/paradigmxyz/iron-proxy "Iron Proxy"
+[landlock]: https://docs.kernel.org/userspace-api/landlock.html "Landlock"
+[landrun]: https://github.com/Zouuup/landrun "landrun"
+[lima-filesystem-mounts]: https://lima-vm.io/docs/config/mount/ "Lima — filesystem mounts"
+[lingering-authority-revocable-resource]: https://arxiv.org/abs/2606.22504 "Lingering Authority: Revocable Resource-and-Effect Capabilities for Coding Agents"
+[list-coding-agent-sandboxes]: https://gist.github.com/wincent/2752d8d97727577050c043e4ff9e386e "List of coding agent sandboxes"
+[macaroons-cookies-with-contextual]: https://static.googleusercontent.com/media/research.google.com/en/us/pubs/archive/41892.pdf "Macaroons: Cookies with Contextual Caveats"
+[nono-networking]: https://nono.sh/docs/cli/features/networking "nono - networking"
+[nono-landlock]: https://nono.sh/docs/cli/internals/landlock "nono — Landlock"
+[nono-security-model]: https://nono.sh/docs/cli/internals/security-model "nono — security model"
+[opa-rego]: https://www.openpolicyagent.org/docs/latest/policy-language/ "OPA/Rego"
+[protection-information-computer-systems]: https://www.cs.virginia.edu/~evans/cs551/saltzer/ "The Protection of Information in Computer Systems"
+[recursive-language-models]: https://alexzhang13.github.io/blog/2025/rlm/ "Recursive Language Models"
+[sandbox-runtime]: https://github.com/anthropic-experimental/sandbox-runtime "sandbox-runtime"
+[using-proxies-hide-secrets]: https://formal.ai/blog/using-proxies-claude-code/ "Using proxies to hide secrets from Claude Code"
+[wasi-security-principles]: https://github.com/bytecodealliance/wasi.dev/blob/main/docs/security.md "WASI security principles"
+[zanzibar-google-s-consistent]: https://research.google/pubs/pub48190/ "Zanzibar: Google's Consistent, Global Authorization System"

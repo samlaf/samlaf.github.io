@@ -34,18 +34,17 @@ date:   2026-09-01
 - [Where this leaves us](#where-this-leaves-us)
 - [References](#references)
 
-
 Ask what authorization is and you will get an answer about deciding. Can Alice read this file? Is this token valid? Does this role include that permission. Deciding matters, but it is the second question. The first is where the answer lives before anyone asks.
 
 A system has to put authority somewhere. It can keep a list at each resource naming who may touch it. It can hand each subject a set of unforgeable references to the things it may touch. It can keep a database of relationships and compute the answer on demand. These are not implementation details that wash out at scale. Each one makes a different set of questions cheap and a different set expensive, and the expensive questions are the ones that eventually break your architecture.
 
 Underneath both sits a question that is easy to skip: **who is allowed to change the answer, and where do they go to do it?** The models differ more on that than on anything else, and almost nobody sorts them by it.
 
-This article is about representation and mutation only. It deliberately does not answer *what authority should exist* — that is a policy question, and it belongs to the fourth article. It also does not answer what stops a program from ignoring the representation entirely. That is the third.
+This article is about representation and mutation only. It deliberately does not answer *what authority should exist* — that is a policy question, and it belongs to Part 4. It also does not answer what stops a program from ignoring the representation entirely. That is Part 3.
 
 ![image](/assets/authorization/auth-models.png)
 
-*From [The State of the Union of Authorization](https://idpro.org/the-state-of-the-union-of-authorization/).*
+*From [The State of the Union of Authorization][state-union-authorization].*
 
 ## The shape of the question
 
@@ -59,7 +58,7 @@ f(subject, action, resource, context) → allow | deny
 
 **Subject** is who is asking. **Action** is what they want to do. **Resource** is what they want it done to. **Context** is everything else that bears on the answer and belongs to none of the first three: time of day, device posture, network location, risk score, whether the country is at war.
 
-That signature is not a convenient abstraction I am imposing. The industry converged on it and then standardized it. [AuthZEN](https://openid.net/wg/authzen/), the OpenID Foundation's decision-point protocol, defines its request as exactly those four objects — subject, action, resource, context — and its response as a boolean. It deliberately says nothing about how the answer is reached. It standardizes only the shape of the question, which is a strong signal that the shape is the settled part.
+That signature is not a convenient abstraction I am imposing. The industry converged on it and then standardized it. [AuthZEN][authzen], the OpenID Foundation's decision-point protocol, defines its request as exactly those four objects — subject, action, resource, context — and its response as a boolean. It deliberately says nothing about how the answer is reached. It standardizes only the shape of the question, which is a strong signal that the shape is the settled part.
 
 ### Every model is a way of not evaluating f
 
@@ -90,7 +89,7 @@ A table indexed by subject and resource has two axes. Action fits in the cell. C
 
 This is the real reason ABAC and its risk-adaptive variants exist. Not because subjects needed richer description, but because `f` grew a fourth argument and the table had no axis for it. Once you are evaluating a predicate at request time, context is free.
 
-It is also the argument with the worst behaviour over time, and the [third article](/programming/authority-enforcement.html) takes that apart: each of `f`'s terms resolves against state someone else can change, on its own clock, and context is the one people model least and check least.
+It is also the argument with the worst behaviour over time, and [Part 3](/programming/authority-enforcement.html) takes that apart: each of `f`'s terms resolves against state someone else can change, on its own clock, and context is the one people model least and check least.
 
 ## The matrix and its two projections
 
@@ -185,7 +184,7 @@ object capability  the holder
 
 Six of those seven answers are a version of "someone with administrative standing," and they all have to be supplied from outside the model. The seventh is the rule the square matrix states about itself, and it is the argument of the next article.
 
-There is a sharper way to see the split. Ask whether the mutation right is **monotone**. Delegation can only ever hand on less than the holder has, so authority shrinks along every edge. Administrative rights do the opposite: they manufacture authority the grantor does not hold, which is what makes "admin" a different power rather than a larger one. Two very different things wear the same word, and article two depends on keeping them apart.
+There is a sharper way to see the split. Ask whether the mutation right is **monotone**. Delegation can only ever hand on less than the holder has, so authority shrinks along every edge. Administrative rights do the opposite: they manufacture authority the grantor does not hold, which is what makes "admin" a different power rather than a larger one. Two very different things wear the same word, and Part 2 depends on keeping them apart.
 
 There is a second question hiding in the same list: *where do you go* to make the change. To give Bob everything Alice has under an ACL, you visit every object. Under a capability list you go to Alice. That is a real operational difference and it is invisible in the evaluation view.
 
@@ -211,7 +210,7 @@ The owner may still edit the discretionary half freely. They simply cannot relax
 
 Once you look for it, composition is everywhere and rarely specified. XACML names its combining algorithms explicitly — deny-overrides, permit-overrides, first-applicable — which is more than most systems do. Real deployments stack an organizational policy, a team policy, a resource owner's settings and a per-request grant, and the rule for combining them is usually whatever the code happens to do.
 
-The fourth article runs into this directly. An agent's effective authority is the conjunction of an org policy, the user's grant, the repository's branch protection and the tool's own rules — four policies, four owners, and no agreed account of how they combine.
+Part 4 runs into this directly. An agent's effective authority is the conjunction of an org policy, the user's grant, the repository's branch protection and the tool's own rules — four policies, four owners, and no agreed account of how they combine.
 
 ### What the factoring costs
 
@@ -252,7 +251,7 @@ The last line is the lossy one, and now we can say exactly which step loses the 
 
 `Alice: rw X` is a true statement about what Alice can eventually cause and a false statement about the authority she holds. The projection computes reachability and throws away the path, so Bob disappears from a description of a system whose entire structure is that Bob is in the middle. Two more things go with him: every cell that was a subject talking to a subject, and the rule that said which cells could be written next.
 
-One thing does survive. A single cell can be materialized as a handle, which is the pipeline the fourth article is built on. Materializing cells one at a time is not the same as recovering the structure.
+One thing does survive. A single cell can be materialized as a handle, which is the pipeline Part 4 is built on. Materializing cells one at a time is not the same as recovering the structure.
 
 ## Identity is not authority
 
@@ -315,7 +314,7 @@ Same binding time. Opposite jurisdiction. And everything that makes the second i
 
 This matters because "shift left" is a claim about **when**, and it gets read as a claim about **where**. Moving a decision earlier buys you latency and offline operation. Moving it into the subject's domain buys you cross-organizational scale. You can have either without the other, and most systems that claim the second have only bought the first.
 
-The **when** axis has a cost that shows up later in this series and is worth naming now: a decision settled in advance is a decision that can go stale. The third article takes apart exactly which of `f`'s four arguments can move underneath you between the moment of decision and the moment of effect.
+The **when** axis has a cost that shows up later in this series and is worth naming now: a decision settled in advance is a decision that can go stale. Part 3 takes apart exactly which of `f`'s four arguments can move underneath you between the moment of decision and the moment of effect.
 
 ### Tokens as reified decisions
 
@@ -323,7 +322,7 @@ Macaroons, JWTs, and OAuth access tokens are none of the architectures discussed
 
 The "cached decision" framing is close but not exact. A verifier still checks signature, issuer, audience, and expiry, and often consults current resource state. A JWT frequently carries *claims* from which the resource server makes a fresh decision rather than a final allow.
 
-[Macaroons](https://static.googleusercontent.com/media/research.google.com/en/us/pubs/archive/41892.pdf) go furthest. A holder can attenuate one by appending caveats — repository, method, time window, request budget, a required third-party discharge — without the root key and without going back to the issuer:
+[Macaroons][macaroons-cookies-with-contextual] go furthest. A holder can attenuate one by appending caveats — repository, method, time window, request budget, a required third-party discharge — without the root key and without going back to the issuer:
 
 ```text
 may access GitHub
@@ -376,7 +375,7 @@ The five concerns say what a complete system has to cover. They say nothing abou
 
 **Recoverable when it denies.** A policy that cannot be widened without a deploy is a policy that gets widened to `*` in advance. The cost of granting a legitimate exception is a security property, not an ergonomics complaint, and it is the one that decides whether the system is still enforcing anything six months later.
 
-**Bounded when it is wrong.** Every policy is wrong sometimes. What matters then is what the decision point can do on its worst day, which is a fact about the authority it holds rather than about the rules it evaluates. The [third article](/programming/authority-enforcement.html) makes this the question people skip.
+**Bounded when it is wrong.** Every policy is wrong sometimes. What matters then is what the decision point can do on its worst day, which is a fact about the authority it holds rather than about the rules it evaluates. [Part 3](/programming/authority-enforcement.html) makes this the question people skip.
 
 ## Where this leaves us
 
@@ -386,16 +385,28 @@ We have a way to say what authority exists, a way to say who may change it, and 
 
 And none of it stops anything. A representation is a description. A program that ignores the description is not violating the model — it is operating outside it. Something has to make the description true: has to guarantee that every attempt to cause an effect actually encounters the check, that the check cannot be tampered with, and that no path around it exists.
 
-That is the reference monitor, and it is the third article.
+That is the reference monitor, and it is Part 3.
 
 ## References
 
-- [The State of the Union of Authorization](https://idpro.org/the-state-of-the-union-of-authorization/) — the landscape diagram
-- [Protection](https://www.microsoft.com/en-us/research/publication/protection/) — Lampson, 1974; the access matrix
-- [From ABAC to ZBAC: The Evolution of Access Control Models](https://shiftleft.com/mirrors/www.hpl.hp.com/techreports/2009/HPL-2009-30.pdf) — Karp, Haury, Davis; the four steps, and the observation that the matrix has no theory of its own mutation
-- [Type Enforcement](https://en.wikipedia.org/wiki/Type_enforcement) — why the MAC/RBAC relationship is not a simple ladder
-- [The Ultimate Guide to Choosing the Right Authorization Language](https://axiomatics.com/wp-content/uploads/2024/10/the-ultimate-guide-to-choosing-the-right-authorization-language-whitepaper-axiomatics-10-16-2024.pdf) — XACML versus Rego
-- [Zanzibar: Google's Consistent, Global Authorization System](https://research.google/pubs/pub48190/) — relationship-based authorization
-- [Macaroons: Cookies with Contextual Caveats](https://static.googleusercontent.com/media/research.google.com/en/us/pubs/archive/41892.pdf) — attenuable bearer capabilities
-- [JWT, RFC 7519](https://www.rfc-editor.org/rfc/rfc7519.html) and [OAuth 2.0, RFC 6749](https://www.rfc-editor.org/rfc/rfc6749.html)
-- [AuthZEN](https://openid.net/wg/authzen/) — standardizing the decision-point interface
+1. [The State of the Union of Authorization][state-union-authorization] — the landscape diagram
+2. [Protection][protection] — Lampson, 1974; the access matrix
+3. [From ABAC to ZBAC: The Evolution of Access Control Models][from-abac-zbac-evolution] — Karp, Haury, Davis; the four steps, and the observation that the matrix has no theory of its own mutation
+4. [Type Enforcement][type-enforcement] — why the MAC/RBAC relationship is not a simple ladder
+5. [The Ultimate Guide to Choosing the Right Authorization Language][ultimate-guide-choosing-right] — XACML versus Rego
+6. [Zanzibar: Google's Consistent, Global Authorization System][zanzibar-google-s-consistent] — relationship-based authorization
+7. [Macaroons: Cookies with Contextual Caveats][macaroons-cookies-with-contextual] — attenuable bearer capabilities
+8. [JWT, RFC 7519][jwt-rfc-7519] and [OAuth 2.0, RFC 6749][oauth-2-0-rfc]
+9. [AuthZEN][authzen] — standardizing the decision-point interface; its [information model][authzen-spec] is where the subject/action/resource/context request is defined
+
+[authzen]: https://openid.net/wg/authzen/ "AuthZEN - OpenID Foundation working group"
+[authzen-spec]: https://openid.net/specs/authorization-api-1_0.html#name-information-model "Authorization API 1.0: information model - OpenID Foundation"
+[from-abac-zbac-evolution]: https://shiftleft.com/mirrors/www.hpl.hp.com/techreports/2009/HPL-2009-30.pdf "From ABAC to ZBAC: The Evolution of Access Control Models"
+[jwt-rfc-7519]: https://www.rfc-editor.org/rfc/rfc7519.html "JWT, RFC 7519"
+[macaroons-cookies-with-contextual]: https://static.googleusercontent.com/media/research.google.com/en/us/pubs/archive/41892.pdf "Macaroons: Cookies with Contextual Caveats"
+[oauth-2-0-rfc]: https://www.rfc-editor.org/rfc/rfc6749.html "OAuth 2.0, RFC 6749"
+[protection]: https://www.microsoft.com/en-us/research/publication/protection/ "Protection"
+[state-union-authorization]: https://idpro.org/the-state-of-the-union-of-authorization/ "The State of the Union of Authorization"
+[type-enforcement]: https://en.wikipedia.org/wiki/Type_enforcement "Type Enforcement"
+[ultimate-guide-choosing-right]: https://axiomatics.com/wp-content/uploads/2024/10/the-ultimate-guide-to-choosing-the-right-authorization-language-whitepaper-axiomatics-10-16-2024.pdf "The Ultimate Guide to Choosing the Right Authorization Language"
+[zanzibar-google-s-consistent]: https://research.google/pubs/pub48190/ "Zanzibar: Google's Consistent, Global Authorization System"

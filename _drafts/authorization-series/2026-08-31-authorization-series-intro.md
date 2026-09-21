@@ -22,18 +22,6 @@ That shape is the settled part. The industry converged on it and then standardiz
 
 Those three sort into the two halves people usually mean by *policy* and *mechanism*. Representation and mutation are the policy half — what the rules are and who edits them. Enforcement is the mechanism half. Both are answers, and an answer is only as good as the question it was measured against: every claim in this series — non-bypassable, unnameable, correct — is a claim about one specific adversary, and the same mechanism goes from sufficient to decorative when that adversary changes. So the series opens with a prologue on who the adversary is, and where they have sat over the last fifty years.
 
-## The word that breaks the survey
-
-One word appears in every part of this series and means something different each time. "Capability" names at least four distinct things: a row of the access matrix, a scoped token, an artifact carrying its own caveats, and an unforgeable reference that is simultaneously how you name a thing and your authority over it.
-
-Most arguments about capabilities are arguments about different ones, and most of the famous objections are true of some and false of others. Sorting that out matters because exactly one of the four buys a structural property the rest cannot, and it lives in a concern that barely gets treated as authorization at all: **how subjects reach objects in the first place.** Policy, delegation, and credential formats have had twenty good years. Communication has had almost none.
-
-## Why agents force the issue
-
-The last part is a worked example, and it is the one that stresses every assumption above. An LLM agent inverts the usual arrangement: data it reads becomes instructions it follows, the confined workload is also a delegate acting for a user, and its authority is not known until it runs. Compute isolation does nothing about any of this — a process in a perfectly isolated VM can still exfiltrate a repository through an allowed API or spend a credential's full administrative authority.
-
-What is needed is a replaceable compute sandbox coupled to a non-bypassable capability gateway: one reference monitor whose two required properties happen to come from different technologies. Drop either half and you do not have a weaker sandbox. You have no reference monitor at all.
-
 ## The articles
 
 - **[Prologue: Who is the adversary](/programming/who-is-the-adversary.html)** — five positions the attacker has occupied, from a stranger at the gate to the data your delegate reads. Why identity stopped being the useful thing to key on, and where to find a technical threat model.

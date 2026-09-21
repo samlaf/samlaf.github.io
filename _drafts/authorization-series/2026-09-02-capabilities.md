@@ -39,14 +39,13 @@ date:   2026-09-02
 - [Where the property can be bought](#where-the-property-can-be-bought)
 - [References](#references)
 
-
 The [previous article](/programming/authorization-models.html) ended by splitting authorization into five concerns and noting that four of them — policy, delegation, credential format, identity — are where the industry has spent twenty years. The fifth is communication, and it is where the only structural difference between capabilities and everything else lives.
 
 This article is about that difference. It is also about a word that has been ruined by overuse. "Capability" names at least four distinct things, the arguments people have about capabilities are usually arguments about different ones, and most of the famous objections are true of some and false of others.
 
 ## Four things get called capabilities
 
-Miller, Yee and Shapiro's [Capability Myths Demolished](https://cgi.cse.unsw.edu.au/~cs9242/20/papers/Miller_YS_03.pdf) is the paper that sorts this out, and its central move is to define four models rather than two.
+Miller, Yee and Shapiro's [Capability Myths Demolished][capability-myths-demolished] is the paper that sorts this out, and its central move is to define four models rather than two.
 
 ```text
 Model 1   ACLs as columns
@@ -120,7 +119,7 @@ The two vocabularies are worth holding at once. Miller is describing an object g
 
 ### The confused deputy is structural
 
-Norm Hardy's [The Confused Deputy](https://www.cs.utexas.edu/~witchel/S25-380L/papers/hardy88confused.pdf) is the canonical failure. A compiler holds write access to a billing file. A user invokes it and names the billing file as the destination for debugging output. The compiler overwrites the billing data, because it *can*, and because the request named a path rather than carrying a reference.
+Norm Hardy's [The Confused Deputy][confused-deputy] is the canonical failure. A compiler holds write access to a billing file. A user invokes it and names the billing file as the destination for debugging output. The compiler overwrites the billing data, because it *can*, and because the request named a path rather than carrying a reference.
 
 The usual reading is that the compiler was careless. Miller's reading is sharper:
 
@@ -261,7 +260,7 @@ Karp's summary is that "in many cases, neither nor both is correct." A Navy eval
 
 Under ZBAC there is no question of credentials. Alice delegates the input capability to Bob. Bob delegates it onward to Carol along with the output capability. Carol ends with exactly what the job needs, and it can be revoked when the job completes.
 
-Keep this shape in mind. The fourth article is about agents calling tools that call other agents, and this is that problem with different nouns.
+Keep this shape in mind. Part 4 is about agents calling tools that call other agents, and this is that problem with different nouns.
 
 ### The control you think you have
 
@@ -292,16 +291,16 @@ Three axes are now in play, and the rest of the series keeps them apart:
 ```text
 granularity   how small is the principal?              this article
 designation   selected and joined, or ambient?         this article
-enforcement   unnameability or adjudication?           article three
+enforcement   unnameability or adjudication?           Part 3
 ```
 
-They are independent. `chroot` removes names while leaving ambient authority intact over everything still visible, so it buys unnameability without buying designation. A container is fine-grained and fully ambient. The mechanisms for the extrinsic route are article three's subject.
+They are independent. `chroot` removes names while leaving ambient authority intact over everything still visible, so it buys unnameability without buying designation. A container is fine-grained and fully ambient. The mechanisms for the extrinsic route are Part 3's subject.
 
 It is worth seeing those two routes as a matched pair rather than as two unrelated topics, because they are aiming at the same thing. Both are trying to make a subject's row in the [square matrix](/programming/authorization-models.html#make-both-axes-the-same-set) small. Construction starts from an empty row and adds by reference-passing; subtraction starts from a full one and cuts columns away. The reason both exist is that construction asks the program to cooperate — to accept a reference instead of opening a path — and most programs were not written to. Subtraction asks the program for nothing, which is why it is what you reach for when you did not write the binary.
 
 ## The three objections
 
-Saltzer and Schroeder saw the problem in 1975 and argued against capabilities — gently, and at the end of a section, but unmistakably. [The Protection of Information in Computer Systems](https://www.cs.virginia.edu/~evans/cs551/saltzer/) raises three:
+Saltzer and Schroeder saw the problem in 1975 and argued against capabilities — gently, and at the end of a section, but unmistakably. [The Protection of Information in Computer Systems][protection-information-computer-systems] raises three:
 
 1. **Revocation.** You cannot un-give a reference.
 2. **Propagation control.** Alice can pass it to anyone, and you cannot see or stop it.
@@ -365,7 +364,7 @@ Which also explains what the systems that shipped this actually did. Capsicum, `
 
 ### Complete over the intended state, not the reachable state
 
-A relationship store like [Zanzibar](https://research.google/pubs/pub48190/) answers the review question directly, and its tuple graph is a complete picture of policy. But policy binds only where the code consults the decision point. The service still holds ambient credentials to the database. A code path that opens a connection directly, a deserialization bug, a compromised dependency — none of those appear in the graph, and none are stopped by it. The audit is complete over the state you **intended**, not the state a compromised process can **reach**.
+A relationship store like [Zanzibar][zanzibar-google-s-consistent] answers the review question directly, and its tuple graph is a complete picture of policy. But policy binds only where the code consults the decision point. The service still holds ambient credentials to the database. A code path that opens a connection directly, a deserialization bug, a compromised dependency — none of those appear in the graph, and none are stopped by it. The audit is complete over the state you **intended**, not the state a compromised process can **reach**.
 
 Object capabilities invert this exactly. There is no global view. But what you can see is reachability itself, and reachability is the thing that constrains a compromised component.
 
@@ -402,11 +401,11 @@ It is a physical key that dissolves after an hour, only works during business ho
 
 ![image](/assets/authorization/mechanism-policy-separation.png)
 
-The generalization is that **policy/mechanism separation is not a binary but a question of where the seam sits**. You can push the seam down to the lock, out to a database, or into the credential. The fourth article's whole architecture is a specific choice about where to put that seam for agents.
+The generalization is that **policy/mechanism separation is not a binary but a question of where the seam sits**. You can push the seam down to the lock, out to a database, or into the credential. Part 4's whole architecture is a specific choice about where to put that seam for agents.
 
 ## Local authority versus global knowledge
 
-Lampson states the administrative case bluntly in [a 2020 retrospective](https://arxiv.org/pdf/2011.02455):
+Lampson states the administrative case bluntly in [a 2020 retrospective][authorization-lampson]:
 
 > Only ACLs work for managing the policy, because the manager's question is, "Who has access to this resource?" It's okay to make short-term copies of parts of it into capabilities (usually called file descriptors), which are faster to check.
 
@@ -500,25 +499,44 @@ The gap in between is a missing standard rather than a law of nature, and Karp h
 
 > There is no standard for chained, attenuated delegation, which is an opportunity for an IEEE standards group. […] We must start on these standards before the IoT world becomes embedded in our lives. If we don't, we'll end up with walled gardens, an AOL of Things.
 
-The fourth article is about a system that has the substrate and threw the property away.
+Part 4 is about a system that has the substrate and threw the property away.
 
 ## References
 
-- [Capability Myths Demolished](https://cgi.cse.unsw.edu.au/~cs9242/20/papers/Miller_YS_03.pdf) — Miller, Yee, Shapiro; the four models and the six properties
-- [Robust Composition](http://www.erights.org/talks/thesis/markm-thesis.pdf) — Miller's thesis; ambient versus excess authority, and "only connectivity begets connectivity"
-- [From ABAC to ZBAC: The Evolution of Access Control Models](https://shiftleft.com/mirrors/www.hpl.hp.com/techreports/2009/HPL-2009-30.pdf) — Karp, Haury, Davis; NBAC versus ZBAC, service chaining, and the four steps
-- [Access Control for IoT: A Position Paper](https://alanhkarp.com/publications/Access-Control-for-IoT.pdf) — Karp; the six aspects of sharing, and why delegation control is an illusion
-- [The Confused Deputy](https://www.cs.utexas.edu/~witchel/S25-380L/papers/hardy88confused.pdf) — Hardy, 1988
-- [The Protection of Information in Computer Systems](https://www.cs.virginia.edu/~evans/cs551/saltzer/) — Saltzer and Schroeder; the three objections and the recommendation that shaped every mainstream OS
-- [Authorization (Lampson)](https://arxiv.org/pdf/2011.02455) — the "caps are cached ACL decisions" position
-- [Macaroons: Cookies with Contextual Caveats](https://static.googleusercontent.com/media/research.google.com/en/us/pubs/archive/41892.pdf) — attenuable bearer capabilities
-- [Objects as Secure Capabilities](https://joeduffyblog.com/2015/11/10/objects-as-secure-capabilities/) — Duffy on Midori; the capability oracle at `main`, no mutable statics, and where it fell short
-- [Capsicum: Practical Capabilities for UNIX](https://www.usenix.org/conference/usenixsecurity10/capsicum-practical-capabilities-unix) — ambient authority removed from a real Unix
-- [E and CapDesk: POLA for the Distributed Desktop](https://web.archive.org/web/2020/http://www.combex.com/tech/edesk.html) — Stiegler and Miller; designation as authorization in a user interface
-- [Joe-E: A Security-Oriented Subset of Java](https://www.cs.berkeley.edu/~daw/papers/joe-e-ndss10.pdf) — Mettler, Wagner, Close; object references as capabilities, enforced by a verifier
-- [Waterken](http://waterken.sourceforge.net/) — object capabilities as HTTPS URLs
-- [The OAuth 2.0 Authorization Framework - RFC 6749](https://datatracker.ietf.org/doc/html/rfc6749)
-- [Best Current Practice for OAuth 2.0 Security - RFC 9700](https://datatracker.ietf.org/doc/html/rfc9700)
-- [Grant Negotiation and Authorization Protocol (GNAP) - RFC 9635](https://datatracker.ietf.org/doc/html/rfc9635) — key-bound tokens by default, and the ecosystem that did not follow
-- [OAuth 2.0 and the Road to Hell](https://hueniverse.com/oauth-2-0-and-the-road-to-hell-8eec45921529) — Hammer's resignation over framework-versus-protocol
-- [Zanzibar: Google's Consistent, Global Authorization System](https://research.google/pubs/pub48190/) — relationship-based authorization and reverse indexability
+1. [Capability Myths Demolished][capability-myths-demolished] — Miller, Yee, Shapiro; the four models and the six properties
+2. [Robust Composition][robust-composition] — Miller's thesis; ambient versus excess authority, and "only connectivity begets connectivity"
+3. [From ABAC to ZBAC: The Evolution of Access Control Models][from-abac-zbac-evolution] — Karp, Haury, Davis; NBAC versus ZBAC, service chaining, and the four steps
+4. [Access Control for IoT: A Position Paper][access-control-iot-position] — Karp; the six aspects of sharing, and why delegation control is an illusion
+5. [The Confused Deputy][confused-deputy] — Hardy, 1988
+6. [The Protection of Information in Computer Systems][protection-information-computer-systems] — Saltzer and Schroeder; the three objections and the recommendation that shaped every mainstream OS
+7. [Authorization (Lampson)][authorization-lampson] — the "caps are cached ACL decisions" position
+8. [Macaroons: Cookies with Contextual Caveats][macaroons-cookies-with-contextual] — attenuable bearer capabilities
+9. [Objects as Secure Capabilities][objects-as-secure-capabilities] — Duffy on Midori; the capability oracle at `main`, no mutable statics, and where it fell short
+10. [Capsicum: Practical Capabilities for UNIX][capsicum-practical-capabilities-unix] — ambient authority removed from a real Unix
+11. [E and CapDesk: POLA for the Distributed Desktop][e-capdesk-pola-distributed] — Stiegler and Miller; designation as authorization in a user interface
+12. [Joe-E: A Security-Oriented Subset of Java][joe-e-security-oriented] — Mettler, Wagner, Close; object references as capabilities, enforced by a verifier
+13. [Waterken][waterken] — object capabilities as HTTPS URLs
+14. [The OAuth 2.0 Authorization Framework - RFC 6749][oauth-2-0-authorization]
+15. [Best Current Practice for OAuth 2.0 Security - RFC 9700][best-current-practice-oauth]
+16. [Grant Negotiation and Authorization Protocol (GNAP) - RFC 9635][grant-negotiation-authorization-protocol] — key-bound tokens by default, and the ecosystem that did not follow
+17. [OAuth 2.0 and the Road to Hell][oauth-2-0-road] — Hammer's resignation over framework-versus-protocol
+18. [Zanzibar: Google's Consistent, Global Authorization System][zanzibar-google-s-consistent] — relationship-based authorization and reverse indexability
+
+[access-control-iot-position]: https://alanhkarp.com/publications/Access-Control-for-IoT.pdf "Access Control for IoT: A Position Paper"
+[authorization-lampson]: https://arxiv.org/pdf/2011.02455 "Authorization (Lampson)"
+[best-current-practice-oauth]: https://datatracker.ietf.org/doc/html/rfc9700 "Best Current Practice for OAuth 2.0 Security - RFC 9700"
+[capability-myths-demolished]: https://cgi.cse.unsw.edu.au/~cs9242/20/papers/Miller_YS_03.pdf "Capability Myths Demolished"
+[capsicum-practical-capabilities-unix]: https://www.usenix.org/conference/usenixsecurity10/capsicum-practical-capabilities-unix "Capsicum: Practical Capabilities for UNIX"
+[confused-deputy]: https://www.cs.utexas.edu/~witchel/S25-380L/papers/hardy88confused.pdf "The Confused Deputy"
+[e-capdesk-pola-distributed]: https://web.archive.org/web/2020/http://www.combex.com/tech/edesk.html "E and CapDesk: POLA for the Distributed Desktop"
+[from-abac-zbac-evolution]: https://shiftleft.com/mirrors/www.hpl.hp.com/techreports/2009/HPL-2009-30.pdf "From ABAC to ZBAC: The Evolution of Access Control Models"
+[grant-negotiation-authorization-protocol]: https://datatracker.ietf.org/doc/html/rfc9635 "Grant Negotiation and Authorization Protocol (GNAP) - RFC 9635"
+[joe-e-security-oriented]: https://www.cs.berkeley.edu/~daw/papers/joe-e-ndss10.pdf "Joe-E: A Security-Oriented Subset of Java"
+[macaroons-cookies-with-contextual]: https://static.googleusercontent.com/media/research.google.com/en/us/pubs/archive/41892.pdf "Macaroons: Cookies with Contextual Caveats"
+[oauth-2-0-authorization]: https://datatracker.ietf.org/doc/html/rfc6749 "The OAuth 2.0 Authorization Framework - RFC 6749"
+[oauth-2-0-road]: https://hueniverse.com/oauth-2-0-and-the-road-to-hell-8eec45921529 "OAuth 2.0 and the Road to Hell"
+[objects-as-secure-capabilities]: https://joeduffyblog.com/2015/11/10/objects-as-secure-capabilities/ "Objects as Secure Capabilities"
+[protection-information-computer-systems]: https://www.cs.virginia.edu/~evans/cs551/saltzer/ "The Protection of Information in Computer Systems"
+[robust-composition]: http://www.erights.org/talks/thesis/markm-thesis.pdf "Robust Composition"
+[waterken]: http://waterken.sourceforge.net/ "Waterken"
+[zanzibar-google-s-consistent]: https://research.google/pubs/pub48190/ "Zanzibar: Google's Consistent, Global Authorization System"

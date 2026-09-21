@@ -22,6 +22,7 @@ date: 2026-08-31
 - [Aside — three rungs and two side doors](#aside--three-rungs-and-two-side-doors)
 - [What is actually being protected](#what-is-actually-being-protected)
 - [Where to get a technical threat model](#where-to-get-a-technical-threat-model)
+- [References](#references)
 
 Every mechanism in this series exists to stop someone. A list at a resource, a reference in a subject's hand, a monitor in the path — each is a claim about *someone*: non-bypassable by whom, unnameable to whom, correct against what. Change the adversary and the same mechanism goes from sufficient to decorative without a line of it changing.
 
@@ -93,8 +94,20 @@ The practical difference is in what you end up enumerating. Inventory data and y
 
 This prologue is a lens, not a checklist. It says where the adversary sits and why the series is organized the way it is. It does not enumerate threat categories, score mechanisms, or give you a coverage matrix, and for real deployment work you want all three. Three documents do that job well:
 
-- **[The Agent Sandbox Taxonomy](https://github.com/kajogo777/the-agent-sandbox-taxonomy)** decomposes agent sandboxing into seven defense layers and seven threat categories, scores each mechanism on strength, granularity and portability, and publishes fingerprints for a couple of dozen products. Its strength ladder — cooperative, software-enforced, kernel-enforced, structural — is the same distinction [Part 4](/programming/llm-sandbox.html) arrives at independently, which is some evidence that the distinction is real.
-- **[OWASP's Top 10 for LLM Applications](https://owasp.org/www-project-top-10-for-large-language-model-applications/)** and the **[Agentic AI Threats and Mitigations](https://genai.owasp.org/resource/agentic-ai-threats-and-mitigations/)** work from the Agentic Security Initiative are the standards-body enumeration, and the right thing to audit a deployment against.
-- **[MITRE ATLAS](https://atlas.mitre.org/)** supplies tactics, techniques and real case studies in the ATT&CK idiom, for anyone who already thinks in that vocabulary.
+- **[The Agent Sandbox Taxonomy][agent-sandbox-taxonomy]** decomposes agent sandboxing into seven defense layers and seven threat categories, scores each mechanism on strength, granularity and portability, and publishes fingerprints for a couple of dozen products. Its strength ladder — cooperative, software-enforced, kernel-enforced, structural — is the same distinction [Part 4](/programming/llm-sandbox.html) arrives at independently, which is some evidence that the distinction is real.
+- **[OWASP's Top 10 for LLM Applications][owasp-top-10-llm]** and the **[Agentic AI Threats and Mitigations][agentic-ai-threats-mitigations]** work from the Agentic Security Initiative are the standards-body enumeration, and the right thing to audit a deployment against.
+- **[MITRE ATLAS][mitre-atlas]** supplies tactics, techniques and real case studies in the ATT&CK idiom, for anyone who already thinks in that vocabulary.
 
 One place I read the taxonomy differently, since it bears on the whole series. AST rules prompt injection, hallucination and misalignment out of scope as *vectors* rather than threats, on the grounds that a sandbox governs what an agent can do rather than what it chooses to do, and that choosing is an alignment problem. The first half is right and the framing is useful. But the conclusion I draw is the opposite one: injection is a confused deputy, which is an authorization failure with a fifty-year-old structural cure, and treating it as somebody else's department is how it keeps getting answered with better judgment instead of less authority. Position three in this article is the argument, and [Part 4](/programming/llm-sandbox.html) is the case.
+
+## References
+
+1. [The Agent Sandbox Taxonomy][agent-sandbox-taxonomy] — seven defense layers, seven threat categories, and a strength ladder
+2. [OWASP's Top 10 for LLM Applications][owasp-top-10-llm] — the standards-body enumeration
+3. [Agentic AI Threats and Mitigations][agentic-ai-threats-mitigations] — the Agentic Security Initiative follow-on
+4. [MITRE ATLAS][mitre-atlas] — tactics, techniques and case studies in the ATT&CK idiom
+
+[agent-sandbox-taxonomy]: https://github.com/kajogo777/the-agent-sandbox-taxonomy "The Agent Sandbox Taxonomy"
+[agentic-ai-threats-mitigations]: https://genai.owasp.org/resource/agentic-ai-threats-and-mitigations/ "Agentic AI Threats and Mitigations"
+[mitre-atlas]: https://atlas.mitre.org/ "MITRE ATLAS"
+[owasp-top-10-llm]: https://owasp.org/www-project-top-10-for-large-language-model-applications/ "OWASP's Top 10 for LLM Applications"
