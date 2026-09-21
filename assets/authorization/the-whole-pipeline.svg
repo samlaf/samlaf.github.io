@@ -1,0 +1,282 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1520 1282" width="1520" height="1282" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#334155"/></marker>
+    <marker id="at" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#0f7d8c"/></marker>
+    <marker id="ap" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5b5bd6"/></marker>
+    <marker id="am" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#a33b7a"/></marker>
+    <marker id="ao" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#c2793a"/></marker>
+    <marker id="asm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#475569"/></marker>
+  </defs>
+
+  <rect width="1520" height="1282" fill="#fdfdfc"/>
+
+  <text x="36" y="34" font-size="21" font-weight="700" fill="#0f172a">The whole pipeline</text>
+  <text x="36" y="56" font-size="12" fill="#64748b">Karp's four steps of access control, with every component placed under the step it performs — and, below, the three axes that cut across all of them.</text>
+
+  <rect x="36" y="74" width="596" height="22" rx="4" fill="#eceafb"/>
+  <text x="334" y="89" font-size="10.5" font-weight="700" letter-spacing="1.6" fill="#4f46b8" text-anchor="middle">IDENTITY</text>
+  <rect x="648" y="74" width="836" height="22" rx="4" fill="#e4f2f4"/>
+  <text x="1066" y="89" font-size="10.5" font-weight="700" letter-spacing="1.6" fill="#0f6d7a" text-anchor="middle">AUTHORIZATION</text>
+
+  <text x="176" y="122" font-size="13" font-weight="700" fill="#0f172a" text-anchor="middle">1 · IDENTIFICATION</text>
+  <text x="176" y="140" font-size="10.5" fill="#64748b" text-anchor="middle">whom to hold responsible</text>
+  <text x="486" y="122" font-size="13" font-weight="700" fill="#0f172a" text-anchor="middle">2 · AUTHENTICATION</text>
+  <text x="486" y="140" font-size="10.5" fill="#64748b" text-anchor="middle">the right to use an identity</text>
+  <text x="866" y="122" font-size="13" font-weight="700" fill="#0f172a" text-anchor="middle">3 · AUTHORIZATION</text>
+  <text x="866" y="140" font-size="10.5" fill="#64748b" text-anchor="middle">granting a permission</text>
+  <text x="1292" y="122" font-size="13" font-weight="700" fill="#0f172a" text-anchor="middle">4 · ACCESS DECISION</text>
+  <text x="1292" y="140" font-size="10.5" fill="#64748b" text-anchor="middle">honoring a particular request</text>
+
+  <line x1="636" y1="72" x2="636" y2="600" stroke="#c2793a" stroke-width="1.4" stroke-dasharray="7 5"/>
+  <text transform="translate(628,478) rotate(-90)" font-size="10.5" font-style="italic" fill="#b4671f">the id_token / access_token seam</text>
+
+  <!-- ══ 1 · identification ══ -->
+  <rect x="40" y="166" width="272" height="112" rx="7" fill="#f2f1fd" stroke="#5b5bd6" stroke-width="1.5"/>
+  <rect x="242" y="173" width="62" height="16" rx="8" fill="#eceafb" stroke="#b9b7ea"/>
+  <text x="273" y="184.5" font-size="8" font-weight="700" letter-spacing="0.6" fill="#4f46b8" text-anchor="middle">OPTIONAL</text>
+  <text x="54" y="189" font-size="13.5" font-weight="700" fill="#3b3aa8">BINDING AUTHORITY</text>
+  <text x="54" y="209" font-size="11" fill="#334155">CA · OIDC provider · SPIFFE server</text>
+  <text x="54" y="226" font-size="11" fill="#334155">TPM / confidential-VM attestation</text>
+  <text x="54" y="247" font-size="10" font-style="italic" fill="#6b6bb8">writes  name ← K  ·  who may write it, for how long</text>
+  <text x="54" y="266" font-size="10" font-style="italic" fill="#b4671f">needed only when the check needs a name</text>
+
+  <rect x="54" y="294" width="244" height="58" rx="7" fill="#fff" stroke="#5b5bd6" stroke-width="1.2" stroke-dasharray="4 3"/>
+  <rect x="54" y="294" width="5" height="58" rx="2.5" fill="#5b5bd6"/>
+  <text x="70" y="313" font-size="11" font-weight="700" fill="#3b3aa8">identity credential</text>
+  <text x="70" y="329" font-size="10" fill="#334155">certificate · id_token · SVID</text>
+  <text x="70" y="344" font-size="10" fill="#334155">attestation report · Kerberos TGT</text>
+  <line x1="176" y1="278" x2="176" y2="290" stroke="#5b5bd6" stroke-width="1.4" marker-end="url(#ap)"/>
+  <text x="54" y="370" font-size="9.5" font-style="italic" fill="#6b6bb8">SPKI, 1999: an authorization certificate</text>
+  <text x="54" y="383" font-size="9.5" font-style="italic" fill="#6b6bb8">skips the name certificate entirely.</text>
+
+  <rect x="40" y="398" width="272" height="94" rx="7" fill="#faf9fe" stroke="#b9b7ea" stroke-width="1.2"/>
+  <text x="54" y="419" font-size="10.5" font-weight="700" letter-spacing="0.8" fill="#3b3aa8">THREE KINDS OF PRINCIPAL</text>
+  <text x="54" y="439" font-size="10.5" fill="#334155">hosts — DNS name, Web PKI, CT, ACME</text>
+  <text x="54" y="455" font-size="10.5" fill="#334155">humans — account, IdP, session, recovery</text>
+  <text x="54" y="471" font-size="10.5" fill="#334155">workloads — platform, SPIFFE, attestation</text>
+  <text x="54" y="487" font-size="10" font-style="italic" fill="#6b6bb8">one lens — who writes the binding, and for how long</text>
+
+  <!-- ══ 2 · authentication ══ -->
+  <rect x="356" y="166" width="258" height="112" rx="7" fill="#f2f1fd" stroke="#5b5bd6" stroke-width="1.5"/>
+  <text x="370" y="189" font-size="13.5" font-weight="700" fill="#3b3aa8">PROOF OF POSSESSION</text>
+  <text x="370" y="208" font-size="10.5" font-weight="700" fill="#6b6bb8">authenticate whom?</text>
+  <text x="370" y="225" font-size="10.5" fill="#334155">the subject — TLS, passkey, mTLS, DPoP</text>
+  <text x="370" y="241" font-size="10.5" fill="#334155">or the artifact itself — a bearer string</text>
+  <text x="370" y="256" font-size="10.5" fill="#334155">is its own credential, if it stays secret</text>
+  <text x="370" y="272" font-size="10" font-style="italic" fill="#b4671f">copy it and you have copied the authority</text>
+  <path d="M302,316 C336,316 344,302 352,286" fill="none" stroke="#5b5bd6" stroke-width="1.4" marker-end="url(#ap)"/>
+  <text x="356" y="304" font-size="10" font-style="italic" fill="#6b6bb8">cryptography gets you this far and no further</text>
+  <line x1="618" y1="196" x2="648" y2="196" stroke="#5b5bd6" stroke-width="1.4" marker-end="url(#ap)"/>
+
+  <!-- ══ 3 · the decision plane ══ -->
+  <rect x="652" y="166" width="190" height="80" rx="7" fill="#e4f2f4" stroke="#0f7d8c" stroke-width="1.5"/>
+  <text x="664" y="188" font-size="13.5" font-weight="700" fill="#0b5f6b">PIP</text>
+  <text x="698" y="188" font-size="9.5" fill="#4b7d85">policy information point</text>
+  <text x="664" y="208" font-size="10.5" fill="#334155">attributes, roles, relationships,</text>
+  <text x="664" y="224" font-size="10.5" fill="#334155">attestations, device posture</text>
+  <text x="664" y="240" font-size="10" font-style="italic" fill="#4b7d85">everything mutable lives here</text>
+
+  <rect x="892" y="166" width="190" height="80" rx="7" fill="#e4f2f4" stroke="#0f7d8c" stroke-width="1.5"/>
+  <text x="904" y="188" font-size="13.5" font-weight="700" fill="#0b5f6b">PAP</text>
+  <text x="940" y="188" font-size="9.5" fill="#4b7d85">policy administration point</text>
+  <text x="904" y="208" font-size="10.5" fill="#334155">who may change the answer</text>
+  <text x="904" y="224" font-size="10.5" fill="#334155">DAC · MAC · RBAC · ReBAC</text>
+  <text x="904" y="240" font-size="10" font-style="italic" fill="#4b7d85">an OAuth consent screen is a PAP</text>
+
+  <rect x="700" y="290" width="340" height="106" rx="7" fill="#d5eaee" stroke="#0f7d8c" stroke-width="2"/>
+  <text x="716" y="316" font-size="17" font-weight="700" fill="#0b5f6b">PDP</text>
+  <text x="762" y="316" font-size="10" fill="#4b7d85">policy decision point — must be correct</text>
+  <text x="716" y="343" font-size="12.5" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" fill="#0f172a">f(subject, action, resource, context)</text>
+  <text x="716" y="362" font-size="12.5" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" fill="#0f172a">      → allow | deny</text>
+  <text x="716" y="384" font-size="10" font-style="italic" fill="#4b7d85">OAuth authorization server · ZTA policy engine</text>
+  <line x1="747" y1="246" x2="775" y2="286" stroke="#0f7d8c" stroke-width="1.4" marker-end="url(#at)"/>
+  <line x1="987" y1="246" x2="960" y2="286" stroke="#0f7d8c" stroke-width="1.4" marker-end="url(#at)"/>
+
+  <rect x="760" y="424" width="280" height="62" rx="7" fill="#e4f2f4" stroke="#0f7d8c" stroke-width="1.5"/>
+  <text x="772" y="446" font-size="12.5" font-weight="700" fill="#0b5f6b">MINT</text>
+  <text x="814" y="446" font-size="9.5" fill="#4b7d85">materialize the decision</text>
+  <text x="772" y="463" font-size="10.5" fill="#334155">bind to a holder, scope, attenuate, expire</text>
+  <text x="772" y="478" font-size="10" font-style="italic" fill="#4b7d85">ZTA policy administrator · Flask cache + revocation</text>
+  <line x1="870" y1="396" x2="870" y2="420" stroke="#0f7d8c" stroke-width="1.4" marker-end="url(#at)"/>
+
+  <!-- ══ 4 · the data plane ══ -->
+  <rect x="356" y="508" width="258" height="88" rx="7" fill="#f1f5f9" stroke="#334155" stroke-width="1.5"/>
+  <text x="370" y="532" font-size="14" font-weight="700" fill="#0f172a">SUBJECT</text>
+  <text x="370" y="552" font-size="11" fill="#334155">client · process · delegate · agent</text>
+  <text x="370" y="570" font-size="11" fill="#334155">holds credentials and references</text>
+  <text x="370" y="587" font-size="10" font-style="italic" fill="#64748b">the thing whose authority is in question</text>
+  <line x1="486" y1="282" x2="486" y2="504" stroke="#5b5bd6" stroke-width="1.4" marker-end="url(#ap)"/>
+  <text x="494" y="400" font-size="10" fill="#6b6bb8">authenticated principal</text>
+
+  <rect x="1108" y="516" width="214" height="88" rx="7" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.2"/>
+  <rect x="1104" y="512" width="214" height="88" rx="7" fill="#fbfcfd" stroke="#94a3b8" stroke-width="1.2"/>
+  <rect x="1100" y="508" width="214" height="88" rx="7" fill="#fff0e0" stroke="#c2793a" stroke-width="2"/>
+  <text x="1114" y="532" font-size="14" font-weight="700" fill="#8a4e15">PEP</text>
+  <text x="1152" y="532" font-size="9.5" fill="#a8714a">must be unavoidable</text>
+  <text x="1114" y="552" font-size="10.5" fill="#334155">the reference monitor: always invoked,</text>
+  <text x="1114" y="568" font-size="10.5" fill="#334155">tamperproof, verifiable — Anderson 1972</text>
+  <text x="1114" y="586" font-size="10" font-style="italic" fill="#8a4e15">only this box needs the topology property</text>
+  <text x="1100" y="622" font-size="10" fill="#64748b">OAuth resource server · Flask object manager · LSM hook</text>
+  <text x="1100" y="636" font-size="10" fill="#64748b">kernel handle table · capability gateway · tool-call policy</text>
+  <text x="1100" y="654" font-size="10" font-style="italic" fill="#8a4e15">PEPs stack, and each layer fails differently</text>
+
+  <rect x="1356" y="508" width="128" height="88" rx="7" fill="#e7f5ed" stroke="#2f8a5b" stroke-width="1.5"/>
+  <text x="1420" y="546" font-size="13.5" font-weight="700" fill="#1f6b44" text-anchor="middle">RESOURCE</text>
+  <text x="1420" y="566" font-size="10" fill="#334155" text-anchor="middle">the external effect</text>
+  <text x="1420" y="581" font-size="10" fill="#334155" text-anchor="middle">is the unit</text>
+
+  <line x1="618" y1="552" x2="796" y2="552" stroke="#334155" stroke-width="1.6" marker-end="url(#a)"/>
+  <line x1="1054" y1="552" x2="1096" y2="552" stroke="#334155" stroke-width="1.6" marker-end="url(#a)"/>
+  <line x1="1326" y1="552" x2="1352" y2="552" stroke="#334155" stroke-width="1.6" marker-end="url(#a)"/>
+  <text x="660" y="543" font-size="10" fill="#64748b">request</text>
+
+  <rect x="800" y="524" width="250" height="60" rx="7" fill="#fff" stroke="#0f7d8c" stroke-width="1.4" stroke-dasharray="4 3"/>
+  <rect x="800" y="524" width="5" height="60" rx="2.5" fill="#0f7d8c"/>
+  <text x="816" y="544" font-size="11" font-weight="700" fill="#0b5f6b">ARTIFACT — a decision, reified</text>
+  <text x="816" y="560" font-size="10" fill="#334155">access token · macaroon · presigned URL</text>
+  <text x="816" y="575" font-size="10" fill="#334155">Kerberos ticket · opaque lease handle</text>
+  <line x1="870" y1="486" x2="870" y2="520" stroke="#0f7d8c" stroke-width="2" marker-end="url(#at)"/>
+  <text x="880" y="508" font-size="11.5" font-weight="700" fill="#0b5f6b">PUSH</text>
+
+  <path d="M1124,504 L1046,400" fill="none" stroke="#c2793a" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#at)"/>
+  <path d="M1066,396 L1144,500" fill="none" stroke="#c2793a" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#a)"/>
+  <text x="1160" y="452" font-size="11.5" font-weight="700" fill="#8a4e15">PULL</text>
+  <text x="1160" y="470" font-size="10" font-style="italic" fill="#8a4e15">AuthZEN standardizes this</text>
+  <text x="1160" y="483" font-size="10" font-style="italic" fill="#8a4e15">question, not the answer</text>
+
+  <!-- third provenance: delegation, which skips the decision plane entirely -->
+  <rect x="790" y="636" width="300" height="80" rx="7" fill="#fbeef5" stroke="#a33b7a" stroke-width="1.5"/>
+  <text x="804" y="658" font-size="12.5" font-weight="700" fill="#7e2a5c">ANOTHER HOLDER</text>
+  <text x="804" y="676" font-size="10.5" fill="#334155">a peer, a parent, whoever already holds it</text>
+  <text x="804" y="692" font-size="10.5" fill="#334155">hands on a reference — strictly less than it holds</text>
+  <text x="804" y="708" font-size="10" font-style="italic" fill="#a33b7a">no PDP, no store, no round trip, nobody informed</text>
+  <line x1="940" y1="632" x2="940" y2="588" stroke="#a33b7a" stroke-width="2" marker-end="url(#am)"/>
+  <text x="950" y="612" font-size="11.5" font-weight="700" fill="#7e2a5c">DELEGATE</text>
+  <text x="782" y="668" font-size="10" font-style="italic" fill="#64748b" text-anchor="end">authority arrives from above</text>
+  <text x="782" y="682" font-size="10" font-style="italic" fill="#64748b" text-anchor="end">(policy), or from the side (a holder)</text>
+
+  <!-- ══ where ══ -->
+  <rect x="36" y="748" width="560" height="84" rx="6" fill="#fbfaf7" stroke="#e2e0d8"/>
+  <text x="52" y="770" font-size="10.5" font-weight="700" letter-spacing="1" fill="#0f172a">WHERE · in whose domain the decision is made</text>
+  <text x="52" y="790" font-size="10.5" fill="#334155">resource owner's domain — presigned URL, OAuth token</text>
+  <text x="52" y="806" font-size="10.5" fill="#334155">subject's domain — ZBAC, ocap delegation, attenuation</text>
+  <text x="52" y="823" font-size="10" font-style="italic" fill="#64748b">"shift left" is a claim about when; cross-organizational scale comes from where.</text>
+
+  <!-- ══ three provenances ══ -->
+  <rect x="616" y="748" width="868" height="84" rx="6" fill="#fbfaf7" stroke="#e2e0d8"/>
+  <text x="632" y="772" font-size="11" font-weight="700" fill="#0b5f6b">PUSH</text>
+  <text x="712" y="772" font-size="11" fill="#334155">decide in advance, carry the answer — OAuth, presigned URLs, Kerberos tickets</text>
+  <text x="1468" y="772" font-size="10" font-style="italic" fill="#64748b" text-anchor="end">RFC 2904 §3.3</text>
+  <text x="632" y="794" font-size="11" font-weight="700" fill="#8a4e15">PULL</text>
+  <text x="712" y="794" font-size="11" fill="#334155">decide at request time, every time — XACML, AuthZEN, Flask's security server</text>
+  <text x="1468" y="794" font-size="10" font-style="italic" fill="#64748b" text-anchor="end">RFC 2904 §3.2</text>
+  <text x="632" y="816" font-size="11" font-weight="700" fill="#7e2a5c">DELEGATE</text>
+  <text x="712" y="816" font-size="11" fill="#334155">no decision plane at all — a holder hands on a reference. Only the PEP survives.</text>
+  <text x="1468" y="816" font-size="10" font-style="italic" fill="#64748b" text-anchor="end">Miller, Property F</text>
+
+  <!-- ══ when ══ -->
+  <text x="36" y="868" font-size="10.5" font-weight="700" letter-spacing="1" fill="#0f172a">WHEN · how much of the decision the artifact already carries</text>
+  <text x="120" y="888" font-size="10" font-style="italic" fill="#64748b">work moves from request time to issue time  →</text>
+  <line x1="120" y1="908" x2="1400" y2="908" stroke="#cbd5e1" stroke-width="2"/>
+  <line x1="120" y1="908" x2="1400" y2="908" stroke="#0f7d8c" stroke-width="2" marker-end="url(#at)" opacity="0.35"/>
+  <g font-size="10.5" text-anchor="middle">
+    <circle cx="200" cy="908" r="6" fill="#fff" stroke="#5b5bd6" stroke-width="2"/>
+    <text x="200" y="932" font-weight="700" fill="#3b3aa8">identity</text>
+    <text x="200" y="947" fill="#334155">"this is Alice"</text>
+    <text x="200" y="962" font-style="italic" fill="#64748b">verifier decides everything</text>
+
+    <circle cx="600" cy="908" r="6" fill="#fff" stroke="#5b5bd6" stroke-width="2"/>
+    <text x="600" y="932" font-weight="700" fill="#3b3aa8">attributes</text>
+    <text x="600" y="947" fill="#334155">"Alice is a manager in Finance"</text>
+    <text x="600" y="962" font-style="italic" fill="#64748b">verifier decides, with better facts</text>
+
+    <circle cx="980" cy="908" r="6" fill="#fff" stroke="#0f7d8c" stroke-width="2"/>
+    <text x="980" y="932" font-weight="700" fill="#0b5f6b">scoped token</text>
+    <text x="980" y="947" fill="#334155">"bearer may read the billing API"</text>
+    <text x="980" y="962" font-style="italic" fill="#64748b">most of the decision is made</text>
+
+    <circle cx="1340" cy="908" r="6" fill="#0f7d8c" stroke="#0f7d8c" stroke-width="2"/>
+    <text x="1340" y="932" font-weight="700" fill="#0b5f6b">attenuated grant</text>
+    <text x="1340" y="947" fill="#334155">"bearer may read invoice 4471, until 17:00, once"</text>
+    <text x="1340" y="962" font-style="italic" fill="#64748b">a macaroon reaches this rung</text>
+  </g>
+
+  <!-- ══ designation ══ -->
+  <text x="36" y="1006" font-size="10.5" font-weight="700" letter-spacing="1" fill="#0f172a">DESIGNATION · the axis the ladder cannot see</text>
+  <text x="36" y="1024" font-size="10.5" font-style="italic" fill="#64748b">Every rung above is a claim presented to a verifier. Attenuation moves you right along it; it never changes the axis. This is what does — and it is the real difference between a macaroon and a capability.</text>
+
+  <!-- one grid for all three: chain at y1104, second object at y1138, mechanism at y1162, caption at x+230 -->
+  <rect x="36" y="1040" width="470" height="144" rx="6" fill="#fbfdfd" stroke="#bcd9de"/>
+  <text x="52" y="1062" font-size="11" font-weight="700" fill="#0b5f6b">A CLAIM YOU PRESENT</text>
+  <text x="52" y="1077" font-size="9.5" fill="#64748b">token · scope · macaroon · JWT · ACL entry</text>
+  <rect x="52" y="1092" width="48" height="24" rx="4" fill="#f1f5f9" stroke="#475569"/>
+  <text x="76" y="1108" font-size="9.5" fill="#0f172a" text-anchor="middle">Alice</text>
+  <line x1="100" y1="1104" x2="126" y2="1104" stroke="#475569" stroke-width="1.6" marker-end="url(#asm)"/>
+  <text x="113" y="1098" font-size="9" font-style="italic" fill="#475569" text-anchor="middle">tok</text>
+  <rect x="130" y="1092" width="48" height="24" rx="4" fill="#fff0e0" stroke="#c2793a"/>
+  <text x="154" y="1108" font-size="9.5" fill="#8a4e15" text-anchor="middle">PEP</text>
+  <line x1="178" y1="1104" x2="208" y2="1104" stroke="#475569" stroke-width="1.6" marker-end="url(#asm)"/>
+  <rect x="212" y="1094" width="30" height="20" rx="4" fill="#e7f5ed" stroke="#2f8a5b"/>
+  <text x="227" y="1108" font-size="9.5" fill="#1f6b44" text-anchor="middle">O</text>
+  <path d="M170,1118 L204,1140" stroke="#94a3b8" stroke-width="1.3" stroke-dasharray="3 3" fill="none"/>
+  <line x1="182" y1="1122" x2="192" y2="1134" stroke="#b91c1c" stroke-width="1.6"/>
+  <line x1="192" y1="1122" x2="182" y2="1134" stroke="#b91c1c" stroke-width="1.6"/>
+  <rect x="212" y="1128" width="30" height="20" rx="4" fill="#f4f6f8" stroke="#94a3b8" stroke-dasharray="3 2"/>
+  <text x="227" y="1142" font-size="9.5" fill="#64748b" text-anchor="middle">O′</text>
+  <text x="140" y="1164" font-size="8.5" fill="#64748b" text-anchor="middle">ACL check · token verify · resource server</text>
+  <text x="266" y="1100" font-size="10" fill="#334155">designation is ambient.</text>
+  <text x="266" y="1114" font-size="10" fill="#334155">Alice can name O′ whether</text>
+  <text x="266" y="1128" font-size="10" fill="#334155">or not she may use it, so the</text>
+  <text x="266" y="1142" font-size="10" fill="#334155">monitor judges the request.</text>
+  <text x="266" y="1160" font-size="10" font-style="italic" fill="#0b5f6b">every rung of the ladder lands</text>
+  <text x="266" y="1173" font-size="10" font-style="italic" fill="#0b5f6b">here, macaroons included</text>
+
+  <rect x="526" y="1040" width="470" height="144" rx="6" fill="#fefafc" stroke="#e3c2d4"/>
+  <text x="542" y="1062" font-size="11" font-weight="700" fill="#7e2a5c">A REFERENCE YOU INVOKE</text>
+  <text x="542" y="1077" font-size="9.5" fill="#64748b">file descriptor · handle · object capability</text>
+  <rect x="542" y="1092" width="48" height="24" rx="4" fill="#f1f5f9" stroke="#475569"/>
+  <text x="566" y="1108" font-size="9.5" fill="#0f172a" text-anchor="middle">Alice</text>
+  <line x1="590" y1="1104" x2="616" y2="1104" stroke="#a33b7a" stroke-width="1.6" marker-end="url(#am)"/>
+  <text x="603" y="1098" font-size="9" font-style="italic" fill="#7e2a5c" text-anchor="middle">cap</text>
+  <rect x="620" y="1092" width="48" height="24" rx="4" fill="#fff0e0" stroke="#c2793a"/>
+  <text x="644" y="1108" font-size="9.5" fill="#8a4e15" text-anchor="middle">PEP</text>
+  <line x1="668" y1="1104" x2="698" y2="1104" stroke="#a33b7a" stroke-width="1.6" marker-end="url(#am)"/>
+  <rect x="702" y="1094" width="30" height="20" rx="4" fill="#e7f5ed" stroke="#2f8a5b"/>
+  <text x="717" y="1108" font-size="9.5" fill="#1f6b44" text-anchor="middle">O</text>
+  <rect x="702" y="1128" width="30" height="20" rx="4" fill="#f4f6f8" stroke="#94a3b8" stroke-dasharray="3 2"/>
+  <text x="717" y="1142" font-size="9.5" fill="#94a3b8" text-anchor="middle">O′</text>
+  <text x="630" y="1164" font-size="8.5" fill="#64748b" text-anchor="middle">kernel · runtime · VM boundary · gateway</text>
+  <text x="756" y="1100" font-size="10" fill="#334155">the same monitor, always</text>
+  <text x="756" y="1114" font-size="10" fill="#334155">invoked — but designation and</text>
+  <text x="756" y="1128" font-size="10" fill="#334155">authority are one act, so it</text>
+  <text x="756" y="1142" font-size="10" fill="#334155">dereferences instead of judging.</text>
+  <text x="756" y="1160" font-size="10" font-style="italic" fill="#7e2a5c">no PDP left to ask, which is</text>
+  <text x="756" y="1173" font-size="10" font-style="italic" fill="#7e2a5c">why it can be small enough to verify</text>
+
+  <rect x="1016" y="1040" width="468" height="144" rx="6" fill="#fefafc" stroke="#e3c2d4"/>
+  <text x="1032" y="1062" font-size="11" font-weight="700" fill="#7e2a5c">…AND SO AUTHORITY IS A GRAPH</text>
+  <text x="1032" y="1077" font-size="9.5" fill="#64748b">the fifth concern — communication</text>
+  <rect x="1032" y="1092" width="44" height="24" rx="4" fill="#f1f5f9" stroke="#475569"/>
+  <text x="1054" y="1108" font-size="9.5" fill="#0f172a" text-anchor="middle">A</text>
+  <line x1="1076" y1="1104" x2="1100" y2="1104" stroke="#a33b7a" stroke-width="1.6" marker-end="url(#am)"/>
+  <rect x="1104" y="1092" width="44" height="24" rx="4" fill="#f1f5f9" stroke="#475569"/>
+  <text x="1126" y="1108" font-size="9.5" fill="#0f172a" text-anchor="middle">B</text>
+  <line x1="1148" y1="1104" x2="1172" y2="1104" stroke="#a33b7a" stroke-width="1.6" marker-end="url(#am)"/>
+  <rect x="1176" y="1092" width="44" height="24" rx="4" fill="#f1f5f9" stroke="#475569"/>
+  <text x="1198" y="1108" font-size="9.5" fill="#0f172a" text-anchor="middle">C</text>
+  <line x1="1126" y1="1116" x2="1126" y2="1124" stroke="#a33b7a" stroke-width="1.6" marker-end="url(#am)"/>
+  <rect x="1111" y="1128" width="30" height="20" rx="4" fill="#e7f5ed" stroke="#2f8a5b"/>
+  <text x="1126" y="1142" font-size="9.5" fill="#1f6b44" text-anchor="middle">O</text>
+  <text x="1126" y="1164" font-size="8.5" fill="#64748b" text-anchor="middle">every edge was handed over, once</text>
+  <text x="1246" y="1100" font-size="10" fill="#334155">only connectivity begets</text>
+  <text x="1246" y="1114" font-size="10" fill="#334155">connectivity. A reference arrives</text>
+  <text x="1246" y="1128" font-size="10" fill="#334155">in exactly four ways: initial</text>
+  <text x="1246" y="1142" font-size="10" fill="#334155">conditions, creation, endowment,</text>
+  <text x="1246" y="1156" font-size="10" fill="#334155">introduction.</text>
+  <text x="1246" y="1174" font-size="10" font-style="italic" fill="#7e2a5c">the graph is the policy</text>
+
+  <!-- ══ footer ══ -->
+  <rect x="36" y="1206" width="1448" height="56" rx="6" fill="#f4f6f8" stroke="#dbe1e7"/>
+  <text x="52" y="1228" font-size="11" font-weight="700" fill="#0f172a">WHY NO VERSION OF OAUTH COULD CLOSE THE GAP</text>
+  <text x="52" y="1248" font-size="11" fill="#334155">A scope is a coarse label on an impersonation, not an attenuation of an authority. Closing that needs a way for the delegate to reach one object and nothing else — and no delegation protocol touches communication.</text>
+</svg>
