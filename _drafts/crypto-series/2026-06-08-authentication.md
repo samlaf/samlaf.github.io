@@ -94,12 +94,14 @@ For administrative or high-privilege access (cloud root, code signing, DB admin,
 
 For server-held secrets (database encryption keys, service signing keys, pepper, OAuth client secrets) — KMS/HSM-backed envelope encryption becomes the appropriate architecture. The tradeoff is operational complexity: every service call that needs to read encrypted data has to make a KMS call, which costs latency and money, and you need to think about failure modes if KMS is unreachable. For data that isn't genuinely sensitive, plain AES with a key in config is still sometimes the right call. (The envelope-encryption mechanics are covered in [Keys](/programming/keys.html).)
 
-For service-to-service authentication (backend APIs calling each other) — no human factors apply. You want mutual TLS with client certificates, or signed JWTs where the signing key lives in the HSM. Again, possession is the anchor — a workload identity tied to hardware or to a short-lived credential from a workload identity service.
+For service-to-service authentication (backend APIs calling each other) — no human factors apply. You want mutual TLS with client certificates, or requests signed with a key the caller holds, so that no reusable secret crosses the wire. Again, possession is the anchor — a workload identity tied to hardware or to a short-lived credential from a workload identity service. Latacora's [survey of inter-service schemes][child-s-garden-inter-service] walks the whole ladder, from no authentication through bearer tokens and HMAC-signed timestamps to macaroons, mTLS and Kerberos. It is the best short guide to picking a rung, and it explains why JWT is a poor one.
 
 ## References <!-- omit in toc -->
 
 1. [Password Security: A Case History - Morris & Thompson (1979)][morris-thompson]
 2. [Authentication - Computer Networks: A Systems Approach][sysapproach-auth]
+3. [A Child's Garden of Inter-Service Authentication Schemes - Latacora (2018)][child-s-garden-inter-service]
 
+[child-s-garden-inter-service]: https://www.latacora.com/blog/2018/06/12/inter-service-authentication-schemes/ "A Child's Garden of Inter-Service Authentication Schemes"
 [morris-thompson]: https://rist.tech.cornell.edu/6431papers/MorrisThompson1979.pdf "Password Security: A Case History - Morris & Thompson (1979)"
 [sysapproach-auth]: https://book.systemsapproach.org/security/authentication.html "Authentication - Computer Networks: A Systems Approach"

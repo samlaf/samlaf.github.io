@@ -193,7 +193,7 @@ Model 3 long predates computers, and the physical examples make the tradeoffs co
 
 Notice what happened to almost all of them. Cash has serial numbers. Gift cards have activation systems. Crypto has a public ledger. Share links grow expiry dates and access logs.
 
-That drift has a mechanism, and it is the two missing properties. Without E there is no forwarder to sever, so revocation has to come from a central table that says which tokens are still good. Without F you cannot bound where a token went, so finding out requires logging every use. Registries creep into bearer systems because a registry is the cheapest substitute for composability and confinement.
+That drift has a mechanism, and it is the two missing properties. Without E there is no forwarder to sever, so revocation has to come from a central table that says which tokens are still good. Without F you cannot bound where a token went, so finding out requires logging every use. Registries creep into bearer systems because a registry is the cheapest substitute for composability and confinement. Ptacek's [survey of API token formats][api-tokens-tedious-survey] reaches the same place from the engineering side: the stateless formats give up easy revocation, and for most systems a random token looked up in a database is the right answer.
 
 The useful question is never whether something is bearer or registered. It is where on that spectrum it sits, and which of E and F it gave up to get there.
 
@@ -570,8 +570,10 @@ Part 4 is about a system that has the substrate and threw the property away.
 16. [Grant Negotiation and Authorization Protocol (GNAP) - RFC 9635][grant-negotiation-authorization-protocol] — key-bound tokens by default, and the ecosystem that did not follow
 17. [OAuth 2.0 and the Road to Hell][oauth-2-0-road] — Hammer's resignation over framework-versus-protocol
 18. [Zanzibar: Google's Consistent, Global Authorization System][zanzibar-google-s-consistent] — relationship-based authorization and reverse indexability
+19. [API Tokens: A Tedious Survey][api-tokens-tedious-survey] — Ptacek; why stateless tokens end up next to a database anyway
 
 [access-control-iot-position]: https://alanhkarp.com/publications/Access-Control-for-IoT.pdf "Access Control for IoT: A Position Paper"
+[api-tokens-tedious-survey]: https://fly.io/blog/api-tokens-a-tedious-survey/ "API Tokens: A Tedious Survey"
 [authorization-lampson]: https://arxiv.org/pdf/2011.02455 "Authorization (Lampson)"
 [best-current-practice-oauth]: https://datatracker.ietf.org/doc/html/rfc9700 "Best Current Practice for OAuth 2.0 Security - RFC 9700"
 [capability-myths-demolished]: https://cgi.cse.unsw.edu.au/~cs9242/20/papers/Miller_YS_03.pdf "Capability Myths Demolished"

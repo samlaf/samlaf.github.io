@@ -300,6 +300,8 @@ Macaroons, JWTs, and OAuth access tokens are none of the architectures discussed
 
 The "cached decision" framing is close but not exact. A verifier still checks signature, issuer, audience, and expiry, and often consults current resource state. A JWT frequently carries *claims* from which the resource server makes a fresh decision rather than a final allow.
 
+Ptacek's [survey of API token formats][api-tokens-tedious-survey] walks the options, from random strings looked up in a database to JWT, PASETO, macaroons and Biscuits, and is candid about what each one gives up. Most of the trade is revocation: the more a token carries, the less the verifier has to look up, and the harder the token is to take back.
+
 [Macaroons][macaroons-cookies-with-contextual] go furthest. A holder can attenuate one by appending caveats — repository, method, time window, request budget, a required third-party discharge — without the root key and without going back to the issuer:
 
 ```text
@@ -387,7 +389,9 @@ The arrow from reach back to acquire is Miller's "only connectivity begets conne
 7. [Macaroons: Cookies with Contextual Caveats][macaroons-cookies-with-contextual] — attenuable bearer capabilities
 8. [JWT, RFC 7519][jwt-rfc-7519] and [OAuth 2.0, RFC 6749][oauth-2-0-rfc]
 9. [AuthZEN][authzen] — standardizing the decision-point interface; its [information model][authzen-spec] is where the subject/action/resource/context request is defined
+10. [API Tokens: A Tedious Survey][api-tokens-tedious-survey] — Ptacek; the credential formats side by side, and what each gives up
 
+[api-tokens-tedious-survey]: https://fly.io/blog/api-tokens-a-tedious-survey/ "API Tokens: A Tedious Survey"
 [authzen]: https://openid.net/wg/authzen/ "AuthZEN - OpenID Foundation working group"
 [authzen-spec]: https://openid.net/specs/authorization-api-1_0.html#name-information-model "Authorization API 1.0: information model - OpenID Foundation"
 [from-abac-zbac-evolution]: https://shiftleft.com/mirrors/www.hpl.hp.com/techreports/2009/HPL-2009-30.pdf "From ABAC to ZBAC: The Evolution of Access Control Models"
