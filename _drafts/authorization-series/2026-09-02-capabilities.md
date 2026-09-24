@@ -17,6 +17,9 @@ date:   2026-09-02
 - [Four things get called capabilities](#four-things-get-called-capabilities)
   - [The six properties](#the-six-properties)
   - [Where the real systems land](#where-the-real-systems-land)
+- [Capabilities on the four axes](#capabilities-on-the-four-axes)
+  - [The properties, read on the axes](#the-properties-read-on-the-axes)
+  - [Two bindings collapse the axes](#two-bindings-collapse-the-axes)
 - [Designation and authority](#designation-and-authority)
   - [The confused deputy is structural](#the-confused-deputy-is-structural)
 - [Possession is authorization](#possession-is-authorization)
@@ -39,7 +42,7 @@ date:   2026-09-02
 - [Where the property can be bought](#where-the-property-can-be-bought)
 - [References](#references)
 
-The [previous article](/programming/authorization-models.html) ended by splitting authorization into five concerns and noting that four of them — policy, delegation, credential format, identity — are where the industry has spent twenty years. The fifth is communication, and it is where the only structural difference between capabilities and everything else lives.
+The [previous article](/programming/authorization-models.html) split authorization into five concerns and noted that four of them — policy, delegation, credential format, identity — are where the industry has spent twenty years. The fifth is communication, and it is where the only structural difference between capabilities and everything else lives.
 
 This article is about that difference. It is also about a word that has been ruined by overuse. "Capability" names at least four distinct things, the arguments people have about capabilities are usually arguments about different ones, and most of the famous objections are true of some and false of others.
 
@@ -89,7 +92,7 @@ Four of these deserve names you will use again.
 
 **Property F — access-controlled delegation channels.** To hand Bob a capability you must already hold a capability to Bob. This is Miller's **"only connectivity begets connectivity"** stated as a test, and it is the property everything else in this article eventually reduces to.
 
-E and F are the [previous article's](/programming/authorization-models.html#make-both-axes-the-same-set) square matrix, arriving as tests. **E is the squaring itself** — one entity set on both axes, so a thing can be a row and a column at once. **F is the mutation rule the square matrix can state about itself** — you may write into Bob's row only if your own row already reaches both Bob and the authority you are handing over. Everything else in the table is a consequence of being able to say those two things.
+E and F are the [previous article's](/programming/authorization-models.html#capabilities-make-both-axes-the-same-set) square matrix, arriving as tests. **E is the squaring itself** — one entity set on both axes, so a thing can be a row and a column at once. **F is the mutation rule the square matrix can state about itself** — you may write into Bob's row only if your own row already reaches both Bob and the authority you are handing over. Everything else in the table is a consequence of being able to say those two things.
 
 Two things fall out immediately. Confinement fails in Model 3 precisely because F fails — if you can hand a key to anyone you can talk to, and you can talk to anyone, authority leaks wherever it likes. Revocation fails in Model 3 precisely because E fails — no composability, no forwarder to sever. So the two most famous objections to capabilities are *true statements about the key model*, which is the model everyone has in their head.
 
@@ -104,6 +107,54 @@ The models are not academic. Three worked examples:
 **SPKI certificates** are Model 3. They designate a resource separately from conveying authority, and propagation is unrestricted: the holder may hand a copy to anyone.
 
 That last one matters more than it looks, because SPKI is the shape most distributed "capability" systems take.
+
+## Capabilities on the four axes
+
+The [previous article](/programming/authorization-models.html#four-questions-every-invocation-answers) ended by following one invocation on its way to an effect, through four questions: acquire, designate, reach, authorize. The six properties are tests on those axes.
+
+### The properties, read on the axes
+
+Each of Miller's properties is a claim about how the axes relate:
+
+| | The test | On the axes |
+|---|---|---|
+| **A** | no designation without authority | one artifact carries designate and authorize |
+| **D** | no ambient authority | authorize reads what the invocation carries, not who the subject is |
+| **E** | resources are also subjects | whatever you reach can itself acquire and pass on names |
+| **F** | you must reach Bob to pass Bob a capability | acquire runs only along reach: the loop |
+| **G** | resources can be created | creating an object is one way to acquire a name |
+
+Read this way, a capability is not a kind of token. It is what you get when one artifact designates, reaches and authorizes, and can be acquired only through another. Model 4 is the only model that insists on all of it.
+
+### Two bindings collapse the axes
+
+That collapse is not one thing. Two separate bindings produce it.
+
+- **Name to route.** A *local* name — an FD index, a C-list slot, a heap pointer — means something only as an entry in a table the enforcer owns. The entry is the route, so designate and reach become one. A *global* name — a path, a URL, an IP address — can be uttered by anyone, and whether it gets anywhere is a separate question.
+- **Name to permission.** The rights sit in the table entry, or a secret or signature sits in the string. Either way, designate and authorize become one.
+
+The two are independent, so all four combinations exist:
+
+```text
+                        global name                 local name
+                        reach is separate           the name is the route
+
+authority checked       pathname + ACL              Java reference +
+separately              OAuth (URL + token)         SecurityManager
+                        SPKI
+
+authority in the name   share link                  FD under Capsicum,
+                        presigned S3 URL            WASI handle, CHERI,
+                        Waterken                    object capability
+```
+
+Models 1 and 3 both sit top left: the name is global and the authority travels apart from it. Property D splits them. Model 1's authority is ambient; Model 3's is a key you must select. Model 4 is bottom right.
+
+The other two corners are the instructive ones. The bottom left satisfies A and still fails F. A share link joins name and authority, but a global name can travel to anyone, and the open internet delivers it wherever it goes. The top right is an unforgeable heap with ambient authority on top: Java references cannot be forged, but stack inspection decides authorize against the caller's principal. [Joe-E][joe-e-security-oriented] is what removing that looks like.
+
+The column decides acquire. A global name can be guessed, listed or leaked, so it can arrive from anywhere. A local name can arrive only through a channel already held — provided no channel is global. Property F needs the right-hand column, and it needs the column clean: Java's mutable statics are a channel every object can reach, which is the second thing Joe-E removes.
+
+The worked examples above fall out directly. Unix descriptors sit bottom right, and fail F only because the socket that carries one is reached by pathname, a global name, and guarded by an ACL. SPKI sits top left.
 
 ## Designation and authority
 
@@ -196,6 +247,10 @@ Three different things get called delegation, and keeping them apart matters for
 - **On-behalf-of delegation.** Bob acts *as* Alice. Impersonation, `sudo -u`, OAuth's actor claim, service accounts that assume a user's identity. Bob's effective authority is Alice's entire authority.
 - **Authority delegation.** Alice gives Bob a specific power she holds, and only that. Bob acts as himself, holding one more thing than he did before.
 
+On the axes, the three sit in different places. Administrative delegation edits the policy that authorize consults. On-behalf-of delegation hands over the subject, so authorize sees Alice whoever is asking. Only authority delegation is acquire: Bob comes to hold one more name.
+
+Where the axes are separate, even that happens twice. Alice tells Bob a path, and then someone edits the ACL. She sends him a URL, and then an authorization server issues him a token. The name and the permission travel separately and something has to recombine them, which is Property A failing at delegation time.
+
 The mechanics differ sharply. Under central policy:
 
 ```text
@@ -242,7 +297,7 @@ The twist worth knowing: GNAP is "OAuth 3" only in spirit, not in adoption. It's
 
 Across all four, the movement is away from *bearer* tokens ("possession = access," trust the transport) toward *proof-of-possession / key-bound* tokens — pushing security back onto a key the holder controls. That is the same migration the [crypto series](/programming/threat-model.html) traces from plaintext passwords to passkeys, and it is real progress on how a credential is *held*.
 
-It is progress on nothing else. Notice what four redesigns never touched: the third party still acts as you, with whatever the scope string happens to cover, and no version of the protocol lets you hand over one specific power and only that. A scope is a coarse label on an impersonation, not an attenuation of an authority — on-behalf-of delegation wearing authority delegation's clothes. The gap stayed open that long because closing it needs the fifth concern, communication: a way for the delegate to *reach* one object and nothing else. No delegation protocol touches that, which is why none of them could have closed it.
+It is progress on nothing else. Notice what four redesigns never touched: the third party still acts as you, with whatever the scope string happens to cover, and no version of the protocol lets you hand over one specific power and only that. A scope is a coarse label on an impersonation, not an attenuation of an authority — on-behalf-of delegation wearing authority delegation's clothes. The gap stayed open that long because closing it needs more than a delegation protocol. The delegate has to acquire a name that designates, reaches and authorizes one object and nothing else. OAuth only ever touched authorize: the URL stays global and the network stays open, which is why no version of it could have closed the gap.
 
 ### Service chaining
 
@@ -286,17 +341,9 @@ Two different mechanisms walk down this ladder, and conflating them causes real 
 
 The first route costs a policy artifact per descent, written in a vocabulary the program does not itself use — paths, types, syscall numbers, labels. The cost grows as the box shrinks, which is why nobody writes a fresh seccomp profile per request. And it bottoms out: you cannot write an LSM policy about which objects inside a process may invoke which methods, because at that granularity the policy author would be rewriting the program. Every system on the bottom two rungs is a language or a runtime rather than a supervisor, and that is not a coincidence.
 
-Three axes are now in play, and the rest of the series keeps them apart:
+Granularity is independent of the [four axes](/programming/authorization-models.html#four-questions-every-invocation-answers), and the rest of the series keeps them apart. A container is fine-grained and fully ambient: the principal is small, and inside it every name still works because of who you are. `chroot` cuts designate while leaving authorize ambient over everything still visible, so it narrows what can be named without joining any name to its authority. [Part 3](/programming/authority-enforcement.html) treats the extrinsic route as a set of cuts on the axes, made from outside, and asks what enforces each one.
 
-```text
-granularity   how small is the principal?              this article
-designation   selected and joined, or ambient?         this article
-enforcement   unnameability or adjudication?           Part 3
-```
-
-They are independent. `chroot` removes names while leaving ambient authority intact over everything still visible, so it buys unnameability without buying designation. A container is fine-grained and fully ambient. The mechanisms for the extrinsic route are Part 3's subject.
-
-It is worth seeing those two routes as a matched pair rather than as two unrelated topics, because they are aiming at the same thing. Both are trying to make a subject's row in the [square matrix](/programming/authorization-models.html#make-both-axes-the-same-set) small. Construction starts from an empty row and adds by reference-passing; subtraction starts from a full one and cuts columns away. The reason both exist is that construction asks the program to cooperate — to accept a reference instead of opening a path — and most programs were not written to. Subtraction asks the program for nothing, which is why it is what you reach for when you did not write the binary.
+It is worth seeing those two routes as a matched pair rather than as two unrelated topics, because they are aiming at the same thing. Both are trying to make a subject's row in the [square matrix](/programming/authorization-models.html#capabilities-make-both-axes-the-same-set) small. Construction starts from an empty row and adds by reference-passing; subtraction starts from a full one and cuts columns away. The reason both exist is that construction asks the program to cooperate — to accept a reference instead of opening a path — and most programs were not written to. Subtraction asks the program for nothing, which is why it is what you reach for when you did not write the binary.
 
 ## The three objections
 
@@ -368,7 +415,7 @@ A relationship store like [Zanzibar][zanzibar-google-s-consistent] answers the r
 
 Object capabilities invert this exactly. There is no global view. But what you can see is reachability itself, and reachability is the thing that constrains a compromised component.
 
-So capability auditability is not zero. It is local rather than global, and "only connectivity begets connectivity" is the load-bearing claim. A reference arrives in exactly four ways: initial conditions, creation, endowment, or introduction. Midori made the first of those an artifact you can read — a manifest, consulted at load time. That bounds how the graph can evolve, which makes a component's authority analyzable from its boundary.
+So capability auditability is not zero. It is local rather than global, and "only connectivity begets connectivity" is the load-bearing claim. A reference arrives in exactly four ways — initial conditions, creation, endowment, or introduction — so acquire is a closed list. Midori made the first of those an artifact you can read — a manifest, consulted at load time. That bounds how the graph can evolve, which makes a component's authority analyzable from its boundary.
 
 A Wasm component's import list is the concrete version. It enumerates, statically and exhaustively, everything the component can reach — exhaustive by construction rather than by policy discipline. As audit surfaces go, that is a good one, arguably better than a tuple query.
 
@@ -469,6 +516,8 @@ Everything above reduces to Property F, and Property F has a precondition that n
 
 > **To pass a capability only to someone you can already reach, something must be able to deny communication.**
 
+On the axes, that is the loop. The arrow from reach back to acquire constrains anything only if reach can be refused, and reach can be refused only where names are local — where the name is the route.
+
 That is not a design preference. It is an infrastructure requirement, and it explains every data point in this article at once:
 
 ```text
@@ -489,7 +538,7 @@ Which settles the question of capabilities on the internet, and the answer is no
 
 The internet is *covered* in capabilities. Pre-signed S3 URLs, "anyone with this link can edit", GitHub fine-grained tokens, SPIFFE SVIDs, macaroons, biscuits. A Bitcoin private key is a bearer capability to spend a UTXO, works globally, and requires no relationship with anyone. The share link may be the most successful sharing mechanism ever deployed, it crosses every organizational boundary there is, and it is a capability.
 
-Every one of them is Model 3. And Model 3 is exactly the model whose myths are true.
+Every one of them fails F. Most are Model 3 outright: the token travels apart from the URL it is for. The rest — share links, pre-signed URLs — sit in the bottom-left corner of the grid above, with name and authority joined, and still cannot stop the name from travelling. Either way, the confinement myth comes true, because it was always a claim about F.
 
 The obstacle is not that you fail to own both endpoints — HTTP and TLS do not require that either. It is that the internet's product *is* universal connectivity. Any host may address any other host, so nothing can deny communication, so F is unavailable in principle rather than in practice. You can approximate it with unguessable designators and confidentiality — Waterken did exactly this, with object capabilities as HTTPS URLs — but that is F-by-obscurity rather than F-by-construction. Anyone who learns the string may use it, and nothing prevents the holder from publishing it.
 

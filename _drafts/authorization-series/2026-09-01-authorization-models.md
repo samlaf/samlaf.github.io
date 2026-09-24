@@ -30,6 +30,7 @@ date:   2026-09-01
   - [Where, and when](#where-and-when)
   - [Tokens as reified decisions](#tokens-as-reified-decisions)
 - [Five concerns, not one axis](#five-concerns-not-one-axis)
+- [Four questions every invocation answers](#four-questions-every-invocation-answers)
 - [References](#references)
 
 Despite security and authorization having been parts of computer science and programming for decades, the field is still evolving rapidly. Despite still being quite fragmented in practice, there is a growing understanding of the underlying principles that govern how authority is represented and managed, and we are starting to see a convergence on the fundamental abstractions that underlie all models.
@@ -343,6 +344,37 @@ Pulled apart, there are five separable concerns:
 Most real systems mix and match. OAuth is a delegation protocol plus a credential format that leaves policy and communication entirely alone. Zanzibar is a policy engine with nothing to say about credentials. A macaroon is a credential that happens to carry its own attenuation rules. Cap'n Proto is a communication model that carries authority as a side effect of how you address things.
 
 Which is the useful frame for the rest of the series. The industry has spent twenty years building columns two, three and four, and they are genuinely good now. Column five is nearly empty, almost nobody treats it as an authorization concern at all — and it is the only place where the property that distinguishes capabilities from tokens can live.
+
+## Four questions every invocation answers
+
+The five concerns sort products. To sort mechanisms, follow one invocation on its way to an effect. It gets four answers, in order:
+
+```text
+ACQUIRE     how did it come to hold a name?   ◄──┐
+    │                                            │
+    ▼                                            │
+DESIGNATE   which object does the name denote?   │  only connectivity
+    │                                            │  begets connectivity
+    ▼                                            │
+REACH       can the invocation get there?     ───┘
+    │
+    ▼
+AUTHORIZE   may it do this?
+```
+
+**Acquire** is how the subject came to hold a designator: you typed the path, listed a directory, or were passed a file descriptor. Its outbound half is how you hand one on, so delegation lives here.
+
+**Designate** is resolution. A name means something only in a namespace, and something resolves it there: the kernel walks a path, DNS maps a host, a table maps an index to an entry.
+
+**Reach** is delivery. Is there a path that carries the invocation to whatever serves it? A syscall boundary, a route, an IPC endpoint, a hypervisor's device model.
+
+**Authorize** is the decision this article has been about: `f(subject, action, resource, context)`, evaluated by something at the end of the path.
+
+Designate and reach are the pair people blur. A URL for a server behind a firewall designates without reaching. A connection to a document server, without the document's ID, reaches without designating. Real designators are layered, and each layer answers both questions: a URL is a host, resolved by DNS and reached over IP, plus a path, resolved and reached inside the server.
+
+The five concerns above land on these axes. Communication and reference is designate and reach. Identity and policy feed authorize. Delegation is acquire's outbound half. And a credential is not an axis at all: it is whichever artifact carries one or more of them.
+
+The arrow from reach back to acquire is Miller's "only connectivity begets connectivity." New names arrive only over channels you can already reach. Where the arrow holds, the graph of who can reach what grows only along its own edges. Where it does not, names arrive from anywhere. The [next article](/programming/capabilities.html) is about what that arrow buys, and what happens when one artifact carries every axis.
 
 ## References
 
