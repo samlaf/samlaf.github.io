@@ -14,37 +14,33 @@ date:   2026-09-03
 > 3. **How authority is enforced** — what makes any of it binding.
 > 4. **[LLM sandboxing](/programming/llm-sandbox.html)** — the gateway, correct and unavoidable.
 
-- [The unit of analysis is the external effect](#the-unit-of-analysis-is-the-external-effect)
-- [The reference monitor](#the-reference-monitor)
-  - [Decomposing the monitor](#decomposing-the-monitor)
-- [Four axes, four enforcers](#four-axes-four-enforcers)
+- [What is sandboxing](#what-is-sandboxing)
+- [Theory](#theory)
+  - [The reference monitor](#the-reference-monitor)
+  - [Decide vs. enforce](#decide-vs-enforce)
+  - [Along the path: four questions](#along-the-path-four-questions)
   - [Every axis has its own enforcer](#every-axis-has-its-own-enforcer)
+  - [Non-bypassability is a property of reach](#non-bypassability-is-a-property-of-reach)
   - [Which axis do you cut?](#which-axis-do-you-cut)
-  - [Acquire closes the loop](#acquire-closes-the-loop)
-  - [Membranes in the wild](#membranes-in-the-wild)
-- [Non-bypassability is a property of reach](#non-bypassability-is-a-property-of-reach)
-- [Three properties people conflate](#three-properties-people-conflate)
-- [Linux is a toolkit, not a primitive](#linux-is-a-toolkit-not-a-primitive)
-  - [Credentials: one axis, moving alone](#credentials-one-axis-moving-alone)
-  - [LSMs: authorize on the resolved object](#lsms-authorize-on-the-resolved-object)
-- [Editing the object side](#editing-the-object-side)
-- [What can change between check and use](#what-can-change-between-check-and-use)
-- [Same interface, different enforcers](#same-interface-different-enforcers)
-- [Two systems that cut acquire by construction](#two-systems-that-cut-acquire-by-construction)
-- [seL4 as the meeting point](#sel4-as-the-meeting-point)
-- [The architecture is recursive](#the-architecture-is-recursive)
-- [What this does not solve](#what-this-does-not-solve)
+  - [How to compare reference monitors](#how-to-compare-reference-monitors)
+  - [What can change between check and use](#what-can-change-between-check-and-use)
+  - [Composing reference monitors](#composing-reference-monitors)
+- [Practice](#practice)
+  - [Built security-first: construction](#built-security-first-construction)
+    - [seL4 as the meeting point](#sel4-as-the-meeting-point)
+    - [WASI and effect systems](#wasi-and-effect-systems)
+  - [Retrofitted onto ambient authority: subtraction](#retrofitted-onto-ambient-authority-subtraction)
+    - [Linux is a toolkit, not a primitive](#linux-is-a-toolkit-not-a-primitive)
+      - [Credentials: one axis, moving alone](#credentials-one-axis-moving-alone)
+      - [LSMs: authorize on the resolved object](#lsms-authorize-on-the-resolved-object)
+    - [Same interface, different enforcers](#same-interface-different-enforcers)
+    - [Membranes: subtraction plus mediation](#membranes-subtraction-plus-mediation)
+    - [Editing the object side](#editing-the-object-side)
+  - [Composed: a Lambda function](#composed-a-lambda-function)
+- [Conclusion: what this does not solve](#conclusion-what-this-does-not-solve)
 - [References](#references)
 
-The first two articles ended with a description and no teeth. A capability graph bounds what a component can reach. An ACL says who may touch a resource. Neither does anything to a program that declines to participate.
-
-Something has to make the description true. This article is about that something: what it must guarantee, where it sits, and what it can cut.
-
-The spine comes from the first article: four questions every invocation answers on its way to an effect. How did it come to hold a name? What does the name denote? Can it get there? May it do this? Each question is an axis a sandbox can cut, and each has its own enforcer. Most confusion about sandboxes comes from comparing mechanisms that cut different axes.
-
-None of this is a rival to the capabilities article. Something still has to guarantee that a holder cannot forge a reference. But most of the machinery below exists because most code does not cooperate. A capability system asks the program to accept references instead of opening paths. Namespaces, seccomp and LSMs ask the program for nothing, which is why you reach for them when you did not write the binary.
-
-## The unit of analysis is the external effect
+## What is sandboxing
 
 Sandboxing discussions usually start with the wrong noun. They ask whether untrusted code should run in a container, a microVM, gVisor, WASI, or a language runtime. Those choices answer *where computation happens*, not *what that computation can do*.
 
@@ -65,9 +61,11 @@ So a sandbox is best defined by what it constrains, not by how it is built:
 
 That definition is deliberately mechanism-free. It covers a VM, a seccomp filter, a WASI runtime, and a proxy, because all four exist to shrink the same set.
 
-## The reference monitor
+## Theory
 
-The foundational statement is fifty years old. In 1972 James Anderson led a study for the U.S. Air Force whose two volumes set the research agenda of computer security for two decades.
+### The reference monitor
+
+The foundational statement is fifty years old. In 1972 James Anderson led a [study for the U.S. Air Force][computer-security-technology-planning] whose two volumes set the research agenda of computer security for two decades.
 
 A reference monitor must be:
 
@@ -83,11 +81,11 @@ Reference Monitor
 effect
 ```
 
-There is no escaping this. Every mechanism in the rest of this article is a reference monitor placed somewhere, and every failure is one of the three properties not holding. Microkernel design is precisely the project of making the reference monitor as small as possible so the third property becomes achievable.
+There is no escaping this. Every mechanism in the rest of this article is a reference monitor placed somewhere, and every failure is one of the three properties not holding.
 
-The third requirement was close to aspirational when it was written. Anderson knew formal verification of a real system was out of reach with 1972 tooling. seL4's verification in 2009 is, in a meaningful sense, the first time anyone discharged it on a system meant for actual use. That is most of the reason the seL4 people are entitled to their swagger.
+Anderson pictures one box on one path. Real systems break that box apart in two ways. The decision separates from its enforcement, and the path separates into four questions, each with its own enforcer.
 
-### Decomposing the monitor
+### Decide vs. enforce
 
 "Reference monitor" names a function, not a component. In practice that function splits in two, and Part 4 leans on the split.
 
@@ -113,7 +111,7 @@ policy → decision → materialized authority → capability
 
 and noted that the interesting engineering is in the arrow. Flask is what the arrow looks like when someone builds it carefully: the cache makes enforcement fast, and the notification channel is what you owe in exchange.
 
-## Four axes, four enforcers
+### Along the path: four questions
 
 Every mechanism in the rest of this article sits somewhere on one path. The [first article](/programming/authorization-models.html#four-questions-every-invocation-answers) split it into four questions, each an axis a sandbox can cut:
 
@@ -154,9 +152,23 @@ Separated axes mean several enforcers, often in different trust domains, and the
 
 Anderson's three properties therefore apply per axis. A PEP that is always invoked on authorize does nothing about a name that resolves somewhere else, or a route that goes around it. And collapse does not make the reference enforce itself. Whoever owns the table does, which is why seL4, further down, is both the purest capability system in this article and the most thoroughly enforced.
 
+### Non-bypassability is a property of reach
+
+Applied per axis, Anderson's first property becomes a question about topology. A check that is always invoked on one path does nothing if the workload can reach the resource by another. No policy language or hook can settle that. Only the shape of reach can: is there some other path to the protected resource?
+
+Stated as a condition to satisfy:
+
+> **For every effect the workload can attempt, either no path to the resource exists, or every path passes through a point that decides.**
+
+The condition has two ways to hold, and they are the two strategies of the next section. The first involves no enforcement point at all: a missing path is not a check that reliably says no, it is the absence of anything to check. So "is there a PEP?" is never the interesting question. A PEP is always a PEP for some class of effect, and what you have to establish is that the union of them leaves no path uncovered.
+
+The humble proxy shows it best. `HTTP_PROXY` is a cooperative convention. A workload that wants to ignore it simply ignores it, and no policy inside the proxy changes that. The same proxy becomes genuine enforcement when reach closes: force routing with nftables or TPROXY, or give the workload a network peer that is the proxy, with no NAT and no alternate route.
+
+Same code, same policies, same expressivity. Enforcement in one deployment and decoration in the other. This is why arguing about policy languages before establishing the topology is almost always wasted effort.
+
 ### Which axis do you cut?
 
-Almost every argument about sandboxing is an argument about which of two strategies is in use. They are cuts on different axes.
+Almost every argument about sandboxing is an argument about which half of that condition is in use. The two halves are cuts on different axes.
 
 ```text
 UNNAMEABILITY                         ADJUDICATION
@@ -187,54 +199,7 @@ Seccomp is the one people misplace. It decides which kernel entry points a proce
 
 The strongest designs cut two axes at once. The workload never acquires the real GitHub token. It holds a placeholder handle that reaches only a gateway, and the gateway authorizes only approved operations. That is *authority attenuation* — possession of a powerful resource replaced by permission to request a smaller set of effects — and Part 4 builds it.
 
-### Acquire closes the loop
-
-Both strategies try to make a subject's row in the [square matrix](/programming/authorization-models.html#capabilities-make-both-axes-the-same-set) small. They differ in which part of the picture they edit.
-
-```text
-subtraction    the row starts full and the columns get cut away
-construction   the row starts empty and grows by reference-passing
-```
-
-Subtraction is an outside configurator removing names and routes before the process starts. Construction grows the row only through [Miller's][robust-composition] loop — new names arrive over channels already held — and no step can hand on more than it holds.
-
-Subtraction cannot mediate. You can remove a column. There is no namespace operation for "Alice reaches X only through Bob," because the thing in the middle has to hold a row and be a column at once — [Property E](/programming/capabilities.html#the-six-properties) — and a namespace has visibility rather than entities.
-
-> **Subtraction plus mediation is construction.**
-
-The moment removal is not enough and you need to interpose, you introduce something that holds the real authority and speaks a protocol: a FUSE daemon, a proxy inside the network namespace, a broker. That thing is a membrane. Its clients acquire only what it hands them, over the one channel they have to it, so the loop holds again. You have rebuilt the capability system one resource class at a time.
-
-Without the membrane, subtraction stays subtraction. `chroot` cuts designate for everything outside the jail and leaves every axis ambient inside it, which is why it is not a capability system. Unnameability becomes capability discipline only when the name you hold is the only way to reach the object, and the only way to get more names.
-
-### Membranes in the wild
-
-The pattern is old, and the systems that use it at scale describe themselves in exactly these terms.
-
-**Chromium's broker.** Chromium's [sandbox][chromium-sandbox] splits the browser into a *broker* and its *targets*. A renderer target runs under a token that denies it almost everything: every group deny-only, no privileges, untrusted integrity, a job object, a desktop of its own. That is subtraction, cutting authorize for nearly every OS object. The broker is the browser process, "a privileged controller/supervisor of the activities of the sandboxed processes." It evaluates policy, and "the policy-allowed calls are then executed by the broker and the results returned to the target process via the same IPC." The design doc puts the acquire axis in plain words:
-
-> The Chromium renderer runs with this token, which means that almost all resources that the renderer process uses have been acquired by the Browser and their handles duplicated into the renderer process.
-
-The target acquires only what the broker hands it, over the one channel it has. That is construction, rebuilt on top of Windows. The doc is just as plain about where enforcement is *not*. The hooks that forward Win32 calls to the broker are for convenience: "The interception + IPC mechanism does not provide security; it is designed to provide compatibility when code inside the sandbox cannot be modified to cope with sandbox restrictions." The token is the cut. The hook is `HTTP_PROXY` at the Win32 layer.
-
-**Google's safe proxies.** [*Building Secure and Reliable Systems*][bsrs-safe-proxies] describes the same shape for people. "Engineers are not able to run arbitrary commands directly on servers; they need to contact the Tool Proxy instead." That cuts reach. The proxy then authorizes each command against an access list, can require multi-party approval, rate-limits changes so a restart rolls out gradually, and logs every operation — adjudication, in the legible vocabulary of whole commands rather than packets. The chapter is candid about the cost, and lists among the downsides "a central machine that an adversary could take control of." That is the last question of this article, asked of a real system: what can the enforcer do if its policy is wrong?
-
-Part 4's capability gateways are the same membrane, placed in front of an agent.
-
-## Non-bypassability is a property of reach
-
-Adjudication works only if the request cannot go around the enforcer. That is not a property of a policy language or a hook. It is a property of the topology: can the workload reach the protected resource by some other path?
-
-Stated as a condition to satisfy:
-
-> **For every effect the workload can attempt, either no path to the resource exists, or every path passes through a point that decides.**
-
-The two disjuncts are the two strategies. The first involves no enforcement point at all: unnameability is not a check that reliably says no, it is the absence of anything to check. So "is there a PEP?" is never the interesting question. A PEP is always a PEP for some class of effect, and what you have to establish is that the union of them leaves no path uncovered.
-
-The humble proxy shows it best. `HTTP_PROXY` is a cooperative convention. A workload that wants to ignore it simply ignores it, and no policy inside the proxy changes that. The same proxy becomes genuine enforcement when reach closes: force routing with nftables or TPROXY, or give the workload a network peer that is the proxy, with no NAT and no alternate route.
-
-Same code, same policies, same expressivity. Enforcement in one deployment and decoration in the other. This is why arguing about policy languages before establishing the topology is almost always wasted effort.
-
-## Three properties people conflate
+### How to compare reference monitors
 
 Knowing which axis a mechanism cuts, and that nothing goes around it, still leaves mechanisms on the same axis far apart. An LSM and a host-side HTTP gateway both cut authorize. "Policy expressivity" is the usual word for how they differ, and it collapses three independent questions.
 
@@ -277,53 +242,9 @@ remote resource server
 
 These vary independently. An LSM is structurally legible, weakly programmable, and trusted only as far as the guest kernel. A JavaScript callback in a host proxy is semantically legible, arbitrarily programmable, and survives a compromised guest. Neither dominates; they protect different boundaries.
 
-Non-bypassability is none of the three. It belongs to reach, and the previous section already asked it.
+Non-bypassability is none of the three. It belongs to reach, and an earlier section already asked it.
 
-## Linux is a toolkit, not a primitive
-
-Linux has no single sandbox primitive. It has a collection of mechanisms, each cutting one axis for one class of kernel object, and every real sandbox is a composition of them.
-
-![](/assets/authority-enforcement/linux-security-mechanisms.png)
-
-The mechanism table above placed most of them. Namespaces cut designate or reach, one kernel subsystem at a time. Seccomp cuts reach to kernel entry points. Credentials and LSMs both cut authorize, from different ends, and deserve a closer look.
-
-### Credentials: one axis, moving alone
-
-`fork()`, `setuid()` and `exec()` are the oldest sandbox on the list, and [`setpriv`][setpriv] is where they become usable. One `exec` sets the uid and gid, clears supplementary groups, trims the inheritable, ambient and bounding capability sets, locks securebits, requests an LSM label, and sets `no_new_privs`: the whole credential tuple, chosen by the launcher rather than the program. Hand-rolling it is a bug farm of unchecked `setuid` returns, leftover groups, and bounding sets trimmed too late.
-
-`no_new_privs` is the load-bearing bit. Without it the restriction is not monotonic — exec a setuid binary and the authority comes back — and an unprivileged process cannot install a seccomp filter at all. It is the precondition for every restriction a workload applies to itself.
-
-Credentials are also the cleanest case of one axis moving alone. They are ambient authority and nothing else. Shrink them and every name still resolves — `open("/etc/shadow")` stays a perfectly expressible request — and only the answer changes. No namespace, no label, no hook, no unnameability. Authorize cut while acquire, designate and reach stay exactly as ambient as they were.
-
-The vocabulary collides here, and the collision is worth naming. A Linux *ambient capability* is authority that survives `exec` with nobody designating anything, which is ambient authority in this series' sense. `--ambient-caps` is the knob that grants it, and `no_cap_ambient_raise` is the securebit that takes the knob away.
-
-### LSMs: authorize on the resolved object
-
-The LSM framework is Flask brought into Linux, and it sits at a specific and well-chosen place. Rather than interposing at syscall entry, the kernel first resolves user-supplied names and handles into internal objects, *then* calls the hook immediately before the security-relevant operation. The question it asks is explicit:
-
-```text
-May subject S perform operation OP on kernel object OBJ?
-```
-
-That is the difference from seccomp. Seccomp sits on reach and sees a syscall number and scalar arguments; it cannot dereference a pathname pointer or reason about the resolved inode. An LSM sits on authorize, after designate has run, and sees the object and the kernel context that produced it, whichever syscall got there.
-
-Where the hook sits has a direct consequence for policy soundness. Path-based policy has to account for symlinks, hard links, rename, bind mounts, already-open handles, and the gap between a directory entry and an inode — every way designate can resolve one object under many names. Label-based policy attached to kernel objects sidesteps much of that aliasing, at the cost of policies that map less directly onto how people describe a workspace. Neither choice is free.
-
-![](/assets/authority-enforcement/linux-security-frontends.png)
-
-The same primitives wear different user-facing clothes, which is much of why the landscape looks more fragmented than it is. Read the credentials row twice. Every supervisor on the chart reimplements `setpriv`: the OCI `process` block is its flag list as JSON, systemd spells it `User=`, `CapabilityBoundingSet=`, `AmbientCapabilities=` and `NoNewPrivileges=`, and Chrome's zygote drops to an unprivileged uid and sets `no_new_privs` before installing its filter. No other row is driven by all of them.
-
-## Editing the object side
-
-Every Linux mechanism above edits the subject. The matrix has two projections, and the other one is just as mutable. `setfacl` on a file, `chcon` on its label, `GRANT` and `REVOKE` in a database, an ACE for a package SID on a Windows object, a bucket policy, a protected branch. None of it touches the workload. Its authority shrinks anyway.
-
-Sandboxes almost never work this way. Confining a workload means denying everything except a few things, and on the object side "everything" is unbounded: a file created after you ran `setfacl` carries whatever the default gives it, and nothing covers objects that do not exist yet. Each edit is also global. Lock one workload out of `/etc/passwd` by editing `/etc/passwd` and you break every other reader, so the move is only safe once the workload holds a principal nobody else shares — a subject-side act. And object state is durable. Credentials cost nothing per `exec`; you cannot relabel a filesystem per tool call.
-
-Two things the object side buys that nothing else does. An ACL hangs on the inode, so hard links, renames and bind mounts cannot walk around it. And it holds after a total escape. Branch protection refuses the force-push whether it came from the sandbox, from a process that broke out of it, or from a laptop in another country. Every other mechanism in this article stops working the moment its boundary fails. Policy at the resource has no boundary to fail.
-
-One trap comes with it. Unix checks permission at `open`, so `chmod 000` does nothing to a descriptor somebody already holds. Object-side edits bind at the next resolution, never retroactively, which is the next section in miniature.
-
-## What can change between check and use
+### What can change between check and use
 
 Always invoked, tamperproof, verifiable. All three can hold and the monitor can still authorize the wrong thing, because none of them says the decision was still true when the effect happened. Separated axes resolve at separate moments, and almost nothing in an authorization question is supplied directly. The subject and the object arrive as *references*, and each resolves against state somebody else can modify.
 
@@ -339,7 +260,7 @@ environment       ────────────────────�
 
 Four inputs, four independent clocks. They are the four terms of the function [Part 1](/programming/authorization-models.html) started from — `f(subject, action, resource, context)` — and three of them arrive as references that resolve late. The action does not. It is supplied literally in the request, which makes it the only argument that cannot go stale, and the only one nobody writes a CVE about.
 
-**Object binding.** The classic case, and the reason the LSM hook sits where it does. A pathname gets resolved twice:
+**Object binding.** The classic case, and the reason the LSM hook, below, sits where it does. A pathname gets resolved twice:
 
 ```text
 t0   access("/tmp/foo")  →  inode A   → allowed
@@ -363,29 +284,63 @@ materialize    stable bindings, revocation debt
 
 Neither end is safe on its own. A file descriptor eliminates the object-binding race and creates a revocation problem in the same stroke. That is not a defect in the mechanism. It is the trade that appears wherever a system caches a derived fact, and authorization gets no exemption from it.
 
-## Same interface, different enforcers
+### Composing reference monitors
 
-Containers show the per-axis enforcers better than any argument. A "container" is defined by a contract — an image, a bundle, a lifecycle — and never by a mechanism.
+The mechanisms above are not alternatives. A Wasm component runs inside a Linux guest constrained by an LSM. The guest presents an attenuated handle to a host broker. The broker uses a scoped OAuth token against a service whose own policy protects the resource.
 
-![image](/assets/authority-enforcement/oci-stacks.png)
+At every boundary, ask the same questions, one per axis plus two more:
 
-The contract fixes the names the workload sees: its paths, its ports, its process IDs. It says nothing about who enforces reach and authorize behind those names. The runtime decides that:
+1. What computation is inside the boundary?
+2. **Acquire.** Which names can it obtain, and from whom?
+3. **Designate.** What do those names resolve to, and who resolves them?
+4. **Reach.** Which paths leave the boundary, and does every one pass an enforcer?
+5. **Authorize.** Who decides, in what vocabulary?
+6. What is the enforcer's own maximum authority if its policy is wrong?
+
+Question four is Anderson's first property. Question six is the one people skip, and it is the one that decides how bad your worst day is.
+
+## Practice
+
+Some systems were designed security-first, and those tend to start from capabilities: nothing is ambient, and authority grows only by passing references. Most systems were not. Linux, Windows and the internet all started from ambient authority, and sandboxing them means taking authority away from code that was written to assume it.
+
+Both kinds of system try to make a subject's row in the [square matrix](/programming/authorization-models.html#capabilities-make-both-axes-the-same-set) small. They differ in which part of the picture they edit.
 
 ```text
-container contract
-       │
-       ├── runc    → the host kernel: namespaces, cgroups, seccomp, LSM
-       ├── runsc   → gVisor: a userspace kernel answers the syscalls
-       └── kata    → a hypervisor, with a guest kernel inside a VM
+subtraction    the row starts full and the columns get cut away
+construction   the row starts empty and grows by reference-passing
 ```
 
-![image](/assets/authority-enforcement/container-runtimes.png)
+Subtraction is an outside configurator removing names and routes before the process starts. Construction grows the row only through [Miller's][robust-composition] loop — new names arrive over channels already held — and no step can hand on more than it holds.
 
-Same names, three different enforcers. Under runc, the workload talks straight to the host kernel, so a reachable kernel bug is an escape. Under gVisor, it talks to a userspace kernel, and the host kernel sees a much smaller surface. Under Kata, the hypervisor is what the workload must defeat. These are interchangeable to the consumer and not remotely comparable as boundaries. "We run it in a container" names the interface, not the enforcer.
+Each system below is a reference monitor broken apart in its own way. For each one, ask which axes it cuts, who enforces each axis, and where that enforcer's trust sits.
 
-This is the capabilities article's policy/mechanism separation one level down. The contract is what the workload may assume about its environment. The runtime is who makes it true. Keeping the seam there is what lets you change your mind about isolation strength without repackaging anything.
+### Built security-first: construction
 
-## Two systems that cut acquire by construction
+#### seL4 as the meeting point
+
+The capabilities article used seL4 to argue that the capability graph can *be* the authority, with no authoritative copy elsewhere. That was the representation half. Here is the enforcement half.
+
+seL4 stores capabilities in kernel objects called CNodes. Userspace never touches a capability directly; it names a slot, and the kernel dereferences it. Designate, reach and authorize are one capability, and one kernel enforces all three. All authority — memory, execution, IPC endpoints, interrupts — is a capability, obtained by retyping untyped memory. There is no ambient authority anywhere in the system, including the ability to allocate.
+
+That leaves acquire, and two mechanisms govern it.
+
+**The grant right.** Holding a capability does not imply the ability to share it. Passing a capability over an endpoint requires the `grant` right on that endpoint. From the [seL4 retrospective][10-years-sel4]:
+
+> Capabilities also cleanly solved another issue with original L4, that of limiting communication. The original model relied on an (inflexible) process hierarchy and redirection to a monitor process ("chief") to limit data flow. Capabilities provide a cleaner, simpler and low-overhead model: Having a privilege does not in itself imply the ability to share that privilege, an additional grant right is needed to pass on capabilities.
+
+That is Saltzer and Schroeder's second objection, propagation control, answered structurally rather than by a registry.
+
+**The capability derivation tree.** The kernel tracks which capabilities were derived from which, and `seL4_CNode_Revoke` removes all descendants of a capability in one operation. That answers the third objection too, without indirection and without a lookup table, because the kernel already holds the provenance.
+
+And the kernel is the verified one. Every axis collapses into one component, and that component discharges Anderson's third property. That is what collapse buys at the enforcement layer: one monitor to verify, instead of four that must agree.
+
+Anderson's third property was close to aspirational when he wrote it. Formal verification of a real system was out of reach with 1972 tooling. Microkernel design is the project of shrinking the monitor until verification becomes achievable, and seL4's proof in 2009 was, in a meaningful sense, the first time anyone discharged the property on a system meant for actual use. That is most of the reason the seL4 people are entitled to their swagger.
+
+> **Capabilities describe authority structurally. A trusted, verified reference monitor makes that structure non-bypassable.**
+
+Policy and mechanism stay separate. seL4 enforces whatever capability graph exists. Which graph *should* exist is a design question outside the kernel, usually settled in a static configuration before boot.
+
+#### WASI and effect systems
 
 **WebAssembly and WASI** are the cleanest modern instance of unnameability followed by adjudicated reintroduction. A Wasm module starts with linear memory and computation. It acquires no ambient filesystem, network, environment, or clock. Everything useful arrives as an import the host chose to supply.
 
@@ -409,44 +364,122 @@ That is the top of the programmability ladder, at the most semantic legibility a
 
 The transferable lesson is not "adopt an effect language". It is that interfaces get easier to govern when the effect is named at the level policy cares about. `publishArtifact` is a better policy event than a sequence of writes and HTTP requests, but only if the lower-level routes cannot reach the same outcome.
 
-## seL4 as the meeting point
+### Retrofitted onto ambient authority: subtraction
 
-The capabilities article used seL4 to argue that the capability graph can *be* the authority, with no authoritative copy elsewhere. That was the representation half. Here is the enforcement half.
+Everything else starts from ambient authority and takes it away, one axis at a time.
 
-seL4 stores capabilities in kernel objects called CNodes. Userspace never touches a capability directly; it names a slot, and the kernel dereferences it. Designate, reach and authorize are one capability, and one kernel enforces all three. All authority — memory, execution, IPC endpoints, interrupts — is a capability, obtained by retyping untyped memory. There is no ambient authority anywhere in the system, including the ability to allocate.
+#### Linux is a toolkit, not a primitive
 
-That leaves acquire, and two mechanisms govern it.
+Linux has no single sandbox primitive. It has a collection of mechanisms, each cutting one axis for one class of kernel object, and every real sandbox is a composition of them.
 
-**The grant right.** Holding a capability does not imply the ability to share it. Passing a capability over an endpoint requires the `grant` right on that endpoint. From the [seL4 retrospective][10-years-sel4]:
+![](/assets/authority-enforcement/linux-security-mechanisms.png)
 
-> Capabilities also cleanly solved another issue with original L4, that of limiting communication. The original model relied on an (inflexible) process hierarchy and redirection to a monitor process ("chief") to limit data flow. Capabilities provide a cleaner, simpler and low-overhead model: Having a privilege does not in itself imply the ability to share that privilege, an additional grant right is needed to pass on capabilities.
+The mechanism table above placed most of them. Namespaces cut designate or reach, one kernel subsystem at a time. Seccomp cuts reach to kernel entry points. Credentials and LSMs both cut authorize, from different ends, and deserve a closer look.
 
-That is Saltzer and Schroeder's second objection, propagation control, answered structurally rather than by a registry.
+##### Credentials: one axis, moving alone
 
-**The capability derivation tree.** The kernel tracks which capabilities were derived from which, and `seL4_CNode_Revoke` removes all descendants of a capability in one operation. That answers the third objection too, without indirection and without a lookup table, because the kernel already holds the provenance.
+`fork()`, `setuid()` and `exec()` are the oldest sandbox on the list, and [`setpriv`][setpriv] is where they become usable. One `exec` sets the uid and gid, clears supplementary groups, trims the inheritable, ambient and bounding capability sets, locks securebits, requests an LSM label, and sets `no_new_privs`: the whole credential tuple, chosen by the launcher rather than the program. Hand-rolling it is a bug farm of unchecked `setuid` returns, leftover groups, and bounding sets trimmed too late.
 
-And the kernel is the verified one. Every axis collapses into one component, and that component discharges Anderson's third property. That is what collapse buys at the enforcement layer: one monitor to verify, instead of four that must agree.
+`no_new_privs` is the load-bearing bit. Without it the restriction is not monotonic — exec a setuid binary and the authority comes back — and an unprivileged process cannot install a seccomp filter at all. It is the precondition for every restriction a workload applies to itself.
 
-> **Capabilities describe authority structurally. A trusted, verified reference monitor makes that structure non-bypassable.**
+Credentials are also the cleanest case of one axis moving alone. They are ambient authority and nothing else. Shrink them and every name still resolves — `open("/etc/shadow")` stays a perfectly expressible request — and only the answer changes. No namespace, no label, no hook, no unnameability. Authorize cut while acquire, designate and reach stay exactly as ambient as they were.
 
-Policy and mechanism stay separate. seL4 enforces whatever capability graph exists. Which graph *should* exist is a design question outside the kernel, usually settled in a static configuration before boot.
+The vocabulary collides here, and the collision is worth naming. A Linux *ambient capability* is authority that survives `exec` with nobody designating anything, which is ambient authority in this series' sense. `--ambient-caps` is the knob that grants it, and `no_cap_ambient_raise` is the securebit that takes the knob away.
 
-## The architecture is recursive
+##### LSMs: authorize on the resolved object
 
-None of these are alternatives. A Wasm component runs inside a Linux guest constrained by an LSM. The guest presents an attenuated handle to a host broker. The broker uses a scoped OAuth token against a service whose own policy protects the resource.
+The LSM framework is Flask brought into Linux, and it sits at a specific and well-chosen place. Rather than interposing at syscall entry, the kernel first resolves user-supplied names and handles into internal objects, *then* calls the hook immediately before the security-relevant operation. The question it asks is explicit:
 
-At every boundary, ask the same questions, one per axis plus two more:
+```text
+May subject S perform operation OP on kernel object OBJ?
+```
 
-1. What computation is inside the boundary?
-2. **Acquire.** Which names can it obtain, and from whom?
-3. **Designate.** What do those names resolve to, and who resolves them?
-4. **Reach.** Which paths leave the boundary, and does every one pass an enforcer?
-5. **Authorize.** Who decides, in what vocabulary?
-6. What is the enforcer's own maximum authority if its policy is wrong?
+That is the difference from seccomp. Seccomp sits on reach and sees a syscall number and scalar arguments; it cannot dereference a pathname pointer or reason about the resolved inode. An LSM sits on authorize, after designate has run, and sees the object and the kernel context that produced it, whichever syscall got there.
 
-Question four is Anderson's first property. Question six is the one people skip, and it is the one that decides how bad your worst day is.
+Where the hook sits has a direct consequence for policy soundness. Path-based policy has to account for symlinks, hard links, rename, bind mounts, already-open handles, and the gap between a directory entry and an inode — every way designate can resolve one object under many names. Label-based policy attached to kernel objects sidesteps much of that aliasing, at the cost of policies that map less directly onto how people describe a workspace. Neither choice is free.
 
-## What this does not solve
+![](/assets/authority-enforcement/linux-security-frontends.png)
+
+The same primitives wear different user-facing clothes, which is much of why the landscape looks more fragmented than it is. Read the credentials row twice. Every supervisor on the chart reimplements `setpriv`: the OCI `process` block is its flag list as JSON, systemd spells it `User=`, `CapabilityBoundingSet=`, `AmbientCapabilities=` and `NoNewPrivileges=`, and Chrome's zygote drops to an unprivileged uid and sets `no_new_privs` before installing its filter. No other row is driven by all of them.
+
+#### Same interface, different enforcers
+
+Containers show the per-axis enforcers better than any argument. A "container" is defined by a contract — an image, a bundle, a lifecycle — and never by a mechanism.
+
+![image](/assets/authority-enforcement/oci-stacks.png)
+
+The contract fixes the names the workload sees: its paths, its ports, its process IDs. It says nothing about who enforces reach and authorize behind those names. The runtime decides that:
+
+```text
+container contract
+       │
+       ├── runc    → the host kernel: namespaces, cgroups, seccomp, LSM
+       ├── runsc   → gVisor: a userspace kernel answers the syscalls
+       └── kata    → a hypervisor, with a guest kernel inside a VM
+```
+
+![image](/assets/authority-enforcement/container-runtimes.png)
+
+Same names, three different enforcers. Under runc, the workload talks straight to the host kernel, so a reachable kernel bug is an escape. Under gVisor, it talks to a userspace kernel, and the host kernel sees a much smaller surface. Under Kata, the hypervisor is what the workload must defeat. These are interchangeable to the consumer and not remotely comparable as boundaries. "We run it in a container" names the interface, not the enforcer.
+
+This is the capabilities article's policy/mechanism separation one level down. The contract is what the workload may assume about its environment. The runtime is who makes it true. Keeping the seam there is what lets you change your mind about isolation strength without repackaging anything.
+
+#### Membranes: subtraction plus mediation
+
+Subtraction cannot mediate. You can remove a column. There is no namespace operation for "Alice reaches X only through Bob," because the thing in the middle has to hold a row and be a column at once — [Property E](/programming/capabilities.html#the-six-properties) — and a namespace has visibility rather than entities.
+
+> **Subtraction plus mediation is construction.**
+
+The moment removal is not enough and you need to interpose, you introduce something that holds the real authority and speaks a protocol: a FUSE daemon, a proxy inside the network namespace, a broker. That thing is a membrane. Its clients acquire only what it hands them, over the one channel they have to it, so the loop holds again. You have rebuilt the capability system one resource class at a time.
+
+Without the membrane, subtraction stays subtraction. `chroot` cuts designate for everything outside the jail and leaves every axis ambient inside it, which is why it is not a capability system. Unnameability becomes capability discipline only when the name you hold is the only way to reach the object, and the only way to get more names.
+
+The membrane pattern is old, and the systems that use it at scale describe themselves in exactly these terms.
+
+**Chromium's broker.** Chromium's [sandbox][chromium-sandbox] splits the browser into a *broker* and its *targets*. A renderer target runs under a token that denies it almost everything: every group deny-only, no privileges, untrusted integrity, a job object, a desktop of its own. That is subtraction, cutting authorize for nearly every OS object. The broker is the browser process, "a privileged controller/supervisor of the activities of the sandboxed processes." It evaluates policy, and "the policy-allowed calls are then executed by the broker and the results returned to the target process via the same IPC." The design doc puts the acquire axis in plain words:
+
+> The Chromium renderer runs with this token, which means that almost all resources that the renderer process uses have been acquired by the Browser and their handles duplicated into the renderer process.
+
+The target acquires only what the broker hands it, over the one channel it has. That is construction, rebuilt on top of Windows. The doc is just as plain about where enforcement is *not*. The hooks that forward Win32 calls to the broker are for convenience: "The interception + IPC mechanism does not provide security; it is designed to provide compatibility when code inside the sandbox cannot be modified to cope with sandbox restrictions." The token is the cut. The hook is `HTTP_PROXY` at the Win32 layer.
+
+**Google's safe proxies.** [*Building Secure and Reliable Systems*][bsrs-safe-proxies] describes the same shape for people. "Engineers are not able to run arbitrary commands directly on servers; they need to contact the Tool Proxy instead." That cuts reach. The proxy then authorizes each command against an access list, can require multi-party approval, rate-limits changes so a restart rolls out gradually, and logs every operation — adjudication, in the legible vocabulary of whole commands rather than packets. The chapter is candid about the cost, and lists among the downsides "a central machine that an adversary could take control of." That is the last question of the composition checklist, asked of a real system: what can the enforcer do if its policy is wrong?
+
+Part 4's capability gateways are the same membrane, placed in front of an agent.
+
+#### Editing the object side
+
+Every mechanism above edits the subject. The matrix has two projections, and the other one is just as mutable. `setfacl` on a file, `chcon` on its label, `GRANT` and `REVOKE` in a database, an ACE for a package SID on a Windows object, a bucket policy, a protected branch. None of it touches the workload. Its authority shrinks anyway.
+
+Sandboxes almost never work this way. Confining a workload means denying everything except a few things, and on the object side "everything" is unbounded: a file created after you ran `setfacl` carries whatever the default gives it, and nothing covers objects that do not exist yet. Each edit is also global. Lock one workload out of `/etc/passwd` by editing `/etc/passwd` and you break every other reader, so the move is only safe once the workload holds a principal nobody else shares — a subject-side act. And object state is durable. Credentials cost nothing per `exec`; you cannot relabel a filesystem per tool call.
+
+Two things the object side buys that nothing else does. An ACL hangs on the inode, so hard links, renames and bind mounts cannot walk around it. And it holds after a total escape. Branch protection refuses the force-push whether it came from the sandbox, from a process that broke out of it, or from a laptop in another country. Every other mechanism in this article stops working the moment its boundary fails. Policy at the resource has no boundary to fail.
+
+One trap comes with it. Unix checks permission at `open`, so `chmod 000` does nothing to a descriptor somebody already holds. Object-side edits bind at the next resolution, never retroactively, which is the check-and-use problem in miniature.
+
+### Composed: a Lambda function
+
+AWS Lambda runs each function inside a [Firecracker][firecracker-design] microVM. Follow one function's request to S3 and it crosses four reference monitors, each answering the composition checklist for its own boundary.
+
+```text
+function code
+  └─ guest kernel          designate and authorize, for guest objects
+      └─ Firecracker       reach: the only way out is its device model
+          └─ jailer        the enforcer's own authority, cut down
+              └─ host kernel and KVM
+signed API request ──────► IAM at the AWS service: authorize, on the object side
+```
+
+**Inside the guest**, the function is ordinary Linux code with ambient authority over a machine that holds nothing else. The guest kernel designates and authorizes guest objects. Host names mean nothing there.
+
+**At the VM boundary**, reach is the device model. Firecracker's design doc assumes that "all vCPU threads are considered to be running malicious code as soon as they have been started." The guest sees a handful of emulated devices: VirtIO net and block, a serial console, a partial keyboard controller. Network traffic leaves through a TAP device on the host, and block devices are backed by host files. Every path out passes through the Firecracker process.
+
+**Question six, asked of the enforcer.** That process is itself a monitor whose own code might fail, so it gets confined too. The [jailer][firecracker-jailer] enters a new mount namespace, pivots into a chroot that holds little more than the Firecracker binary, `/dev/kvm` and `/dev/net/tun`, places the process in a cgroup, joins a network namespace, drops to an unprivileged uid and gid, and only then execs Firecracker. Firecracker loads seccomp filters on each thread before running any guest code. A guest that escapes into the VMM lands in a process that can reach almost nothing. That is the Linux subtraction toolkit — `setpriv`, namespaces, seccomp — applied to the enforcer rather than the workload.
+
+**At the resource**, none of those layers holds the function's authority over the rest of AWS. Lambda puts the execution role's [temporary keys][lambda-envvars] in the function's environment, and each service authorizes the signed request against IAM policy. That is object-side adjudication, in the vocabulary of API actions, and it holds even if every layer above it fails.
+
+It is also the gap. The function *acquires* the real credential. Nothing between the function and S3 attenuates it, so whatever the role allows, a compromised function can do, from wherever the keys end up. Part 4's gateway closes that gap: the workload holds a handle, and the credential stays outside.
+
+## Conclusion: what this does not solve
 
 Everything above assumes the reference monitor is a thing you can point at. A kernel. A hypervisor. A runtime. One component, in one trust domain, sitting in one path.
 
@@ -477,6 +510,8 @@ Which is exactly the problem LLM agents force you to confront, because an agent'
 17. [Handling Algebraic Effects][handling-algebraic-effects] — effect handlers as programmable interpretations
 18. [Chromium sandbox design][chromium-sandbox] — broker and target, restricted tokens, and interception as compatibility rather than security
 19. [Building Secure and Reliable Systems, Chapter 3: Safe Proxies][bsrs-safe-proxies] — Warmuz, Oprea et al.; Google's Tool Proxy
+20. [Firecracker design][firecracker-design] and [the jailer][firecracker-jailer] — the microVM threat model, the device model, and confining the VMM itself
+21. [Lambda environment variables][lambda-envvars] — the execution role's keys, handed to the function
 
 [10-years-sel4]: https://microkerneldude.org/2019/08/06/10-years-sel4-still-the-best-still-getting-better "10 years seL4"
 [apparmor-where-do-lsms]: https://apparmor.net/about/lsm_introduction/ "AppArmor — Where Do LSMs Fit?"
@@ -487,10 +522,13 @@ Which is exactly the problem LLM agents force you to confront, because an agent'
 [capsicum-practical-capabilities-unix]: https://www.usenix.org/conference/usenixsecurity10/capsicum-practical-capabilities-unix "Capsicum: Practical Capabilities for UNIX"
 [computer-security-technology-planning]: https://csrc.nist.gov/csrc/media/publications/conference-paper/1998/10/08/proceedings-of-the-21st-nissc-1998/documents/early-cs-papers/ande72.pdf "Computer Security Technology Planning Study"
 [lsm-development]: https://docs.kernel.org/security/lsm-development.html "LSM development"
+[firecracker-design]: https://github.com/firecracker-microvm/firecracker/blob/main/docs/design.md "Firecracker design"
+[firecracker-jailer]: https://github.com/firecracker-microvm/firecracker/blob/main/docs/jailer.md "Firecracker jailer"
 [flask-security-architecture]: https://www.cs.cmu.edu/~dga/papers/flask-usenixsec99.pdf "The Flask Security Architecture"
 [handling-algebraic-effects]: https://arxiv.org/abs/1312.1399 "Handling Algebraic Effects"
 [joe-e-security-oriented]: https://www.cs.berkeley.edu/~daw/papers/joe-e-ndss10.pdf "Joe-E: A Security-Oriented Subset of Java"
 [landlock]: https://docs.kernel.org/userspace-api/landlock.html "Landlock"
+[lambda-envvars]: https://docs.aws.amazon.com/lambda/latest/dg/configuration-envvars.html#configuration-envvars-runtime "Lambda environment variables"
 [linux-namespaces]: https://man7.org/linux/man-pages/man7/namespaces.7.html "Linux namespaces"
 [linux-security-module-usage]: https://docs.kernel.org/admin-guide/LSM/index.html "Linux Security Module usage"
 [linux-security-modules-general]: https://www.usenix.org/legacy/publications/library/proceedings/sec02/full_papers/wright/wright_html/ "Linux Security Modules: General Security Support for the Linux Kernel"
