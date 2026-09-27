@@ -134,7 +134,7 @@ Karp puts his finger on why it gets neglected. Writing about the earliest identi
 
 > IBAC stores permissions in an access matrix, and the IBAC model doesn't include a specification of permissions for changing its entries. That left it to a trusted party, the system administrator.
 
-The matrix has no theory of its own mutation. Every model since is an answer to that gap, and the answers differ from each other far more than the evaluation schemes do.
+The matrix has no theory of its own mutation. Every model since is an answer to that gap, and the answers differ from each other far more than the evaluation schemes do. They are all answers about writes, because granting access is a write. The [series intro](/programming/authorization-series-intro.html) split the policy repository from the attribute repository, rules from facts, but outside ABAC the line blurs. A Linux ACL entry is a rule and a fact at once: it says who may do what, and it is stored on the file like any other attribute. In ReBAC the schema is policy and the relationship tuples are data, yet writing a tuple is how you grant access. So each model's answer is an answer to who may make that write:
 
 ```text
 ACL / DAC          the owner
@@ -200,6 +200,6 @@ Everything in this article decides at the resource. The PDP looks up what was wr
 
 ## Footnotes <!-- omit in toc -->
 
-[^authzen-shape]: This signature doesn't generalize all authorization models by coincidence; it is also the signature that the industry converged on it and is in the process of standardizing via [AuthZEN][authzen], the OpenID Foundation's decision-point protocol. It deliberately says nothing about how the answer is reached. It standardizes only the shape of the question, which is a strong signal that the shape is the settled part.
+[^authzen-shape]: This signature doesn't generalize all authorization models by coincidence; it is also the signature that the industry converged on and is in the process of standardizing via [AuthZEN][authzen], the OpenID Foundation's decision-point protocol. It deliberately says nothing about how the answer is reached. It standardizes only the shape of the question, which is a strong signal that the shape is the settled part.
 
 [^access-profile]: [RFC 4949][rfc4949], the Internet Security Glossary, has a name for this row that keeps it away from the word capability: defining the access control matrix, it says "each row is equivalent to an *access profile* for the subject." The glossary does not actually recommend the term — `access profile` is marked "O", meaning non-Internet origin and not for use in Internet documents, and its entry reads only "synonym for capability list." `capability list` is the entry it recommends. The distinction RFC 4949 does draw is the one worth holding on to: a *capability list* enumerates what a subject may reach, while a *capability token* is an unforgeable object whose possession is itself the proof. Part 3 lives in the gap between those two. I keep "capability list" here, which also matches the Linux sense of the word — `CAP_NET_ADMIN` and friends are a per-process list of permitted operations, a row and not a token.
