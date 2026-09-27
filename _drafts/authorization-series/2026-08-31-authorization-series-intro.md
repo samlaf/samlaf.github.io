@@ -21,40 +21,13 @@ A subject wants to act on an object. Four distinct things have to happen, and ea
 
 The policy repository and the attribute repository are the split worth dwelling on, because it is the code/data split. The policy repository holds rules; the attribute repository holds facts; the PDP is a pure function of both. The split is clean in ABAC, the model the figure was drawn for, and it blurs in most others. Either way, "change the policy" almost always means "write to a repository," and that is why the question of *who may write there* turns out to organize the whole field.
 
-Strip the boxes away and the PDP computes the same function in every system ever built:
+One arrow in the figure has a standard today: PEP to PDP. [AuthZEN][authzen-api], the OpenID Foundation's Authorization API, defines that exchange and nothing else:
 
 ```text
 f(subject, action, resource, context) → allow | deny
 ```
 
-Stored attributes describe the subject and the resource. The environment conditions are the context.
-
-### What the figure leaves out
-
-XACML's own [data-flow model][xacml-core] has a fifth box, the *context handler*. It translates the PEP's native request into XACML's canonical form, and it fetches attributes from the PIP on the PDP's behalf. NIST calls it "an optional additional component," and most deployments fold it away: the translation moves into the PEP, and the attribute fetching into the PDP. The figure does not draw it.
-
-One arrow in the figure has a standard today: PEP to PDP. [AuthZEN][authzen-api], the OpenID Foundation's Authorization API, defines that exchange and nothing else.
-
-That is the state of the field in one line: the shape of `f` is settled, and everything else on the diagram is not.
-
-## Six columns over the boxes
-
-The boxes name the parts. IDPro's [Authorization Terminology Is a Mess: Let's Fix It][authorization-terminology-mess] turns them into questions you can ask of any system:
-
-![Authorization Terminology](/assets/authorization/authorization-terminology.png)
-
-Each column asks about one part of the figure:
-
-| column | question | part |
-| --- | --- | --- |
-| Administration | who sets the rules? | PAP |
-| Model | what is the logic? | policy repository: what the rules mean |
-| Policy | what is the format? | policy repository: how the rules are written |
-| Information | what is the data source? | PIP |
-| Decision | where is it computed? | PDP |
-| Enforcement | where is it enforced? | PEP |
-
-The Model column lists ACL, RBAC, ABAC and ReBAC, and no capabilities. The nearest cell is Token Claims, under Information, and even that is not quite it. Part 3 explains why.
+Stored attributes describe the subject and the resource. The environment conditions are the context. That is the state of the field in one line: the shape of `f` is settled, and everything else on the diagram is not.
 
 ## From a chain to a grid
 
@@ -82,18 +55,17 @@ The columns are the stages of a request: designate, reach, authenticate, decide.
 
 Two regions sit outside the cells. **Carriers** are copies of something written that travel with the request, so the stage does not have to look it up: a certificate, a session cookie, a scoped token, a capability. **Bindings** are artifacts that serve several stages at once. A capability designates, reaches and decides in one object.
 
-Everything earlier in this intro lands on the grid. The four boxes are the Decide column: the PAP and the attribute authorities write it, the PIP and the PDP evaluate it, and the PEP enforces it. IDPro's six columns describe that same column. Karp's four steps take four cells.
+Everything earlier in this intro lands on the grid. The four boxes are the Decide column: the PAP and the attribute authorities write it, the PIP and the PDP evaluate it, and the PEP enforces it. [Part 1](/programming/authorization-models.html) redraws that column as a data system. Karp's four steps take four cells.
 
 ## The articles
 
 - **[Prologue: Who is the adversary](/programming/who-is-the-adversary.html)** — five positions the attacker has occupied, from a stranger at the gate to the data your delegate reads. Why identity stopped being the useful thing to key on, and where to find a technical threat model.
-- **[Part 1: Authorization models](/programming/authorization-models.html)** — the Written and Request rows of the Decide column: what the repositories hold, and who may write to them. The access matrix and its two projections, and why DAC and MAC are answers to the mutation question rather than rungs of a ladder.
+- **[Part 1: Authorization models](/programming/authorization-models.html)** — the Decide column read as a data system: stored facts, the rules that derive a view from them, and who may write either. Where the view is computed, which questions it answers cheaply, and how fresh its answers are. Along the way, why DAC and MAC are answers to the mutation question rather than rungs of a ladder.
 - **[Part 2: Carriers](/programming/carriers.html)** — copies of a decision that travel with the request. How much of the decision rides along, Karp's where and when, bearer tokens and the registries they grow, OAuth, and the trade between a fresh lookup and a frozen copy.
 - **[Part 3: Capabilities](/programming/capabilities.html)** — the Bindings region: authority you hold, not authority you are. The four boxes assume the PDP looks the subject up; a capability has nothing to look up, because the subject arrives holding the authority. Why the access matrix has to be square to describe that. Four things get called capabilities; only one of them makes designation and authority the same act, which is why the confused deputy is structural. Then the three classic objections, and where the property can be bought.
 - **[Part 4: How authority is enforced](/programming/authority-enforcement.html)** — the Enforced row. The reference monitor in both senses, and its three properties. Each stage has its own enforcer, and unnameability versus adjudication is a choice of which stage to cut. Then granularity and the routes down it, why Linux is a toolkit rather than a primitive, and what can change between the check and the use.
 - **[Part 5: LLM sandboxing](/programming/llm-sandbox.html)** — every region at once: the gateway, correct and unavoidable. A system that has the substrate and threw the property away: the runtime–gateway contract, the landscape scored against it, and a recommended architecture.
 
-[authorization-terminology-mess]: https://idpro.org/authorization-terminology-is-a-mess-lets-fix-it/ "Authorization Terminology Is a Mess. Let's Fix It."
 [authzen-api]: https://openid.net/specs/authorization-api-1_0.html "Authorization API 1.0 - OpenID Foundation"
 [from-abac-zbac-evolution]: https://shiftleft.com/mirrors/www.hpl.hp.com/techreports/2009/HPL-2009-30.pdf "From ABAC to ZBAC: The Evolution of Access Control Models"
 [nist-sp-800-162]: https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-162.pdf "NIST SP 800-162: Guide to Attribute Based Access Control (ABAC) Definition and Considerations"

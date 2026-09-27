@@ -1,0 +1,128 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1560 890" width="1560" height="890" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+<defs><marker id="aS" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#334155"/></marker></defs>
+<rect width="1560" height="890" fill="#fdfdfc"/>
+<text x="40" y="40" font-size="21" font-weight="700" fill="#0f172a" text-anchor="start">The Decide column as a data system</text>
+<text x="40" y="64" font-size="12.5" font-weight="400" fill="#64748b" text-anchor="start">Writers change facts and rules. Checks read the view those rules define. Materialization is where the line between the two paths falls.</text>
+<line x1="40" y1="112" x2="863" y2="112" stroke="#334155" stroke-width="1.4" marker-end="url(#aS)"/>
+<line x1="1520" y1="112" x2="887" y2="112" stroke="#334155" stroke-width="1.4" marker-end="url(#aS)"/>
+<text x="40" y="101" font-size="12.5" font-weight="600" fill="#334155" text-anchor="start">write path · work done when facts change</text>
+<text x="1520" y="101" font-size="12.5" font-weight="600" fill="#334155" text-anchor="end">read path · work done when someone asks</text>
+<rect x="40" y="140" width="230" height="330" rx="8" fill="#fff" stroke="#334155" stroke-width="1.2"/>
+<text x="56" y="168" font-size="15" font-weight="700" fill="#0f172a" text-anchor="start">Writers</text>
+<text x="56" y="188" font-size="12" font-weight="400" fill="#64748b" text-anchor="start">who may write, and what</text>
+<text x="56" y="204" font-size="12" font-weight="400" fill="#64748b" text-anchor="start">every write must keep</text>
+<text x="56" y="240" font-size="12.5" font-weight="400" fill="#0f172a" text-anchor="start">the owner</text>
+<text x="56" y="256" font-size="11" font-weight="400" fill="#64748b" text-anchor="start">DAC</text>
+<text x="56" y="290" font-size="12.5" font-weight="400" fill="#0f172a" text-anchor="start">admins, role-grant holders</text>
+<text x="56" y="306" font-size="11" font-weight="400" fill="#64748b" text-anchor="start">RBAC</text>
+<text x="56" y="340" font-size="12.5" font-weight="400" fill="#0f172a" text-anchor="start">nobody, beyond the lattice</text>
+<text x="56" y="356" font-size="11" font-weight="400" fill="#64748b" text-anchor="start">MAC</text>
+<text x="56" y="390" font-size="12.5" font-weight="400" fill="#0f172a" text-anchor="start">many writers, one view</text>
+<text x="56" y="406" font-size="11" font-weight="400" fill="#64748b" text-anchor="start">f = mandatory ∧ discretionary</text>
+<rect x="310" y="140" width="420" height="330" rx="8" fill="#f8fafc" stroke="#334155" stroke-width="1.2"/>
+<text x="326" y="168" font-size="15" font-weight="700" fill="#0f172a" text-anchor="start">System of record</text>
+<text x="326" y="188" font-size="12" font-weight="400" fill="#64748b" text-anchor="start">facts and rules, each stored once</text>
+<rect x="326" y="206" width="186" height="250" rx="8" fill="#fff" stroke="#334155" stroke-width="1.2"/>
+<text x="340" y="230" font-size="14" font-weight="700" fill="#0f172a" text-anchor="start">Facts</text>
+<text x="340" y="248" font-size="11.5" font-weight="400" fill="#64748b" text-anchor="start">the data model</text>
+<text x="340" y="278" font-size="12.5" font-weight="400" fill="#0f172a" text-anchor="start">entries on each object</text>
+<text x="340" y="294" font-size="11" font-weight="400" fill="#64748b" text-anchor="start">ACL · document</text>
+<text x="340" y="316" font-size="12.5" font-weight="400" fill="#0f172a" text-anchor="start">user→role, role→perm</text>
+<text x="340" y="332" font-size="11" font-weight="400" fill="#64748b" text-anchor="start">RBAC · relational</text>
+<text x="340" y="354" font-size="12.5" font-weight="400" fill="#0f172a" text-anchor="start">relation tuples</text>
+<text x="340" y="370" font-size="11" font-weight="400" fill="#64748b" text-anchor="start">ReBAC · graph</text>
+<text x="340" y="392" font-size="12.5" font-weight="400" fill="#0f172a" text-anchor="start">attributes on entities</text>
+<text x="340" y="408" font-size="11" font-weight="400" fill="#64748b" text-anchor="start">ABAC · key-value</text>
+<rect x="528" y="206" width="186" height="250" rx="8" fill="#fff" stroke="#334155" stroke-width="1.2"/>
+<text x="542" y="230" font-size="14" font-weight="700" fill="#0f172a" text-anchor="start">Rules</text>
+<text x="542" y="248" font-size="11.5" font-weight="400" fill="#64748b" text-anchor="start">the view definition</text>
+<text x="542" y="278" font-size="12.5" font-weight="400" fill="#0f172a" text-anchor="start">none: the rows are stored</text>
+<text x="542" y="294" font-size="11" font-weight="400" fill="#64748b" text-anchor="start">ACL</text>
+<text x="542" y="316" font-size="12.5" font-weight="400" fill="#0f172a" text-anchor="start">a join</text>
+<text x="542" y="332" font-size="11" font-weight="400" fill="#64748b" text-anchor="start">RBAC</text>
+<text x="542" y="354" font-size="12.5" font-weight="400" fill="#0f172a" text-anchor="start">recursive rewrites</text>
+<text x="542" y="370" font-size="11" font-weight="400" fill="#64748b" text-anchor="start">ReBAC</text>
+<text x="542" y="392" font-size="12.5" font-weight="400" fill="#0f172a" text-anchor="start">a predicate</text>
+<text x="542" y="408" font-size="11" font-weight="400" fill="#64748b" text-anchor="start">ABAC</text>
+<text x="542" y="432" font-size="11" font-weight="400" fill="#64748b" text-anchor="start" font-style="italic">written as code, JSON,</text>
+<text x="542" y="447" font-size="11" font-weight="400" fill="#64748b" text-anchor="start" font-style="italic">or a declarative language</text>
+<rect x="770" y="140" width="210" height="330" rx="8" fill="#e3f1f3" stroke="#0f7d8c" stroke-width="1.2"/>
+<text x="786" y="168" font-size="15" font-weight="700" fill="#0f172a" text-anchor="start">The view</text>
+<text x="786" y="196" font-size="14" font-weight="600" fill="#0f7d8c" text-anchor="start" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">Allowed(s, a, r)</text>
+<text x="786" y="222" font-size="12" font-weight="400" fill="#64748b" text-anchor="start">the relation every check</text>
+<text x="786" y="238" font-size="12" font-weight="400" fill="#64748b" text-anchor="start">reads from</text>
+<text x="786" y="276" font-size="12.5" font-weight="400" fill="#0f172a" text-anchor="start">Stored, stored in part,</text>
+<text x="786" y="294" font-size="12.5" font-weight="400" fill="#0f172a" text-anchor="start">or computed per check.</text>
+<text x="786" y="324" font-size="12.5" font-weight="400" fill="#0f172a" text-anchor="start">Where it is computed is</text>
+<text x="786" y="342" font-size="12.5" font-weight="400" fill="#0f172a" text-anchor="start">the boundary below.</text>
+<rect x="1020" y="140" width="230" height="330" rx="8" fill="#fff" stroke="#334155" stroke-width="1.2"/>
+<text x="1036" y="168" font-size="15" font-weight="700" fill="#0f172a" text-anchor="start">Evaluator</text>
+<text x="1036" y="188" font-size="12" font-weight="400" fill="#64748b" text-anchor="start">the PDP</text>
+<text x="1036" y="222" font-size="12.5" font-weight="400" fill="#0f172a" text-anchor="start">Reads the stored view, or</text>
+<text x="1036" y="240" font-size="12.5" font-weight="400" fill="#0f172a" text-anchor="start">computes it on the spot</text>
+<text x="1036" y="258" font-size="12.5" font-weight="400" fill="#0f172a" text-anchor="start">from facts and rules.</text>
+<line x1="1036" y1="290" x2="1234" y2="290" stroke="#cbd5e1" stroke-width="1"/>
+<text x="1036" y="318" font-size="13.5" font-weight="700" fill="#0f172a" text-anchor="start">Freshness</text>
+<text x="1036" y="338" font-size="12.5" font-weight="400" fill="#0f172a" text-anchor="start">Does the read see the</text>
+<text x="1036" y="356" font-size="12.5" font-weight="400" fill="#0f172a" text-anchor="start">latest revocation?</text>
+<text x="1036" y="380" font-size="11" font-weight="400" fill="#64748b" text-anchor="start">Zanzibar: zookies</text>
+<rect x="1290" y="140" width="230" height="330" rx="8" fill="#fff" stroke="#334155" stroke-width="1.2"/>
+<text x="1306" y="168" font-size="15" font-weight="700" fill="#0f172a" text-anchor="start">Queries</text>
+<text x="1306" y="188" font-size="12" font-weight="400" fill="#64748b" text-anchor="start">asked by the PEP</text>
+<text x="1306" y="224" font-size="12.5" font-weight="600" fill="#0f172a" text-anchor="start" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">check(s, a, r, ctx)</text>
+<text x="1306" y="242" font-size="11" font-weight="400" fill="#64748b" text-anchor="start">→ allow | deny</text>
+<text x="1306" y="280" font-size="12.5" font-weight="400" fill="#0f172a" text-anchor="start">Who can do a to r?</text>
+<text x="1306" y="300" font-size="12.5" font-weight="400" fill="#0f172a" text-anchor="start">What can s reach?</text>
+<text x="1306" y="318" font-size="11" font-weight="400" fill="#64748b" text-anchor="start">review and audit</text>
+<line x1="1306" y1="346" x2="1504" y2="346" stroke="#cbd5e1" stroke-width="1"/>
+<text x="1306" y="374" font-size="12.5" font-weight="400" fill="#0f172a" text-anchor="start">ctx comes with the request.</text>
+<text x="1306" y="392" font-size="12.5" font-weight="400" fill="#0f172a" text-anchor="start">Nothing stores it.</text>
+<line x1="272" y1="300" x2="308" y2="300" stroke="#334155" stroke-width="1.4" marker-end="url(#aS)"/>
+<text x="290.0" y="290" font-size="11" font-weight="400" fill="#64748b" text-anchor="middle">write</text>
+<line x1="732" y1="300" x2="768" y2="300" stroke="#334155" stroke-width="1.4" marker-end="url(#aS)"/>
+<text x="750.0" y="290" font-size="11" font-weight="400" fill="#64748b" text-anchor="middle">define</text>
+<line x1="1018" y1="300" x2="982" y2="300" stroke="#334155" stroke-width="1.4" marker-end="url(#aS)"/>
+<text x="1000.0" y="290" font-size="11" font-weight="400" fill="#64748b" text-anchor="middle">read</text>
+<line x1="1288" y1="300" x2="1252" y2="300" stroke="#334155" stroke-width="1.4" marker-end="url(#aS)"/>
+<text x="1270.0" y="290" font-size="11" font-weight="400" fill="#64748b" text-anchor="middle">ask</text>
+<rect x="40" y="520" width="1480" height="180" rx="8" fill="#fff" stroke="#334155" stroke-width="1.2"/>
+<line x1="750" y1="470" x2="120" y2="620" stroke="#94a3b8" stroke-width="1" stroke-dasharray="5 4"/>
+<line x1="1000" y1="470" x2="1440" y2="620" stroke="#94a3b8" stroke-width="1" stroke-dasharray="5 4"/>
+<text x="780" y="552" font-size="15" font-weight="700" fill="#0f172a" text-anchor="middle">Materialization: where does the boundary fall?</text>
+<text x="780" y="572" font-size="12" font-weight="400" fill="#64748b" text-anchor="middle">Between the store and the view, the view is computed per check. Between the view and the evaluator, it is stored.</text>
+<line x1="120" y1="620" x2="1440" y2="620" stroke="#334155" stroke-width="1.6"/>
+<line x1="120" y1="613" x2="120" y2="627" stroke="#334155" stroke-width="1.6"/>
+<line x1="1440" y1="613" x2="1440" y2="627" stroke="#334155" stroke-width="1.6"/>
+<circle cx="260" cy="620" r="5.5" fill="#0f7d8c"/>
+<text x="260" y="606" font-size="13" font-weight="700" fill="#0f172a" text-anchor="middle">ABAC</text>
+<text x="260" y="644" font-size="11.5" font-weight="400" fill="#64748b" text-anchor="middle">a predicate per check</text>
+<circle cx="540" cy="620" r="5.5" fill="#0f7d8c"/>
+<text x="540" y="606" font-size="13" font-weight="700" fill="#0f172a" text-anchor="middle">ReBAC</text>
+<text x="540" y="644" font-size="11.5" font-weight="400" fill="#64748b" text-anchor="middle">walk the graph per check</text>
+<circle cx="815" cy="620" r="5.5" fill="#0f7d8c"/>
+<text x="815" y="606" font-size="13" font-weight="700" fill="#0f172a" text-anchor="middle">Zanzibar + Leopard</text>
+<text x="815" y="644" font-size="11.5" font-weight="400" fill="#64748b" text-anchor="middle">group closure precomputed</text>
+<circle cx="1075" cy="620" r="5.5" fill="#0f7d8c"/>
+<text x="1075" y="606" font-size="13" font-weight="700" fill="#0f172a" text-anchor="middle">RBAC</text>
+<text x="1075" y="644" font-size="11.5" font-weight="400" fill="#64748b" text-anchor="middle">one join per check</text>
+<circle cx="1320" cy="620" r="5.5" fill="#0f7d8c"/>
+<text x="1320" y="606" font-size="13" font-weight="700" fill="#0f172a" text-anchor="middle">ACL</text>
+<text x="1320" y="644" font-size="11.5" font-weight="400" fill="#64748b" text-anchor="middle">the rows are the view</text>
+<text x="120" y="670" font-size="12" font-weight="700" fill="#334155" text-anchor="start">Computed on read</text>
+<text x="120" y="687" font-size="11.5" font-weight="400" fill="#64748b" text-anchor="start" font-style="italic">Revoking is one write. Every check does the work.</text>
+<text x="1440" y="670" font-size="12" font-weight="700" fill="#334155" text-anchor="end">Precomputed on write</text>
+<text x="1440" y="687" font-size="11.5" font-weight="400" fill="#64748b" text-anchor="end" font-style="italic">Checks are lookups. Revoking rewrites the view.</text>
+<text x="40" y="742" font-size="15" font-weight="700" fill="#0f172a" text-anchor="start">Beyond one database</text>
+<rect x="40" y="758" width="730" height="104" rx="8" fill="#fff" stroke="#334155" stroke-width="1.2" stroke-dasharray="5 4"/>
+<text x="58" y="788" font-size="15" font-weight="700" fill="#0f172a" text-anchor="start">Carriers</text>
+<rect x="138" y="773" width="62" height="21" rx="10.5" fill="#0f7d8c"/>
+<text x="169" y="788" font-size="11.5" font-weight="700" fill="#fff" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">Part 2</text>
+<text x="58" y="816" font-size="12.5" font-weight="400" fill="#334155" text-anchor="start">The view leaves the store. A copy rides with the request: a token, a cookie, a capability.</text>
+<text x="58" y="836" font-size="12.5" font-weight="400" fill="#334155" text-anchor="start">It works without the store, and revoking it means reaching every copy.</text>
+<rect x="790" y="758" width="730" height="104" rx="8" fill="#fff" stroke="#334155" stroke-width="1.2" stroke-dasharray="5 4"/>
+<text x="808" y="788" font-size="15" font-weight="700" fill="#0f172a" text-anchor="start">Enforcement</text>
+<rect x="916" y="773" width="62" height="21" rx="10.5" fill="#0f7d8c"/>
+<text x="947" y="788" font-size="11.5" font-weight="700" fill="#fff" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">Part 4</text>
+<text x="808" y="816" font-size="12.5" font-weight="400" fill="#334155" text-anchor="start">A database enforces its own answers: it never returns a row nobody selected.</text>
+<text x="808" y="836" font-size="12.5" font-weight="400" fill="#334155" text-anchor="start">An authorization answer must bind on another system, and nothing in the store makes it.</text>
+</svg>

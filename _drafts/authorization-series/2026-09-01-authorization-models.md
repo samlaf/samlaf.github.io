@@ -8,31 +8,32 @@ date:   2026-09-01
 
 > This is Part 1 of a six-part [series on authorization](/programming/authorization-series-intro.html).
 >
-> 0. **[Prologue: Who is the adversary](/programming/who-is-the-adversary.html)** — five positions the attacker has occupied, and why identity stopped being the useful thing to key on.
-> 1. **Authorization models** — what every system computes, and who may change it.
-> 2. **[Carriers](/programming/carriers.html)** — decisions that travel with the request.
-> 3. **[Capabilities](/programming/capabilities.html)** — authority you hold, not authority you are.
-> 4. **[How authority is enforced](/programming/authority-enforcement.html)** — what makes any of it binding.
-> 5. **[LLM sandboxing](/programming/llm-sandbox.html)** — the gateway, correct and unavoidable.
+> - **[Prologue: Who is the adversary](/programming/who-is-the-adversary.html)** — five positions the attacker has occupied, and why identity stopped being the useful thing to key on.
+> - **Part 1: Authorization models** — what every system computes, and who may change it.
+> - **[Part 2: Carriers](/programming/carriers.html)** — decisions that travel with the request.
+> - **[Part 3: Capabilities](/programming/capabilities.html)** — authority you hold, not authority you are.
+> - **[Part 4: How authority is enforced](/programming/authority-enforcement.html)** — what makes any of it binding.
+> - **[Part 5: LLM sandboxing](/programming/llm-sandbox.html)** — the gateway, correct and unavoidable.
 
-- [Mathematical Framework](#mathematical-framework)
-- [Data Models](#data-models)
-  - [Access Control Matrix: ACL and Capability Lists](#access-control-matrix-acl-and-capability-lists)
-  - [RBAC](#rbac)
-  - [ABAC](#abac)
-- [Real World Examples](#real-world-examples)
-- [Policy Modification](#policy-modification)
-  - [DAC and MAC are not rungs](#dac-and-mac-are-not-rungs)
-  - [Policies compose, and the rule is not the same as the edit right](#policies-compose-and-the-rule-is-not-the-same-as-the-edit-right)
+- [One function, one relation](#one-function-one-relation)
+- [The write path](#the-write-path)
+  - [Facts: schemas for the matrix](#facts-schemas-for-the-matrix)
+  - [Rules: a policy is a view](#rules-a-policy-is-a-view)
+  - [Writers](#writers)
+- [Materialization: where the boundary falls](#materialization-where-the-boundary-falls)
+- [The read path](#the-read-path)
+  - [Queries](#queries)
+  - [Freshness](#freshness)
+- [Real-world examples](#real-world-examples)
 - [References](#references)
 
 Despite security and authorization having been parts of computer science and programming for decades, the field is still [evolving rapidly][state-union-authorization]:
 
 ![](/assets/authorization/auth-timeline.png)
 
-While still being quite fragmented in practice, there is a growing understanding of the underlying principles that govern how authority is represented and managed, and we are starting to see a convergence on the fundamental abstractions that underlie all models. The [series intro](/programming/authorization-series-intro.html) lays out the parts of an authorization system and six columns for describing one. This article covers three of them: Model and Policy, what the rules mean and how they are written, and Administration, who may change them.
+While still being quite fragmented in practice, there is a growing understanding of the underlying principles that govern how authority is represented and managed, and we are starting to see a convergence on the fundamental abstractions that underlie all models. The [series intro](/programming/authorization-series-intro.html) lays out the parts of an authorization system. This article takes one of them, the decision, and reads it the way Martin Kleppmann reads a database in [Designing Data-Intensive Applications][ddia]: as stored facts, rules that derive a view from them, and the two paths that write and read it.
 
-## Mathematical Framework
+## One function, one relation
 
 Abstractly, every authorization system evaluates a function of the form[^authzen-shape]:
 
@@ -46,13 +47,31 @@ where:
 - **Resource** is what they want it done to
 - **Context** is everything else that bears on the answer and belongs to none of the first three: time of day, device information, network location, risk score, whether the country is at war, etc.
 
-## Data Models
+Tabulate `f` over subjects and resources and you get a relation. Lampson's access-control matrix has subjects down one axis, objects across the other, and permitted operations in the cells:
 
-The authorization function is stateful, and hence there are different ways to represent it and manage it.
+```text
+             File A    File B    Device C
+Alice          rw        r
+Bob                      rw        use
+```
+
+Read as a table, the matrix is `Allowed(subject, action, resource)`, and every access check is a point query against it: is this row present? Context is the odd one out. It is a parameter of the query, not a column of the table, and nothing stores it.
+
+Seen as a data system, then, `f` is a query. Writers change facts and rules on the write path, checks ask `f` on the read path, and the two paths meet at the view the rules define:
+
+![The Decide column as a data system: writers, facts and rules on the write path, queries and the evaluator on the read path, meeting at the view; materialization decides where the boundary falls; carriers and enforcement extend beyond one database](/assets/authorization/decide-column.svg)
+
+The rest of this article walks the figure. The write path comes first: what the facts look like, how rules turn them into the view, and who may write either. Then the boundary between the paths, which decides how much of the view is computed ahead of time. Then the read path: which questions the view can answer, and how fresh the answers are. The bottom row leaves the database. Carriers are [Part 2](/programming/carriers.html), and enforcement is [Part 4](/programming/authority-enforcement.html).
+
+## The write path
+
+### Facts: schemas for the matrix
+
+The facts are what the store holds, and each model is a different schema for them.
 
 ![Data models](/assets/authorization/data-models.svg)
 
-Six ways to write down the same `f`, on one running example. The first five are notations for the rectangle; the last is a different matrix. Going down from ACL to ReBAC, each step means smaller storage and easier to administer, with more work at request time, and that is the whole trade.
+Six ways to write down the same `f`, on one running example. The first five are notations for the rectangle; the last is a different matrix. Going down from ACL to ReBAC, each step stores less and computes more at request time. That is a separate axis from the schema, and [materialization](#materialization-where-the-boundary-falls) takes it up below.
 
 | model | how `f` is represented | subject | resource | context | projected back onto the matrix |
 | --- | --- | --- | --- | --- | --- |
@@ -67,17 +86,9 @@ The last column is what makes them one family. Each model is a denormalized enco
 
 Only the last row is lossy, and it is worth saying exactly where. An object-capability graph *is* a matrix — the [square one](/programming/capabilities.html#squaring-the-matrix). What is not faithful is squashing it back into a rectangle by declaring some entities to be subjects and the rest to be resources. `Alice: rw X` is a true statement about what Alice can eventually cause and a false statement about the authority she holds: the projection computes reachability and throws away the path, so Bob disappears from a description of a system whose entire structure is that Bob is in the middle. Two more things go with him: every cell that was a subject talking to a subject, and the rule that said which cells could be written next.
 
-### Access Control Matrix: ACL and Capability Lists
+#### Access control lists and capability lists
 
-Tabulating `f` over subjects and resources gives the picture everything else is a reaction to. Start with the simplest model that captures the problem. Lampson's access-control matrix has subjects down one axis, objects across the other, and permitted operations in the cells.
-
-```text
-             File A    File B    Device C
-Alice          rw        r
-Bob                      rw        use
-```
-
-The matrix is a tabulation, so nobody stores it either — it is mostly empty. Real systems store one of its two projections.
+The matrix is mostly empty, so nobody stores it. Real systems store one of its two projections.
 
 Store it by column, at the resource, and you get an **access control list**:
 
@@ -94,17 +105,17 @@ Alice → File A: rw, File B: r
 Bob   → File B: rw, Device C: use
 ```
 
-The same information, transposed. This is the observation that makes people say ACLs and capabilities are dual, and at this level they are. A file descriptor is a capability; `/etc/passwd`'s mode bits are an ACL; both describe cells of the same matrix.
+The same information, transposed. This is the observation that makes people say ACLs and capabilities are dual, and at this level they are. A file descriptor is a capability; `/etc/passwd`'s mode bits are an ACL; both describe cells of the same matrix. In database terms, they are one table stored under two different keys, and the key decides which questions are cheap to ask. The [read path](#queries) comes back to that.
 
-Hold that claim loosely. The matrix describes permissions at an instant. It says nothing about how a cell got filled in, who is allowed to fill in another one, or what happens when Alice hands Bob something. The [capabilities article](/programming/capabilities.html) is mostly about dismantling the duality this suggests. This one stays with the snapshot and asks the one dynamic question the matrix can almost answer: who edits it?
+Hold the duality loosely. The matrix describes permissions at an instant. It says nothing about how a cell got filled in, who is allowed to fill in another one, or what happens when Alice hands Bob something. The [capabilities article](/programming/capabilities.html) is mostly about dismantling the duality this suggests. This one stays with the snapshot and asks the one dynamic question the matrix can almost answer: who edits it?
 
-Worth knowing what the matrix cannot answer before leaning on it. Once cells can be edited, the question you most want to ask — *can this permission ever reach that subject, by any sequence of legal edits* — is undecidable in the general case. Harrison, Ruzzo and Ullman proved it in 1976, and the result is why every tractable model since is a deliberate restriction of the general protection system rather than an implementation of it: take-grant, typed matrices, and the bounded schemes real engines actually ship. Keep it in view for the [capabilities article](/programming/capabilities.html), where the same question comes back as the thing capabilities are worst at.
-
-### RBAC
+#### RBAC
 
 RBAC inserts a reusable layer *between* subject and permission, so that `Users × Permissions` factors into `(Users × Roles)` and `(Roles × Permissions)`. The saving comes from sharing the middle term across many subjects, not from changing which end of the matrix the data hangs off.
 
-### ABAC
+In database terms, RBAC is normalization. It stores two tables, `UserRole` and `RolePermission`, and the matrix is their join. Role explosion is the sign that the schema no longer fits the data.
+
+#### ABAC
 
 ABAC is where the industry landed for anything complicated, with XACML and OPA's Rego as the two main expressions. Both share a shape: a policy document, a set of facts about subject and resource and environment, and an engine that evaluates one against the other at request time.
 
@@ -112,29 +123,87 @@ A table indexed by subject and resource has two axes. Action fits in the cell. C
 
 This is the real reason ABAC and its risk-adaptive variants exist. Not because subjects needed richer description, but because `f` grew a fourth argument and the table had no axis for it. Once you are evaluating a predicate at request time, context is free.
 
-## Real World Examples
+#### ReBAC
 
-| system | model |
-| --- | --- |
-| POSIX mode bits, NT ACLs, Postgres `GRANT`, S3 bucket policies | ACL |
-| Linux file descriptors, `CAP_*` bounding sets | capability list |
-| LDAP / Active Directory groups, Kubernetes RBAC, GitHub org roles | RBAC |
-| SELinux type enforcement | type-based compression of the matrix, with MAC mutation |
-| XACML / Axiomatics, OPA / Rego, AWS IAM condition keys | ABAC |
-| Zanzibar, Ory Keto | ReBAC |
-| SpiceDB, OpenFGA | ReBAC with per-edge context (caveats, conditions) |
-| Cedar / AWS Verified Permissions, Oso, Aserto Topaz | ReBAC and ABAC in one language |
-| KeyKOS, EROS, seL4, Fuchsia, Cap'n Proto, WASI Preview 2 | object capability |
+ReBAC stores the facts as a graph. Each fact is a tuple that names an object, a relation and a subject, and the subject can itself be a set, such as the members of a group. The running example has four:
 
-## Policy Modification
+```text
+folder:Projects#owner@Alice
+file:A#parent@folder:Projects
+group:ops#member@Bob
+device:C#use@group:ops
+```
 
-Everything so far is about evaluating `f`. There is a second question underneath it that gets far less attention and turns out to matter more: **who is allowed to change `f`, and where do they go to do it?**. A policy that cannot be widened without a deploy is a policy that gets widened to `*` in advance. The cost of granting a legitimate exception is a security property, not an ergonomics complaint, and it is the one that decides whether the system is still enforcing anything six months later.
+None of those tuples says that Alice may write File A. A rule does: the owner of a folder may write what the folder contains. [Zanzibar][zanzibar-google-s-consistent] calls these rules *userset rewrites*, and they are recursive, because groups hold groups and folders hold folders. A check is a reachability query: is there a path from the subject to the resource along relations the rules allow?
+
+Of the five, ReBAC is the only model whose facts need a different data model. ACLs and capability lists are lists, RBAC is two tables, and ABAC is attributes on records. ReBAC is a graph, and its checks are graph queries.
+
+### Rules: a policy is a view
+
+Every model so far has two kinds of state. *Facts* are stored: ACL entries, role assignments, tuples, attributes. *Rules* derive the matrix from them: the join in RBAC, the rewrites in ReBAC, the predicate in ABAC. Datalog draws the same line, between stored facts and the rules that derive new ones, and so does SQL, between tables and views. A policy is a view definition. It says which rows of `Allowed` exist, given the facts.
+
+Here is the ABAC rule from the figure above, in Rego, the language of OPA:
+
+```rego
+package files
+
+default allow := false
+
+allow if {
+  input.action == "write"
+  data.users[input.subject].dept == data.files[input.resource].dept
+  input.context.device == "managed"
+  input.context.hour >= 9
+  input.context.hour < 17
+}
+```
+
+And here are the first two lines of its body, as a SQL view over the same facts:
+
+```sql
+CREATE VIEW allowed AS
+  SELECT u.id AS subject, 'write' AS action, f.id AS resource
+  FROM users u JOIN files f ON u.dept = f.dept;
+```
+
+The pieces line up. `data` holds the stored facts, and comparing `data.users[...]` with `data.files[...]` is the join. `input` is the query, so the check becomes a point query against the view:
+
+```sql
+SELECT EXISTS (
+  SELECT 1 FROM allowed
+  WHERE subject = 'Alice' AND action = 'write' AND resource = 'A'
+);
+```
+
+A second `allow` rule would be a second branch of a `UNION`. Rego gets this shape from Datalog, which [inspired it][opa-policy-language].
+
+The last three lines of the rule have no SQL counterpart, and that is the ABAC argument again. A view is a table computed from other tables, and a table has no axis for context. The honest SQL translation is a function that takes the context as an argument.
+
+Taxonomies of authorization often list policy formats: hardcoded code, a structured document, a declarative language, a database row. They are four ways to write the same view definition, or to skip it:
+
+- **Code.** The rule is an `if` in the application. It is imperative, and changing it takes a deploy.
+- **A structured document.** The rule is encoded as data, as in an AWS IAM policy's JSON. It can change without a deploy, and like any encoding it has to evolve without breaking what reads it.
+- **A declarative language.** Rego, Cedar, XACML. The rule says what must hold, and the engine works out how to check it, as a database does for SQL.
+- **A database row.** No rule at all. The rows of `Allowed` are stored directly, and that is an ACL.
+
+Postgres has the closest real example, and it even uses the word:
+
+```sql
+ALTER TABLE files ENABLE ROW LEVEL SECURITY;
+CREATE POLICY owner_only ON files USING (owner = current_user);
+```
+
+From then on, [Postgres adds][postgres-row-security] the `USING` predicate to every query on `files`, for every role that row-level security applies to. The policy is a view the database applies for you. Here the decision and its enforcement are one act, which is rare, and [Part 4](/programming/authority-enforcement.html) is about everywhere else.
+
+### Writers
+
+Facts and rules say what `f` is. There is a second question underneath it that gets far less attention and turns out to matter more: **who is allowed to change `f`, and where do they go to do it?** A policy that cannot be widened without a deploy is a policy that gets widened to `*` in advance. The cost of granting a legitimate exception is a security property, not an ergonomics complaint, and it is the one that decides whether the system is still enforcing anything six months later.
 
 Karp puts his finger on why it gets neglected. Writing about the earliest identity-based systems:
 
 > IBAC stores permissions in an access matrix, and the IBAC model doesn't include a specification of permissions for changing its entries. That left it to a trusted party, the system administrator.
 
-The matrix has no theory of its own mutation. Every model since is an answer to that gap, and the answers differ from each other far more than the evaluation schemes do. They are all answers about writes, because granting access is a write. The [series intro](/programming/authorization-series-intro.html) split the policy repository from the attribute repository, rules from facts, but outside ABAC the line blurs. A Linux ACL entry is a rule and a fact at once: it says who may do what, and it is stored on the file like any other attribute. In ReBAC the schema is policy and the relationship tuples are data, yet writing a tuple is how you grant access. So each model's answer is an answer to who may make that write:
+The matrix has no theory of its own mutation. Every model since is an answer to that gap, and the answers differ from each other far more than the evaluation schemes do. They are all answers about writes, because granting access is a write. The line between facts and rules blurs here. A Linux ACL entry is a rule and a fact at once: it says who may do what, and it is stored on the file like any other attribute. In ReBAC the schema is policy and the relationship tuples are data, yet writing a tuple is how you grant access. So each model's answer is an answer to who may make that write:
 
 ```text
 ACL / DAC          the owner
@@ -152,7 +221,9 @@ There is a sharper way to see the split. Ask whether the mutation right is **mon
 
 There is a second question hiding in the same list: *where do you go* to make the change. To give Bob everything Alice has under an ACL, you visit every object. Under a capability list you go to Alice. That is a real operational difference and it is invisible in the evaluation view.
 
-### DAC and MAC are not rungs
+One more thing about writes, before leaning on the matrix too hard. Once cells can be edited, the question you most want to ask — *can this permission ever reach that subject, by any sequence of legal edits* — is undecidable in the general case. Harrison, Ruzzo and Ullman proved it in 1976, and the result is why every tractable model since is a deliberate restriction of the general protection system rather than an implementation of it: take-grant, typed matrices, and the bounded schemes real engines actually ship. Keep it in view for the [capabilities article](/programming/capabilities.html), where the same question comes back as the thing capabilities are worst at.
+
+#### DAC and MAC are not rungs
 
 The clean ladder oversimplifies, and the first two entries are where it does the most damage.
 
@@ -160,7 +231,7 @@ DAC and MAC are usually presented as the first two levels of increasing sophisti
 
 Once you see that, an old confusion goes away. SELinux's type enforcement is a *compression* choice: a security context is the full `user:role:type:level` tuple, and access is decided between types rather than users. MAC is a *mutation* choice. They are complements in that design, which is exactly what you would expect from two answers to two different questions, and not at all what you would expect from two rungs of one ladder.
 
-### Policies compose, and the rule is not the same as the edit right
+#### Policies compose, and the rule is not the same as the edit right
 
 One more thing hides in the mutation column, and the MAC row is where it shows.
 
@@ -176,6 +247,65 @@ Once you look for it, composition is everywhere and rarely specified. XACML name
 
 Part 5 runs into this directly. An agent's effective authority is the conjunction of an org policy, the user's grant, the repository's branch protection and the tool's own rules — four policies, four owners, and no agreed account of how they combine.
 
+## Materialization: where the boundary falls
+
+The view in the figure can be stored in full, stored in part, or computed on every check. Kleppmann calls this the boundary between the write path and the read path. Work on the write path is paid when facts change. Work on the read path is paid when someone asks. Moving the boundary moves the cost, not the answer.
+
+Each model sits somewhere along that line:
+
+- **ACL.** The rows are the view. A check is a lookup. A change that spans many rows, such as "give Bob everything Alice has," is many writes.
+- **RBAC.** The two tables are stored, and the join runs at check time. Many systems store the joined result too. Windows expands a user's groups into the access token at logon, which is why a group change waits for the next logon.
+- **Zanzibar.** The tuples are stored, and the rewrites run at check time, except for nested groups. Its Leopard index precomputes group membership and keeps it current from the stream of tuple changes, because walking deeply nested groups on every check is slow.
+- **ABAC.** Only the attributes are stored. The predicate runs on every check.
+
+The two ends fail in opposite ways. Precompute, and checks are cheap, but every change has to reach every row derived from it, and a row that misses the change is a stale grant. Compute on read, and a change is one write, but every check pays for the derivation and depends on whoever holds the facts.
+
+The data-models figure reads as if the model fixed where the boundary sits. It doesn't. ABAC decisions can be cached, and RBAC can be expanded ahead of time. The schema says what the facts look like. Materialization says when the view is computed, and any schema can move along it.
+
+A materialized view does not have to stay in the store, either. The Windows access token is RBAC, joined at logon and carried by every process the user starts. Once the copy leaves the store, revoking it means reaching the copy. That is the subject of [Part 2](/programming/carriers.html).
+
+## The read path
+
+### Queries
+
+The check is one query: is this row in `Allowed`? Every model answers it. Two more queries matter as much in practice: *what can Alice reach?* and *who can reach File A?* Review, audit and revocation all ask them.
+
+Which of them is cheap depends on the key the facts are stored under. An ACL answers *who can reach File A* with one read, and *what can Alice reach* only by visiting every object. A capability list is the reverse. It is the same asymmetry the Writers section found for edits, now on the read side.
+
+RBAC answers both through its join. ReBAC answers the check by walking the graph, and needs a reverse index for the rest: SpiceDB's `LookupResources` and OpenFGA's `ListObjects` exist for that. ABAC is the hard case. The predicate has to be tried against every resource, unless the engine can turn it into a filter the database runs. OPA's partial evaluation does exactly that: it compiles the policy into query conditions, which turns the policy back into what the Rules section said it was, a view.
+
+[Part 2](/programming/carriers.html) leans on these queries. They are the questions a central store can answer and a capability cannot.
+
+### Freshness
+
+A lookup is not automatically current. The store that answers a check is usually a replica, and a replica can lag behind the write that revoked access.
+
+Zanzibar's paper calls the result the *new enemy problem*. Alice removes Bob from a document's ACL, and then new content is added to the document. If the check on that content reads a replica that has not yet seen the removal, Bob sees content written after he lost access. Zanzibar's fix is the *zookie*. When content changes, the client asks Zanzibar for a zookie and stores it with the content. Later checks on that content pass the zookie, and Zanzibar evaluates them at a snapshot at least as fresh as the one it names. In Kleppmann's terms, that is causal consistency: a check may not see a world older than the write it depends on.
+
+Freshness is a guarantee you ask for, not a property of looking things up. It also qualifies [Part 2](/programming/carriers.html#fresh-or-frozen)'s trade between a fresh lookup and a frozen copy: the lookup is only as fresh as the replica it reads.
+
+Where the evaluator runs — inside the application, as a library, or as a service — is the last choice on the read path. It mostly decides latency and what fails when the evaluator is down. [Part 5](/programming/llm-sandbox.html) deals with it for a PDP in the path of every effect.
+
+## Real-world examples
+
+A system is not one model. It makes a choice on each axis of the figure:
+
+| system | facts | rules | materialization | writers |
+| --- | --- | --- | --- | --- |
+| POSIX mode bits, NT ACLs | entries on the object | none | stored | the owner |
+| Postgres `GRANT`, row-level security | an ACL per object in the catalog; predicates on tables | none for `GRANT`; a predicate per row for RLS | `GRANT` stored; RLS computed per query | the owner, and holders of `GRANT OPTION` |
+| S3 bucket policies, AWS IAM condition keys | policy documents; tags on principals and resources | JSON predicates | computed per request | whoever may edit the policy |
+| Linux file descriptors, `CAP_*` bounding sets | a table per process | none | stored in the process | the kernel, at `open()` or `exec()` |
+| LDAP / Active Directory groups, Kubernetes RBAC, GitHub org roles | memberships and role bindings | a join | per check; AD also expands groups into the logon token | admins, plus whoever holds role-grant rights |
+| SELinux type enforcement | labels on processes and objects | type rules, loaded as one policy | computed; decisions cached in the access vector cache | the policy author only (MAC) |
+| XACML / Axiomatics, OPA / Rego | attributes, from anywhere | predicates | computed per request | whoever owns the policy |
+| Zanzibar, Ory Keto | relation tuples | recursive rewrites | per check; Leopard precomputes nested groups | client services, through writes |
+| SpiceDB, OpenFGA | tuples with caveats or conditions | rewrites, plus predicates on edges | per check, with caches | client services, through writes |
+| Cedar / AWS Verified Permissions, Oso, Aserto Topaz | entities, relationships and attributes | one language for ReBAC and ABAC | computed per request | policy authors |
+| KeyKOS, EROS, seL4, Fuchsia, Cap'n Proto, WASI Preview 2 | references held by each process | none | stored as the references themselves | the holder |
+
+The last row is a different matrix, and [Part 3](/programming/capabilities.html) is about it.
+
 Everything in this article decides at the resource. The PDP looks up what was written and computes `f`. The [next article](/programming/carriers.html) asks what changes when the request brings a copy of the decision with it.
 
 ## References
@@ -185,12 +315,18 @@ Everything in this article decides at the resource. The PDP looks up what was wr
 3. [From ABAC to ZBAC: The Evolution of Access Control Models][from-abac-zbac-evolution] — Karp, Haury, Davis; the observation that the matrix has no theory of its own mutation
 4. [Type Enforcement][type-enforcement] — why the MAC/RBAC relationship is not a simple ladder
 5. [The Ultimate Guide to Choosing the Right Authorization Language][ultimate-guide-choosing-right] — XACML versus Rego
-6. [Zanzibar: Google's Consistent, Global Authorization System][zanzibar-google-s-consistent] — relationship-based authorization
+6. [Zanzibar: Google's Consistent, Global Authorization System][zanzibar-google-s-consistent] — relationship-based authorization, the Leopard index, and zookies against the new enemy problem
 7. [AuthZEN][authzen] — standardizing the decision-point interface; its [information model][authzen-spec] is where the subject/action/resource/context request is defined
+8. [Designing Data-Intensive Applications][ddia] — Kleppmann; facts and derived views, and the boundary between the write path and the read path
+9. [OPA policy language][opa-policy-language] — Rego and its Datalog lineage
+10. [Postgres row security policies][postgres-row-security] — `CREATE POLICY`, a view the database applies to every query
 
 [authzen]: https://openid.net/wg/authzen/ "AuthZEN - OpenID Foundation working group"
 [authzen-spec]: https://openid.net/specs/authorization-api-1_0.html#name-information-model "Authorization API 1.0: information model - OpenID Foundation"
+[ddia]: https://dataintensive.net/ "Designing Data-Intensive Applications"
 [from-abac-zbac-evolution]: https://shiftleft.com/mirrors/www.hpl.hp.com/techreports/2009/HPL-2009-30.pdf "From ABAC to ZBAC: The Evolution of Access Control Models"
+[opa-policy-language]: https://www.openpolicyagent.org/docs/latest/policy-language/ "Policy Language - Open Policy Agent"
+[postgres-row-security]: https://www.postgresql.org/docs/current/ddl-rowsecurity.html "PostgreSQL: Row Security Policies"
 [protection]: https://www.microsoft.com/en-us/research/publication/protection/ "Protection"
 [rfc4949]: https://datatracker.ietf.org/doc/html/rfc4949 "RFC 4949: Internet Security Glossary, Version 2"
 [state-union-authorization]: https://idpro.org/the-state-of-the-union-of-authorization/ "The State of the Union of Authorization"

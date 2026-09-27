@@ -8,12 +8,12 @@ date:   2026-09-03
 
 > This is Part 3 of a six-part [series on authorization](/programming/authorization-series-intro.html).
 >
-> 0. **[Prologue: Who is the adversary](/programming/who-is-the-adversary.html)** — five positions the attacker has occupied, and why identity stopped being the useful thing to key on.
-> 1. **[Authorization models](/programming/authorization-models.html)** — what every system computes, and who may change it.
-> 2. **[Carriers](/programming/carriers.html)** — decisions that travel with the request.
-> 3. **Capabilities** — authority you hold, not authority you are.
-> 4. **[How authority is enforced](/programming/authority-enforcement.html)** — what makes any of it binding.
-> 5. **[LLM sandboxing](/programming/llm-sandbox.html)** — the gateway, correct and unavoidable.
+> - **[Prologue: Who is the adversary](/programming/who-is-the-adversary.html)** — five positions the attacker has occupied, and why identity stopped being the useful thing to key on.
+> - **[Part 1: Authorization models](/programming/authorization-models.html)** — what every system computes, and who may change it.
+> - **[Part 2: Carriers](/programming/carriers.html)** — decisions that travel with the request.
+> - **Part 3: Capabilities** — authority you hold, not authority you are.
+> - **[Part 4: How authority is enforced](/programming/authority-enforcement.html)** — what makes any of it binding.
+> - **[Part 5: LLM sandboxing](/programming/llm-sandbox.html)** — the gateway, correct and unavoidable.
 
 - [Squaring the matrix](#squaring-the-matrix)
 - [Four things get called capabilities](#four-things-get-called-capabilities)
@@ -44,7 +44,7 @@ The [series intro](/programming/authorization-series-intro.html#from-a-chain-to-
 
 ## Squaring the matrix
 
-[Part 1](/programming/authorization-models.html#access-control-matrix-acl-and-capability-lists)'s access matrix assumes something it never argues for: that the world divides cleanly into subjects who act and resources that are acted upon. Alice is a row. File A is a column. Nothing is both.
+[Part 1](/programming/authorization-models.html#one-function-one-relation)'s access matrix assumes something it never argues for: that the world divides cleanly into subjects who act and resources that are acted upon. Alice is a row. File A is a column. Nothing is both.
 
 That assumption is what makes mediation inexpressible. If Alice holds a reference to Bob, and Bob holds a reference to X, the matrix wants to record `Alice: rw X`. That is wrong. Bob is in the middle, and Bob can refuse, revoke, log, or forward only a subset. To write it down you would need Bob to be a row *and* a column at once, and in a rectangular matrix he cannot be.
 

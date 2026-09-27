@@ -8,12 +8,12 @@ date:   2026-09-04
 
 > This is Part 4 of a six-part [series on authorization](/programming/authorization-series-intro.html).
 >
-> 0. **[Prologue: Who is the adversary](/programming/who-is-the-adversary.html)** — five positions the attacker has occupied, and why identity stopped being the useful thing to key on.
-> 1. **[Authorization models](/programming/authorization-models.html)** — what every system computes, and who may change it.
-> 2. **[Carriers](/programming/carriers.html)** — decisions that travel with the request.
-> 3. **[Capabilities](/programming/capabilities.html)** — authority you hold, not authority you are.
-> 4. **How authority is enforced** — what makes any of it binding.
-> 5. **[LLM sandboxing](/programming/llm-sandbox.html)** — the gateway, correct and unavoidable.
+> - **[Prologue: Who is the adversary](/programming/who-is-the-adversary.html)** — five positions the attacker has occupied, and why identity stopped being the useful thing to key on.
+> - **[Part 1: Authorization models](/programming/authorization-models.html)** — what every system computes, and who may change it.
+> - **[Part 2: Carriers](/programming/carriers.html)** — decisions that travel with the request.
+> - **[Part 3: Capabilities](/programming/capabilities.html)** — authority you hold, not authority you are.
+> - **Part 4: How authority is enforced** — what makes any of it binding.
+> - **[Part 5: LLM sandboxing](/programming/llm-sandbox.html)** — the gateway, correct and unavoidable.
 
 - [What is sandboxing](#what-is-sandboxing)
 - [Theory](#theory)

@@ -8,12 +8,12 @@ date: 2026-08-31
 
 > This is the prologue to a six-part [series on authorization](/programming/authorization-series-intro.html).
 >
-> 0. **Prologue: Who is the adversary** — five positions the attacker has occupied, and why identity stopped being the useful thing to key on.
-> 1. **[Authorization models](/programming/authorization-models.html)** — what every system computes, and who may change it.
-> 2. **[Carriers](/programming/carriers.html)** — decisions that travel with the request.
-> 3. **[Capabilities](/programming/capabilities.html)** — authority you hold, not authority you are.
-> 4. **[How authority is enforced](/programming/authority-enforcement.html)** — what makes any of it binding.
-> 5. **[LLM sandboxing](/programming/llm-sandbox.html)** — the gateway, correct and unavoidable.
+> - **Prologue: Who is the adversary** — five positions the attacker has occupied, and why identity stopped being the useful thing to key on.
+> - **[Part 1: Authorization models](/programming/authorization-models.html)** — what every system computes, and who may change it.
+> - **[Part 2: Carriers](/programming/carriers.html)** — decisions that travel with the request.
+> - **[Part 3: Capabilities](/programming/capabilities.html)** — authority you hold, not authority you are.
+> - **[Part 4: How authority is enforced](/programming/authority-enforcement.html)** — what makes any of it binding.
+> - **[Part 5: LLM sandboxing](/programming/llm-sandbox.html)** — the gateway, correct and unavoidable.
 
 - [1 · Outside the boundary](#1--outside-the-boundary)
 - [2 · A subject you enrolled](#2--a-subject-you-enrolled)
