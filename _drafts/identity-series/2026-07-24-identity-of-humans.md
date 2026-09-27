@@ -26,6 +26,7 @@ A host has one name and a well-defined owner. A person has dozens of names, owns
   - [OpenID Connect](#openid-connect)
 - [The id_token is not the access_token](#the-id_token-is-not-the-access_token)
 - [What the relying party actually trusts](#what-the-relying-party-actually-trusts)
+  - [A chain instead of a configured issuer](#a-chain-instead-of-a-configured-issuer)
 - [Sessions](#sessions)
   - [The cookie is a binding with a lifetime](#the-cookie-is-a-binding-with-a-lifetime)
   - [Stateful or stateless](#stateful-or-stateless)
@@ -138,6 +139,19 @@ So a human's identity at internet scale rests on a host's identity, which rests 
 
 The only thing the relying party ever configured was the issuer URL and a client ID. That is the configured binding. The person never appears in it.
 
+### A chain instead of a configured issuer
+
+That configured binding does not scale to a federation. A federation may have hundreds of providers and thousands of relying parties, and pairwise configuration means every relying party configures every provider it accepts. [OpenID Federation 1.0][openid-federation], final since February 2026, replaces the pairwise binding with a chain, the way the Web PKI did for hosts.
+
+Every entity publishes an *Entity Configuration* at `/.well-known/openid-federation`: a statement it signs about itself, carrying its signing keys and the names of its superiors. Each superior signs a *Subordinate Statement* about the entities directly below it. A *Trust Chain* is the sequence from the entity's own statement up to a *Trust Anchor*, and the relying party configures only the anchor. It is the certified binding from [Keys are not names](/programming/keys-are-not-names.html#four-ways-a-binding-gets-written), rebuilt in JWTs.
+
+Two things make it more than X.509 in JSON, as [Connect2id's comparison][connect2id-trust-chain] points out:
+
+- **Metadata, and policy over it.** A statement binds more than an entity's key. It also binds its OpenID metadata: endpoints, supported algorithms, and the rest. Superiors constrain that metadata with *metadata policies* as it flows down the chain, using operators such as `one_of`, `subset_of` and `essential`. That is a rule about who may write what, the same idea as name constraints on an X.509 CA. It also lets a relying party register with a provider automatically, from the chain alone.
+- **Trust marks.** A trust mark is a signed statement from an accreditation body that an entity meets a named set of requirements. It travels next to the identity binding, the way an attribute certificate travels next to a name certificate.
+
+The anchor is still configured, and compromising it forges every chain below it. What changes is how many bindings the relying party has to configure: one per federation, instead of one per provider.
+
 ## Sessions
 
 Login is one round trip. Everything after it — hours, days, weeks of requests — happens under a **session**, and the session is where most of the actual security lives and least of the writing.
@@ -192,6 +206,8 @@ Either way the structure is the one this series keeps finding. A person is a nam
 8. [Shared Signals Framework - OpenID Foundation][ssf]
 9. [EU Digital Identity Wallet][eudi]
 10. [Verifiable Credentials Data Model 2.0 - W3C][vc]
+11. [OpenID Federation 1.0][openid-federation]
+12. [The OpenID trust chain vs the X.509 trust chain - Connect2id][connect2id-trust-chain]
 
 [needham-schroeder]: https://dl.acm.org/doi/10.1145/359657.359659 "Using Encryption for Authentication in Large Networks of Computers"
 [rfc1510]: https://www.rfc-editor.org/rfc/rfc1510 "RFC 1510: The Kerberos Network Authentication Service (V5)"
@@ -203,3 +219,5 @@ Either way the structure is the one this series keeps finding. A person is a nam
 [ssf]: https://openid.net/wg/sharedsignals/ "Shared Signals Working Group - OpenID Foundation"
 [eudi]: https://ec.europa.eu/digital-building-blocks/sites/display/EUDIGITALIDENTITYWALLET "EU Digital Identity Wallet"
 [vc]: https://www.w3.org/TR/vc-data-model-2.0/ "Verifiable Credentials Data Model 2.0"
+[openid-federation]: https://openid.net/specs/openid-federation-1_0.html "OpenID Federation 1.0"
+[connect2id-trust-chain]: https://connect2id.com/blog/the-openid-trust-chain-vs-the-x509-trustchain "The OpenID trust chain vs the X.509 trust chain - Connect2id"

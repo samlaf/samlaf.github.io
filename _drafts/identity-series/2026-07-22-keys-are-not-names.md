@@ -135,7 +135,7 @@ Across all of them, a name→key binding only ever gets established in four ways
 
 **Configured.** Somebody typed it in. The root store in your browser, the peer list in a WireGuard config, the IdP's issuer URL in your app's settings. There is no chain to follow; this *is* the anchor. Every other method eventually reduces to one of these.
 
-**Certified.** A third party you have a configured binding for signs the assertion. CAs, identity providers, attestation services, SSH certificate authorities. This is the internet's default, because it scales: one configured binding to the issuer covers every binding the issuer ever makes. It is also where the adversary goes, because compromising the issuer forges every binding at once.
+**Certified.** A third party you have a configured binding for signs the assertion. CAs, identity providers, attestation services, SSH certificate authorities. This is the internet's default, because it scales: one configured binding to the issuer covers every binding the issuer ever makes. It is also where the adversary goes, because compromising the issuer forges every binding at once. OpenID Federation, in the [humans article](/programming/identity-of-humans.html#a-chain-instead-of-a-configured-issuer), applies the same method to identity providers and the relying parties that trust them.
 
 **First use.** Bind whatever key shows up the first time, and alarm if it changes. SSH `known_hosts`, Signal safety numbers, passkey registration. It works when the first contact is unlikely to be attacked and the attacker cannot be present every time. It fails silently on exactly the connection you cannot verify.
 
