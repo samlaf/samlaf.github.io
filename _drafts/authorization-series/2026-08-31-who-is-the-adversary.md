@@ -6,13 +6,14 @@ category: programming
 date: 2026-08-31
 ---
 
-> This is the prologue to a five-part [series on authorization](/programming/authorization-series-intro.html).
+> This is the prologue to a six-part [series on authorization](/programming/authorization-series-intro.html).
 >
 > 0. **Prologue: Who is the adversary** — five positions the attacker has occupied, and why identity stopped being the useful thing to key on.
 > 1. **[Authorization models](/programming/authorization-models.html)** — what every system computes, and who may change it.
-> 2. **[Capabilities](/programming/capabilities.html)** — authority you hold, not authority you are.
-> 3. **[How authority is enforced](/programming/authority-enforcement.html)** — what makes any of it binding.
-> 4. **[LLM sandboxing](/programming/llm-sandbox.html)** — the gateway, correct and unavoidable.
+> 2. **[Carriers](/programming/carriers.html)** — decisions that travel with the request.
+> 3. **[Capabilities](/programming/capabilities.html)** — authority you hold, not authority you are.
+> 4. **[How authority is enforced](/programming/authority-enforcement.html)** — what makes any of it binding.
+> 5. **[LLM sandboxing](/programming/llm-sandbox.html)** — the gateway, correct and unavoidable.
 
 - [1 · Outside the boundary](#1--outside-the-boundary)
 - [2 · A subject you enrolled](#2--a-subject-you-enrolled)
@@ -26,13 +27,13 @@ date: 2026-08-31
 
 Every mechanism in this series exists to stop someone. A list at a resource, a reference in a subject's hand, a monitor in the path — each is a claim about *someone*: non-bypassable by whom, unnameable to whom, correct against what. Change the adversary and the same mechanism goes from sufficient to decorative without a line of it changing.
 
-So it is worth asking where the adversary sits before describing what stops them. Over fifty years the answer has moved five times, always inward, and always because the previous position got closed. As in the [crypto series prologue](/programming/threat-model.html), it helps to separate the **threat**, the **theory** that modelled it, and the **implementation** that eventually shipped — because here too, every one of these was modelled long before anything defeated it, and two of them have not been defeated yet.
+So it is worth asking where the adversary sits before describing what stops them. Over fifty years the answer has moved five times, always inward, and always because the previous position got closed. As in the prologue to a later series on applied cryptography, it helps to separate the **threat**, the **theory** that modelled it, and the **implementation** that eventually shipped — because here too, every one of these was modelled long before anything defeated it, and two of them have not been defeated yet.
 
 ## 1 · Outside the boundary
 
 **Threat.** Someone with no credentials is trying to get some. They are not a user of your system and the whole question is whether they become one.
 
-**Theory and implementation.** This is the position most people still picture when they hear "access control," and it is the one where authorization does the least work. The interesting engineering is all authentication — passwords, then certificates, then the long arc to passkeys that the [crypto series](/programming/authentication.html) traces. Authorization's contribution is a list, checked once the gate has already decided who is knocking.
+**Theory and implementation.** This is the position most people still picture when they hear "access control," and it is the one where authorization does the least work. The interesting engineering is all authentication — passwords, then certificates, then the long arc to passkeys that a later series on applied cryptography traces. Authorization's contribution is a list, checked once the gate has already decided who is knocking.
 
 **Why it moved.** Authentication became infrastructure. Not perfect, but good enough that attacking the gate stopped being the cheapest route in. The cheapest route is to already be inside.
 
@@ -50,7 +51,7 @@ So it is worth asking where the adversary sits before describing what stops them
 
 **Threat.** A program, carrying your full authority because it inherited it by running as you. It need not be malicious. It only needs to be talked into using a power it holds for a purpose it was not asked for.
 
-**Theory.** Saltzer and Schroeder named the cure in 1975: every program should run with the least authority its job requires. Hardy named the disease in 1988, after watching a compiler be persuaded to overwrite a billing file it was merely *able* to reach — the confused deputy. Note the thirteen-year gap, and note which came first. The capability tradition had the structural answer even earlier: Dennis and Van Horn (1966), then KeyKOS and the systems [Part 2](/programming/capabilities.html) is about, all of which make designating a thing and holding authority over it the same act, so that there is no name an attacker can utter to borrow a power they were never given.
+**Theory.** Saltzer and Schroeder named the cure in 1975: every program should run with the least authority its job requires. Hardy named the disease in 1988, after watching a compiler be persuaded to overwrite a billing file it was merely *able* to reach — the confused deputy. Note the thirteen-year gap, and note which came first. The capability tradition had the structural answer even earlier: Dennis and Van Horn (1966), then KeyKOS and the systems [Part 3](/programming/capabilities.html) is about, all of which make designating a thing and holding authority over it the same act, so that there is no name an attacker can utter to borrow a power they were never given.
 
 **Implementation.** Essentially none, on the platform where it mattered most. The desktop operating system shipped position-two controls into a position-three world and still does: every program you launch holds everything you can do. Mobile platforms bought some of it back with per-app permissions and per-app storage, twenty years late and only for one class of software.
 
@@ -60,7 +61,7 @@ So it is worth asking where the adversary sits before describing what stops them
 
 **Threat.** Software acting for you, on purpose, with authority you deliberately handed it — and exercising that authority for something you did not intend. An OAuth client, a service account, a CI job, an integration. Nothing is stolen and nobody is impersonated.
 
-**Theory and implementation.** This is the position where the industry did real work, because delegation became the normal way software is composed and the bill arrived quickly. OAuth 1.0 (2007) and 2.0 (2012) made third-party delegation routine; scopes, audiences and short expiry made it survivable; macaroons (2014) showed that a credential can carry its own attenuation so that a delegate can hand on strictly less than it holds. [Part 2](/programming/capabilities.html) is mostly about how well that worked and where it stopped short.
+**Theory and implementation.** This is the position where the industry did real work, because delegation became the normal way software is composed and the bill arrived quickly. OAuth 1.0 (2007) and 2.0 (2012) made third-party delegation routine; scopes, audiences and short expiry made it survivable; macaroons (2014) showed that a credential can carry its own attenuation so that a delegate can hand on strictly less than it holds. [Part 2](/programming/carriers.html) is mostly about how well that worked and where it stopped short.
 
 **Why it moved.** It didn't, entirely — this is a live position. But it rests on an assumption that held until recently: the delegate's *plan* is fixed. You grant a CI job the authority its pipeline needs because you can read the pipeline. When the plan stops being knowable in advance, the scoping story stops working.
 
@@ -70,7 +71,7 @@ So it is worth asking where the adversary sits before describing what stops them
 
 **Theory.** Greshake and co-authors gave it a name in 2023, indirect prompt injection, and the literature since has been enormous. But the shape is Hardy's, thirty-five years on. The injected text supplies a designator — a path, a URL, a repository. The agent's ambient authority supplies the rest. It is a confused deputy whose confusion is now the normal operating mode rather than a bug, because reading untrusted input and acting on it *is* the product.
 
-**Implementation.** Open. [Part 4](/programming/llm-sandbox.html) is an argument that the cure is the old one — take away the ambient authority, so that the injected designator names nothing worth having — and an account of how far you can actually get.
+**Implementation.** Open. [Part 5](/programming/llm-sandbox.html) is an argument that the cure is the old one — take away the ambient authority, so that the injected designator names nothing worth having — and an account of how far you can actually get.
 
 ## Aside — three rungs and two side doors
 
@@ -88,17 +89,17 @@ One more framing before the series proper, because it changes what a boundary ha
 
 In most security writing the asset is data. Here it is not. The asset is **the authority to cause an effect** — a repository that can be force-pushed, a credential that can be spent, a table that can be dropped, a package that can be published. Confidentiality is one effect among these, not the organizing one.
 
-The practical difference is in what you end up enumerating. Inventory data and you protect stores. Inventory effects and you enumerate the paths by which the workload can cause each one — which is the only inventory that can tell you whether a monitor sits in all of them. [Part 3](/programming/authority-enforcement.html) builds directly on that.
+The practical difference is in what you end up enumerating. Inventory data and you protect stores. Inventory effects and you enumerate the paths by which the workload can cause each one — which is the only inventory that can tell you whether a monitor sits in all of them. [Part 4](/programming/authority-enforcement.html) builds directly on that.
 
 ## Where to get a technical threat model
 
 This prologue is a lens, not a checklist. It says where the adversary sits and why the series is organized the way it is. It does not enumerate threat categories, score mechanisms, or give you a coverage matrix, and for real deployment work you want all three. Three documents do that job well:
 
-- **[The Agent Sandbox Taxonomy][agent-sandbox-taxonomy]** decomposes agent sandboxing into seven defense layers and seven threat categories, scores each mechanism on strength, granularity and portability, and publishes fingerprints for a couple of dozen products. Its strength ladder — cooperative, software-enforced, kernel-enforced, structural — is the same distinction [Part 4](/programming/llm-sandbox.html) arrives at independently, which is some evidence that the distinction is real.
+- **[The Agent Sandbox Taxonomy][agent-sandbox-taxonomy]** decomposes agent sandboxing into seven defense layers and seven threat categories, scores each mechanism on strength, granularity and portability, and publishes fingerprints for a couple of dozen products. Its strength ladder — cooperative, software-enforced, kernel-enforced, structural — is the same distinction [Part 5](/programming/llm-sandbox.html) arrives at independently, which is some evidence that the distinction is real.
 - **[OWASP's Top 10 for LLM Applications][owasp-top-10-llm]** and the **[Agentic AI Threats and Mitigations][agentic-ai-threats-mitigations]** work from the Agentic Security Initiative are the standards-body enumeration, and the right thing to audit a deployment against.
 - **[MITRE ATLAS][mitre-atlas]** supplies tactics, techniques and real case studies in the ATT&CK idiom, for anyone who already thinks in that vocabulary.
 
-One place I read the taxonomy differently, since it bears on the whole series. AST rules prompt injection, hallucination and misalignment out of scope as *vectors* rather than threats, on the grounds that a sandbox governs what an agent can do rather than what it chooses to do, and that choosing is an alignment problem. The first half is right and the framing is useful. But the conclusion I draw is the opposite one: injection is a confused deputy, which is an authorization failure with a fifty-year-old structural cure, and treating it as somebody else's department is how it keeps getting answered with better judgment instead of less authority. Position three in this article is the argument, and [Part 4](/programming/llm-sandbox.html) is the case.
+One place I read the taxonomy differently, since it bears on the whole series. AST rules prompt injection, hallucination and misalignment out of scope as *vectors* rather than threats, on the grounds that a sandbox governs what an agent can do rather than what it chooses to do, and that choosing is an alignment problem. The first half is right and the framing is useful. But the conclusion I draw is the opposite one: injection is a confused deputy, which is an authorization failure with a fifty-year-old structural cure, and treating it as somebody else's department is how it keeps getting answered with better judgment instead of less authority. Position three in this article is the argument, and [Part 5](/programming/llm-sandbox.html) is the case.
 
 ## References
 

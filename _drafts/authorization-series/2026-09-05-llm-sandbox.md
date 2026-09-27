@@ -1,18 +1,19 @@
 ---
 title:  "LLM sandboxing: making the gateway correct and unavoidable"
-series: "Authorization, Part 4"
+series: "Authorization, Part 5"
 series_url: "/programming/authorization-series-intro.html"
 category: programming
-date:   2026-09-04
+date:   2026-09-05
 ---
 
-> This is Part 4 of a five-part [series on authorization](/programming/authorization-series-intro.html).
+> This is Part 5 of a six-part [series on authorization](/programming/authorization-series-intro.html).
 >
 > 0. **[Prologue: Who is the adversary](/programming/who-is-the-adversary.html)** — five positions the attacker has occupied, and why identity stopped being the useful thing to key on.
 > 1. **[Authorization models](/programming/authorization-models.html)** — what every system computes, and who may change it.
-> 2. **[Capabilities](/programming/capabilities.html)** — authority you hold, not authority you are.
-> 3. **[How authority is enforced](/programming/authority-enforcement.html)** — what makes any of it binding.
-> 4. **LLM sandboxing** — the gateway, correct and unavoidable.
+> 2. **[Carriers](/programming/carriers.html)** — decisions that travel with the request.
+> 3. **[Capabilities](/programming/capabilities.html)** — authority you hold, not authority you are.
+> 4. **[How authority is enforced](/programming/authority-enforcement.html)** — what makes any of it binding.
+> 5. **LLM sandboxing** — the gateway, correct and unavoidable.
 
 - [Why agents break the assumptions](#why-agents-break-the-assumptions)
   - [Data becomes executable](#data-becomes-executable)
@@ -58,7 +59,7 @@ date:   2026-09-04
   - [Agent frameworks and research](#agent-frameworks-and-research)
   - [Landscape and performance](#landscape-and-performance)
 
-Sandboxing discussions usually begin with the wrong noun. They ask whether untrusted code should run in a container, a microVM, gVisor, WASI, or a language runtime. Those choices matter, but they answer only **where computation happens**. They do not answer **what authority that computation can exercise**.
+[Part 4](/programming/authority-enforcement.html#what-is-sandboxing) defined a sandbox by the effects it constrains, not by where the computation runs. For agents that distinction decides everything. A choice of container, microVM, gVisor, WASI or language runtime answers only **where computation happens**. It does not answer **what authority that computation can exercise**.
 
 A process inside a perfectly isolated VM can still exfiltrate source code through an allowed API, mutate a host-mounted repository, publish a poisoned artifact, spend cloud credentials, or invoke a token's full administrative authority. Compute isolation protects the host kernel and memory. It does not, by itself, protect resources deliberately exposed to the workload.
 
@@ -70,13 +71,9 @@ The compute sandbox removes ambient access to the host. The capability gateway s
 
 The word *coupled* is doing the work. A proxy is not enforcement if the workload can route around it. A VM does not contain authority if it directly mounts host state or receives durable credentials. These are not two systems cooperating: they are one reference monitor whose two required properties are supplied by different technologies. The gateway is the decision point and must be **correct** — right policy, right answer, real credential held outside the guest. The sandbox decides nothing and must make the gateway **unavoidable**, which is a claim about topology rather than about policy. That is the [enforcement article](/programming/authority-enforcement.html)'s PEP/PDP split, with the enforcement point's non-bypassability delegated to whatever substrate you chose. Drop either half and you do not have a weaker sandbox. You have no reference monitor at all.
 
-The condition to aim at is easier to state than to satisfy:
+The condition to aim at is the one [Part 4](/programming/authority-enforcement.html#non-bypassability-is-a-property-of-reach) stated: for every effect the workload can attempt, either no path to the resource exists, or every path passes through a point that decides. Its two halves are unnameability and adjudication. Every mechanism in this article is one of them, applied to one class of effect. The engineering claim is never that a decision point exists. It is that the union of them leaves no path uncovered.
 
-> **For every effect the workload can attempt, either no path to the resource exists, or every path passes through a point that decides.**
-
-Two disjuncts, and they correspond to the two things a sandbox can take away. Strip ambient *designation* and the resource becomes unnameable — there is no request to intercept, because there is nothing to ask for. Strip ambient *authority* and leave designation intact, and the request stays expressible while something adjudicates it. Every mechanism in this article is one of those two moves applied to one class of effect, and the engineering claim is never that a decision point exists. It is that the union of them leaves no path uncovered.
-
-The first three articles supply that vocabulary: how authority is represented, what the capability property actually is and where it can be bought, then what makes a limit real. This article is what happens when you point both at a program whose authority is not known until it runs.
+The first four articles supply that vocabulary: how decisions are represented, how copies of them travel, what the capability property actually is and where it can be bought, then what makes a limit real. This article is what happens when you point both at a program whose authority is not known until it runs.
 
 ![sandboxing-taxonomy](/assets/llm-sandbox/confinement-hierarchy.png)
 
@@ -148,7 +145,7 @@ For a protected branch, a `PreToolUse` hook can reject `git push --force`; an HT
 
 ## The shape of the answer
 
-Take those four together and the architecture writes itself as three phases. Each one is a question the previous three articles prepared:
+Take those four together and the architecture writes itself as three phases. Each one is a question the previous articles prepared:
 
 ```text
 DECIDE      What authority should exist for this task?
@@ -229,7 +226,7 @@ PEP ──AuthZEN──►   ├── local Rego / OPA
                    └── the corporate authorization system
 ```
 
-Swap the engine without touching the enforcement points. Add an enforcement point without touching the engine. This is the policy/mechanism seam from the capabilities article, standardized as a protocol.
+Swap the engine without touching the enforcement points. Add an enforcement point without touching the engine. This is the policy/mechanism seam from the carriers article, standardized as a protocol.
 
 Two honest caveats. First, AuthZEN is a moving specification — the evaluation API is the stable core, with batch evaluation and search endpoints at varying maturity, so check the current draft before building against details. Second, and more important: a standard request shape does nothing for non-bypassability. The enforcement article's point stands unchanged. A beautifully normalized S/A/R/C request from a PEP the workload can route around is decoration. The protocol standardizes the question; the topology decides whether the question gets asked.
 
@@ -237,7 +234,7 @@ Two honest caveats. First, AuthZEN is a moving specification — the evaluation 
 
 ## From decision to capability
 
-The [capabilities article](/programming/capabilities.html) ended with a one-directional pipeline and the note that the interesting engineering is in the arrow:
+The [carriers article](/programming/carriers.html) ended with a one-directional pipeline and the note that the interesting engineering is in the arrow:
 
 ```text
 global, queryable policy
@@ -294,7 +291,7 @@ This is where the gateway becomes more than a credential proxy. It is the natura
 
 ## Why not just call the PDP on everything, forever
 
-Because the two ends of that arrow have opposite failure modes, and you have to choose where to sit.
+Because the two ends of that arrow have opposite failure modes, and you have to choose where to sit. [Part 2](/programming/carriers.html#fresh-or-frozen) laid out the general trade. Here it is for agents:
 
 ```text
 freshness                      local execution
@@ -309,11 +306,11 @@ every effect is a round trip   effects are local and fast
 central visibility of use  attenuated delegation is free
 ```
 
-This is Lampson's split from the capabilities article, wearing operational clothes. The PDP is excellent at the administrative and query questions — who can do this, what can this user reach, revoke everything derived from that grant. The capability is excellent at the execution question — may the holder of this do this, right now, with no network.
+This is Lampson's split from the carriers article, wearing operational clothes. The PDP is excellent at the administrative and query questions — who can do this, what can this user reach, revoke everything derived from that grant. The capability is excellent at the execution question — may the holder of this do this, right now, with no network.
 
 Agents want both, badly. They make many effects per second, so round-tripping everything is unaffordable. They also change what they are doing constantly, so a long-lived grant is over-broad within minutes.
 
-The resolution is not novel, and the enforcement article already showed it: Flask solved this in 1999. Cache the decision where enforcement happens, and pair the cache with a revocation channel so a policy change invalidates what was cached. An access vector cache plus a notification is structurally the same thing as a host-held lease plus an epoch bump. The agent case differs only in that the invalidating event is usually the agent's own subgoal closing rather than an administrator editing policy.
+The resolution is not novel, and [Part 2](/programming/carriers.html#fresh-or-frozen) already named it: Flask solved this in 1999. Cache the decision where enforcement happens, and pair the cache with a revocation channel so a policy change invalidates what was cached. An access vector cache plus a notification is structurally the same thing as a host-held lease plus an epoch bump. The agent case differs only in that the invalidating event is usually the agent's own subgoal closing rather than an administrator editing policy.
 
 ## How far up does the property survive
 
@@ -774,7 +771,7 @@ AuthorizationProvider
 
 Nothing about enforcement changes. The gateway still owns the resources, still holds the credentials, still sits in the only path. What changes is that the decision becomes a thing an organization can own, version, audit, and share across every sandbox it runs — rather than a callback living in one deployment's config.
 
-And then the second half, which is where the capabilities article's pipeline finally lands somewhere real:
+And then the second half, which is where the carriers article's pipeline finally lands somewhere real:
 
 ```text
 PDP decision
@@ -803,7 +800,7 @@ The architecture is therefore not a single best sandbox. It is a composition:
 
 The compute sandbox determines which universe the workload inhabits. The capability gateway determines which external authority that universe may exercise. The contract between them is the boundary.
 
-The four articles were really one argument, arriving in four parts. Authority has to be *represented* somewhere, and the choice between a list at the resource and a reference in the subject's hand decides which questions stay cheap. The strong version of the second choice — designation and authority as one thing — has a precondition, which is a substrate that can deny communication. A representation of either kind is inert until something *enforces* it, and enforcement is a reference monitor placed in a trust domain, using unnameability or adjudication or both. And an agent is the case that will not let you separate those concerns in time, because it discovers what it needs while it runs.
+The five articles were really one argument, arriving in five parts. Authority has to be *represented* somewhere, and the choice between a list at the resource and a reference in the subject's hand decides which questions stay cheap. A decision can *travel* with the request, and every copy is a debt that someone must be able to call back. The strong version of the second choice — designation and authority as one thing — has a precondition, which is a substrate that can deny communication. A representation of either kind is inert until something *enforces* it, and enforcement is a reference monitor placed in a trust domain, using unnameability or adjudication or both. And an agent is the case that will not let you separate those concerns in time, because it discovers what it needs while it runs.
 
 There is one last thing worth saying plainly, because it is the part I did not expect to find. The capabilities article ends pessimistically: Model 4 is purchasable only where something mediates communication, the open internet mediates nothing, and so the deployed world is Model 3 and the old objections to capabilities remain true of everything anyone ships.
 

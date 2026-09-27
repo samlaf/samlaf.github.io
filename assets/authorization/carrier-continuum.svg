@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1420 360" width="1420" height="360" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+<defs><marker id="aS" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#334155"/></marker></defs>
+<rect width="1420" height="360" fill="#fdfdfc"/>
+<text x="40" y="40" font-size="21" font-weight="700" fill="#0f172a" text-anchor="start">From bearer tokens to object capabilities</text>
+<text x="40" y="64" font-size="12.5" font-weight="400" fill="#64748b" text-anchor="start">Each step ties more of the request together, until one reference names the object, routes to it and carries the authority.</text>
+<line x1="40" y1="96" x2="1376" y2="96" stroke="#94a3b8" stroke-width="1.4" marker-end="url(#aS)"/>
+<text x="40" y="88" font-size="11.5" font-weight="400" fill="#64748b" text-anchor="start" font-style="italic">name and authority travel apart</text>
+<text x="1380" y="88" font-size="11.5" font-weight="400" fill="#64748b" text-anchor="end" font-style="italic">name, route and authority are one</text>
+<rect x="40" y="114" width="236" height="132" rx="8" fill="#fff" stroke="#334155" stroke-width="1.2"/>
+<text x="56" y="142" font-size="15" font-weight="700" fill="#0f172a" text-anchor="start">Bearer token</text>
+<text x="56" y="164" font-size="12.5" font-weight="400" fill="#334155" text-anchor="start">Copyable. Whoever holds</text>
+<text x="56" y="182" font-size="12.5" font-weight="400" fill="#334155" text-anchor="start">it may use it.</text>
+<text x="56" y="228" font-size="11" font-weight="400" fill="#64748b" text-anchor="start" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">API keys, OAuth 2 bearer tokens</text>
+<line x1="280" y1="180" x2="310" y2="180" stroke="#334155" stroke-width="1.6" marker-end="url(#aS)"/>
+<rect x="316" y="114" width="236" height="132" rx="8" fill="#fff" stroke="#334155" stroke-width="1.2"/>
+<text x="332" y="142" font-size="15" font-weight="700" fill="#0f172a" text-anchor="start">Key-bound token</text>
+<text x="332" y="164" font-size="12.5" font-weight="400" fill="#334155" text-anchor="start">Bound to a key the holder</text>
+<text x="332" y="182" font-size="12.5" font-weight="400" fill="#334155" text-anchor="start">must prove it holds.</text>
+<text x="332" y="228" font-size="11" font-weight="400" fill="#64748b" text-anchor="start" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">DPoP, mTLS-bound tokens, GNAP</text>
+<line x1="556" y1="180" x2="586" y2="180" stroke="#334155" stroke-width="1.6" marker-end="url(#aS)"/>
+<rect x="592" y="114" width="236" height="132" rx="8" fill="#fff" stroke="#334155" stroke-width="1.2"/>
+<text x="608" y="142" font-size="15" font-weight="700" fill="#0f172a" text-anchor="start">Mediated delegation</text>
+<text x="608" y="164" font-size="12.5" font-weight="400" fill="#334155" text-anchor="start">Exchanged for a narrower</text>
+<text x="608" y="182" font-size="12.5" font-weight="400" fill="#334155" text-anchor="start">token at an authorization server.</text>
+<text x="608" y="228" font-size="11" font-weight="400" fill="#64748b" text-anchor="start" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">OAuth token exchange</text>
+<line x1="832" y1="180" x2="862" y2="180" stroke="#334155" stroke-width="1.6" marker-end="url(#aS)"/>
+<rect x="868" y="114" width="236" height="132" rx="8" fill="#e3f1f3" stroke="#0f7d8c" stroke-width="1.2"/>
+<text x="884" y="142" font-size="15" font-weight="700" fill="#0f172a" text-anchor="start">Capability channels</text>
+<text x="884" y="164" font-size="12.5" font-weight="400" fill="#334155" text-anchor="start">Names that work only over</text>
+<text x="884" y="182" font-size="12.5" font-weight="400" fill="#334155" text-anchor="start">channels you already hold.</text>
+<text x="884" y="228" font-size="11" font-weight="400" fill="#64748b" text-anchor="start" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">gateway handles in a sandbox</text>
+<line x1="1108" y1="180" x2="1138" y2="180" stroke="#334155" stroke-width="1.6" marker-end="url(#aS)"/>
+<rect x="1144" y="114" width="236" height="132" rx="8" fill="#e3f1f3" stroke="#0f7d8c" stroke-width="1.2"/>
+<text x="1160" y="142" font-size="15" font-weight="700" fill="#0f172a" text-anchor="start">Object capability</text>
+<text x="1160" y="164" font-size="12.5" font-weight="400" fill="#334155" text-anchor="start">The reference is the name,</text>
+<text x="1160" y="182" font-size="12.5" font-weight="400" fill="#334155" text-anchor="start">the route and the authority.</text>
+<text x="1160" y="228" font-size="11" font-weight="400" fill="#64748b" text-anchor="start" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">seL4, Cap'n Proto, workerd</text>
+<rect x="40" y="262" width="788" height="34" rx="6" fill="#eef6f7" stroke="#0f7d8c" stroke-width="1.2"/>
+<text x="56" y="284" font-size="13" font-weight="700" fill="#0f172a" text-anchor="start">Carriers · Part 2</text>
+<text x="190" y="284" font-size="12.5" font-weight="400" fill="#334155" text-anchor="start">how much of the decision travels, and who can take it back</text>
+<rect x="868" y="262" width="512" height="34" rx="6" fill="#e3f1f3" stroke="#0f7d8c" stroke-width="1.2"/>
+<text x="884" y="284" font-size="13" font-weight="700" fill="#0f172a" text-anchor="start">Bindings · Part 3</text>
+<text x="1018" y="284" font-size="12.5" font-weight="400" fill="#334155" text-anchor="start">one object designates, reaches and decides</text>
+<rect x="158" y="306" width="276" height="30" rx="6" fill="#f9eee2" stroke="#c2793a" stroke-width="1.2"/>
+<text x="296" y="326" font-size="12" font-weight="600" fill="#a55f22" text-anchor="middle">custody: the applied crypto series</text>
+</svg>
