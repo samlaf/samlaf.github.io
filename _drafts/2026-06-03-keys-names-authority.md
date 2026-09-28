@@ -15,13 +15,12 @@ A request passes through four stages on its way to an effect:
 - **Authenticate:** the system learns who is asking, which usually means checking that the asker holds a key.
 - **Decide:** something evaluates whether this subject may do this to this object.
 
-Each stage has three rows:
+Each stage has four rows, in time order:
 
 - **Written:** what the stage rests on, and who may write it. A certificate, an account, a rule, a route. All of it is set before the request arrives.
-- **Request:** what the stage computes while the request is in flight.
-- **Reference monitors:** what makes the stage binding. A name that resolves to nothing, a packet with no route, a key nobody else holds, a check nobody can go around.
-
-One region sits outside the cells. **Carriers** are copies of something written that travel with the request, so the stage does not have to look it up: a certificate, a session cookie, a scoped token. A carrier can also serve several stages at once. A capability designates, reaches and decides in one object.
+- **Carried:** copies of something written that travel with the request, so the stage does not have to look it up: a certificate, a session cookie, a scoped token. A carrier can also serve several stages at once. A capability designates, reaches and decides in one object.
+- **Reference monitors:** what the request meets first, and what makes the stage binding. A name that resolves to nothing, a packet with no route, a key nobody else holds, a check nobody can go around.
+- **Looked up:** what the reference monitor fetches when the request did not carry enough.
 
 The [authorization series intro](/programming/authorization-series-intro.html#from-a-chain-to-a-grid) derives the grid from NIST's trust chain, and explains why enforcement is a row rather than a stage.
 
@@ -29,11 +28,11 @@ The [authorization series intro](/programming/authorization-series-intro.html#fr
 
 ![One grid, three series: the regions each series covers](/assets/series/three-series-grid.svg)
 
-- **Applied crypto** covers the Authenticate column below its Written row: proving you hold a key, and keeping it where nobody else can use it. It also covers a secure channel, which makes delivery tamperproof, and the machinery every cell is built from: primitives, AEAD, entropy and key wrapping.
+- **Applied crypto** covers the Authenticate column's reference monitor and lookup: proving you hold a key, and keeping it where nobody else can use it. It also covers a secure channel, which makes delivery tamperproof, and the machinery every cell is built from: primitives, AEAD, entropy and key wrapping.
 - **Identity** covers most of the Written row. Its lens is the binding: who may write it, and when it stops being true. It applies that lens to names bound to places (DNS and routes, after Saltzer) and to names bound to keys (the Web PKI, identity providers, attestation). It also covers carriers of identity: certificates, `id_token`s and session cookies.
 - **Authorization** covers the Decide column, the reference monitor row, and carriers of decisions, including capabilities.
 
-Only two cells are shared. Designate · Written is where names come from: identity covers how names are bound, and authorization covers how a subject comes to hold one. Reach · Reference monitor is delivery with no way around it: crypto makes the channel tamperproof, and authorization makes sure every path passes a decider.
+Only two cells are shared. Designate · Written is where names come from: identity covers how names are bound, and authorization covers how a subject comes to hold one. Reach · Reference monitor is delivery with no way around it: crypto makes the channel tamperproof, and authorization makes sure every path passes a judge.
 
 ## The adversary
 

@@ -89,19 +89,20 @@ The four boxes cover one stage of a request: the decision. NIST draws the whole 
 
 Read it as a spine with bones. The spine runs left to right, and it is what happens during one request: the subject authenticates, a decision is made, and the decision is enforced on the way to the object. The bones are what each stage rests on, and someone wrote almost all of them earlier: a credential issued, an identity provisioned, an attribute assigned, a rule managed. The effect at the end is only as trustworthy as every bone behind it. That is why NIST calls it a chain.
 
-The bones are the write path, and the spine is the read path. So the database picture is not special to the decision. Every stage rests on something written, and computes something at request time. NIST gives designate and reach a single bone, "Network Access," which feeds authentication rather than standing on the spine. Put them on the spine, add a row for each stage's enforcer, and the chain becomes a grid. Here it is as a map of this series, with each cell tagged by the article that covers it:
+The bones are the write path, and the spine is the read path. So the database picture is not special to the decision. Every stage rests on something written, and computes something at request time. NIST gives designate and reach a single bone, "Network Access," which feeds authentication rather than standing on the spine. Put them on the spine, add a row for the copies that travel with the request and a row for each stage's enforcer, and the chain becomes a grid. Here it is as a map of this series, with each cell tagged by the article that covers it:
 
-![Series roadmap: the grid of four stages and three rows, with each cell tagged by the article that covers it](/assets/authorization/series-roadmap.svg)
+![Series roadmap: the grid of four stages and four rows, with each cell tagged by the article that covers it](/assets/authorization/series-roadmap.svg)
 
-The columns are the stages of a request: designate, reach, authenticate, decide. Each one is labelled with the function it computes. The rows are:
+The columns are the stages of a request: designate, reach, authenticate, decide. Each one is labelled with the function it computes. The rows run in time order:
 
-- **Written:** what the stage rests on, and who may write it. This is the write path.
-- **Request:** what the stage computes while the request is in flight. This is the read path.
-- **Reference monitors:** what makes the stage binding, by absence or by judgment. Under designate, that is who controls the namespace. Under reach, it is that no path goes around the enforcer. Under decide, it is the PEP.
+- **Written:** what the stage rests on, and who may write it. This is the write path, and it happens before any request.
+- **Carried:** a copy of the written state that the holder brings with the request: a certificate or a session cookie for authenticate, a scoped token for decide. It is minted at issue time, still before the request. A carrier can also serve several stages at once. A capability designates, reaches and decides in one object.
+- **Reference monitors:** what the request meets first, and what makes the stage binding, by absence or by judgment. Under designate, that is who controls the namespace. Under reach, it is that no path goes around the enforcer. Under decide, it is the PEP.
+- **Looked up:** what the reference monitor fetches when the request did not carry enough. This is the read path: resolution, routing, the PDP's query.
 
-The Decide column holds the database and its PEP. Its Written and Request cells are the database of [Part 1](/programming/authorization-models.html), and its reference monitor is the PEP.
+Carried and Looked up are the two ways a reference monitor gets written state. A carrier is fast and frozen. A lookup is fresh, and it has to go all the way back to the store. That is the trade [Part 3](/programming/carriers.html#fresh-or-frozen) is about.
 
-Below the cells sit the carriers. A **carrier** is a copy of a stage's Written cell that travels to its Request cell, so the stage does not have to look it up: a session cookie for authenticate, a scoped token for decide. Designate and reach have no carrier of their own. A carrier can also serve several stages at once. A capability designates, reaches and decides in one object.
+The Decide column reads top to bottom as one check. Facts and rules are written, and a token may be minted from them. The PEP receives the request, and asks the PDP only if the token is not enough. Its Written and Looked up cells are the database of [Part 1](/programming/authorization-models.html), and its reference monitor is the PEP.
 
 Other maps of authorization land on the grid too. The XACML boxes are the Decide column: the PAP and the attribute authorities write it, the PIP and the PDP evaluate it, and the PEP enforces it. [IDPro's six axes][authorization-terminology-mess] also fit inside that one column, which is why they have no place for sandboxes or capabilities. And [Karp's][from-abac-zbac-evolution] four steps of access control take four cells. Identification and authorization are writes, made before any request: one provisions an identity, the other grants a permission. Authentication and the access decision happen at request time.
 
