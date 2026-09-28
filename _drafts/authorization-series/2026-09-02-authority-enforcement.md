@@ -1,18 +1,18 @@
 ---
 title:  "How authority is enforced: reference monitors and sandboxes"
-series: "Authorization, Part 4"
+series: "Authorization, Part 2"
 series_url: "/programming/authorization-series-intro.html"
 category: programming
-date:   2026-09-04
+date:   2026-09-02
 ---
 
-> This is Part 4 of a six-part [series on authorization](/programming/authorization-series-intro.html).
+> This is Part 2 of a six-part [series on authorization](/programming/authorization-series-intro.html).
 >
 > - **[Prologue: Who is the adversary](/programming/who-is-the-adversary.html)** — five positions the attacker has occupied, and why identity stopped being the useful thing to key on.
 > - **[Part 1: Authorization models](/programming/authorization-models.html)** — what every system computes, and who may change it.
-> - **[Part 2: Carriers](/programming/carriers.html)** — decisions that travel with the request.
-> - **[Part 3: Capabilities](/programming/capabilities.html)** — authority you hold, not authority you are.
-> - **Part 4: How authority is enforced** — what makes any of it binding.
+> - **Part 2: How authority is enforced** — what makes any of it binding.
+> - **[Part 3: Carriers](/programming/carriers.html)** — decisions that travel with the request.
+> - **[Part 4: Capabilities](/programming/capabilities.html)** — authority you hold, not authority you are.
 > - **[Part 5: LLM sandboxing](/programming/llm-sandbox.html)** — the gateway, correct and unavoidable.
 
 - [What is sandboxing](#what-is-sandboxing)
@@ -41,6 +41,10 @@ date:   2026-09-04
   - [Composed: a Lambda function](#composed-a-lambda-function)
 - [Conclusion: what this does not solve](#conclusion-what-this-does-not-solve)
 - [References](#references)
+
+[Part 1](/programming/authorization-models.html) read the decision as a database: stored facts, rules that derive a view, and checks that query it. A database enforces its own answers. It never returns a row nobody selected. An authorization answer is about an effect somewhere else, such as a file opened or a packet sent, and nothing in the store makes it hold. This article is about what does.
+
+There are two ways. Something in the path of the effect applies the decision, or the path is not there at all. The second is what sandboxes do, so this article starts there.
 
 ## What is sandboxing
 
@@ -101,11 +105,11 @@ request ──► PEP ──────► PDP
 - **PEP**, policy enforcement point. Sits in the path of the effect. Cannot be bypassed. Does what the decision says.
 - **PDP**, policy decision point. Evaluates policy against facts and returns an answer. Need not be in the path at all.
 
-The [series intro](/programming/authorization-series-intro.html) adds XACML's other two boxes: the PAP, where policy is authored, and the PIP, where facts come from. The distinction is logical. All four can be one kernel function, or four services in different datacenters. What matters is that only the PEP has to satisfy Anderson's first two properties. The PDP must be *correct*; the PEP must be *unavoidable*. Conflating them is how people end up with an authorization system that is beautifully expressive and trivially routed around.
+The [series intro](/programming/authorization-series-intro.html) adds XACML's other two boxes: the PAP, where policy is authored, and the PIP, where facts come from. [Part 1](/programming/authorization-models.html) reads all four as a database. The distinction is logical. All four can be one kernel function, or four services in different datacenters. What matters is that only the PEP has to satisfy Anderson's first two properties. The PDP must be *correct*; the PEP must be *unavoidable*. Conflating them is how people end up with an authorization system that is beautifully expressive and trivially routed around.
 
 The [Flask architecture][flask-security-architecture] is the cleanest instantiation, and the direct ancestor of SELinux. Flask separates **object managers**, which own resources and enforce decisions, from a **security server**, which evaluates policy. An object manager asks whether a subject may perform an operation on an object, caches the returned access vector, and — the part people forget — receives notifications when a policy change requires revoking what it cached.
 
-That revocation channel is the honest cost of caching a decision. The cache makes enforcement fast, and the notification channel is what you owe in exchange. [Part 2](/programming/carriers.html#fresh-or-frozen) follows that trade through every kind of carrier.
+That revocation channel is the honest cost of caching a decision. The cache makes enforcement fast, and the notification channel is what you owe in exchange. [Part 3](/programming/carriers.html#fresh-or-frozen) follows that trade through every kind of carrier.
 
 ### Along the path: four stages
 
@@ -113,7 +117,7 @@ Every mechanism in the rest of this article sits somewhere on one path. The [ser
 
 Authenticate is the one stage this article leaves alone. What makes it binding is custody of a key, which is a question for cryptography rather than for a sandbox.
 
-The capabilities article asked which artifact carries each stage, and what changes when [one artifact carries them all](/programming/capabilities.html#two-bindings-collapse-the-stages). This one asks what makes each stage hold. Cut one, and the request fails in a way that tells you which:
+This article asks what makes each stage hold. [Part 4](/programming/capabilities.html#two-bindings-collapse-the-stages) asks the other question: which artifact carries each stage, and what changes when one artifact carries them all. Cut one, and the request fails in a way that tells you which:
 
 | Cut | What the request sees | Example |
 |---|---|---|
@@ -139,7 +143,7 @@ The Capsicum column says "kernel" four times. The capability URL column names fo
 
 On reach, what *provides* the path is rarely what *limits* it. The network carries a request to any URL; only a firewall, an egress proxy or a network namespace can refuse. On the open internet nothing refuses, which is what it means for reach to be ambient.
 
-Separated stages mean several enforcers, often in different trust domains, and the classic bugs live in the gaps between them. The confused deputy is decide enforced by the kernel and designate enforced by no one: Hardy's compiler was handed a pathname, and nothing tied that name to the authority of whoever supplied it. A check-then-use race is designate resolved twice while decide is checked once. [Collapse](/programming/capabilities.html#two-bindings-collapse-the-stages) closes the gaps, because one component enforces every stage.
+Separated stages mean several enforcers, often in different trust domains, and the classic bugs live in the gaps between them. The confused deputy is decide enforced by the kernel and designate enforced by no one: Hardy's compiler was handed a pathname, and nothing tied that name to the authority of whoever supplied it. A check-then-use race is designate resolved twice while decide is checked once. A Capsicum descriptor closes the gaps, because one artifact carries every stage and one component enforces them all. [Part 4](/programming/capabilities.html#two-bindings-collapse-the-stages) calls that *collapse*.
 
 Anderson's three properties therefore apply per stage. A PEP that is always invoked on decide does nothing about a name that resolves somewhere else, or a route that goes around it. And collapse does not make the reference enforce itself. Whoever owns the table does, which is why seL4, further down, is both the purest capability system in this article and the most thoroughly enforced.
 
@@ -266,14 +270,14 @@ Check and use named the same string and reached different objects: designate ran
 
 **Environment.** Device posture, time of day, risk score. Same shape as the others, least often modelled, and the usual reason a "zero trust" deployment is less continuous than its diagram.
 
-Re-evaluate on every operation and the inputs stay fresh, but every operation pays the resolution cost and re-opens all four races. Materialize the decision into a capability and the bindings freeze — that is the point of it — but a frozen binding is indistinguishable from a stale one once the source of truth moves.
+Re-evaluate on every operation and the inputs stay fresh, but every operation pays the resolution cost and re-opens all four races. Materialize the decision into a token, a descriptor or a capability, and the bindings freeze — that is the point of it — but a frozen binding is indistinguishable from a stale one once the source of truth moves.
 
 ```text
 re-evaluate    fresh inputs, repeated resolution races
 materialize    stable bindings, revocation debt
 ```
 
-Neither end is safe on its own. A file descriptor eliminates the object-binding race and creates a revocation problem in the same stroke. That is not a defect in the mechanism. It is the trade that appears wherever a system caches a derived fact, and authorization gets no exemption from it.
+Neither end is safe on its own. A file descriptor eliminates the object-binding race and creates a revocation problem in the same stroke. That is not a defect in the mechanism. It is the trade that appears wherever a system caches a derived fact, and authorization gets no exemption from it. [Part 3](/programming/carriers.html) follows it once the copy leaves the machine.
 
 ### Composing reference monitors
 
@@ -310,7 +314,7 @@ The API gateway asks its PDP about an HTTP method and a route. The middleware in
 
 The ladder measures the other scale, and three routes lead down it. Conflating them causes real confusion, because sandboxes, containers, seccomp and LSMs plainly do get below the user, and none of them are capability systems.
 
-**Subtraction from outside.** Someone authors a policy, in a global namespace, naming a subject. SELinux type enforcement is an access matrix whose subjects are types rather than users; a seccomp profile is a list keyed to a process; a container is a namespace configuration. These are [Model 1](/programming/capabilities.html#four-things-get-called-capabilities) with a finer principal. Authority inside the box remains completely ambient: within a container, `open("/etc/passwd")` still works by name and still succeeds because of who you are.
+**Subtraction from outside.** Someone authors a policy, in a global namespace, naming a subject. SELinux type enforcement is an access matrix whose subjects are types rather than users; a seccomp profile is a list keyed to a process; a container is a namespace configuration. These are the access matrix of [Part 1](/programming/authorization-models.html) with a finer principal. Authority inside the box remains completely ambient: within a container, `open("/etc/passwd")` still works by name and still succeeds because of who you are.
 
 **Adjudication from inside.** The program asks a decision point itself, about a principal finer than the user: the module that is calling, the tool invocation, the request. Java's stack inspection did this inside one process, checking the protection domain of every caller on the stack before a sensitive operation. It holds as long as every path through the code asks.
 
@@ -318,13 +322,13 @@ The ladder measures the other scale, and three routes lead down it. Conflating t
 
 The first route costs a policy artifact per descent, written in a vocabulary the program does not itself use — paths, types, syscall numbers, labels. The cost grows as the box shrinks, which is why nobody writes a fresh seccomp profile per request. And it bottoms out: you cannot write an LSM policy about which objects inside a process may invoke which methods, because at that granularity the policy author would be rewriting the program. Every system on the bottom two rungs is a language or a runtime rather than a supervisor, and that is not a coincidence.
 
-The two inside routes both need the program's cooperation. It has to call the decision point, or accept a reference instead of opening a path. They differ in what happens when it does not. A program that forgets to ask still holds the authority, so the check was advisory, and every code path that skips it reaches everything. A program that was never handed a reference has nothing to misuse. That is the [asymmetry](/programming/capabilities.html#the-convergence-is-not-symmetric) from Part 3: adjudication makes the correct answer expressible, and construction makes the wrong one unrepresentable.
+The two inside routes both need the program's cooperation. It has to call the decision point, or accept a reference instead of opening a path. They differ in what happens when it does not. A program that forgets to ask still holds the authority, so the check was advisory, and every code path that skips it reaches everything. A program that was never handed a reference has nothing to misuse. Adjudication makes the correct answer expressible, and construction makes the wrong one unrepresentable. [Part 4](/programming/capabilities.html#the-convergence-is-not-symmetric) comes back to that asymmetry.
 
 Granularity is independent of the [grid's stages](/programming/authorization-series-intro.html#from-a-chain-to-a-grid), and the rest of the series keeps them apart. A container is fine-grained and fully ambient: the principal is small, and inside it every name still works because of who you are. `chroot` cuts designate while leaving decide ambient over everything still visible, so it narrows what can be named without joining any name to its authority.
 
 Some systems were designed security-first, and those tend to start from capabilities: nothing is ambient, and authority grows only by passing references. Most systems were not. Linux, Windows and the internet all started from ambient authority, and sandboxing them means taking authority away from code that was written to assume it.
 
-Both kinds of system try to make a subject's row in the [square matrix](/programming/capabilities.html#squaring-the-matrix) small. They differ in which part of the picture they edit.
+Both kinds of system try to make a subject's row in the access matrix small. They differ in which part of the picture they edit.
 
 ```text
 subtraction    the row starts full and the columns get cut away
@@ -339,7 +343,7 @@ Each system below is a reference monitor broken apart in its own way. For each o
 
 #### seL4 as the meeting point
 
-The carriers article used seL4 to argue that the capability graph can *be* the authority, with no authoritative copy elsewhere. That was the representation half. Here is the enforcement half.
+seL4 makes two claims about capabilities. The first is about representation: the capability graph can *be* the authority, with no authoritative copy elsewhere, and [Part 3](/programming/carriers.html#local-authority-versus-global-knowledge) takes it up. The second is about enforcement, and it belongs here.
 
 seL4 stores capabilities in kernel objects called CNodes. Userspace never touches a capability directly; it names a slot, and the kernel dereferences it. Designate, reach and decide are one capability, and one kernel enforces all three. All authority — memory, execution, IPC endpoints, interrupts — is a capability, obtained by retyping untyped memory. There is no ambient authority anywhere in the system, including the ability to allocate.
 
@@ -349,9 +353,9 @@ That leaves acquire, and two mechanisms govern it.
 
 > Capabilities also cleanly solved another issue with original L4, that of limiting communication. The original model relied on an (inflexible) process hierarchy and redirection to a monitor process ("chief") to limit data flow. Capabilities provide a cleaner, simpler and low-overhead model: Having a privilege does not in itself imply the ability to share that privilege, an additional grant right is needed to pass on capabilities.
 
-That is Saltzer and Schroeder's second objection, propagation control, answered structurally rather than by a registry.
+Saltzer and Schroeder objected that nobody can control where a capability gets passed. The grant right answers that structurally, rather than with a registry. [Part 4](/programming/capabilities.html#the-three-objections) takes their objections in turn.
 
-**The capability derivation tree.** The kernel tracks which capabilities were derived from which, and `seL4_CNode_Revoke` removes all descendants of a capability in one operation. That answers the third objection too, without indirection and without a lookup table, because the kernel already holds the provenance.
+**The capability derivation tree.** The kernel tracks which capabilities were derived from which, and `seL4_CNode_Revoke` removes all descendants of a capability in one operation. That answers their objection about revocation, without indirection and without a lookup table, because the kernel already holds the provenance.
 
 And the kernel is the verified one. Every stage collapses into one component, and that component discharges Anderson's third property. That is what collapse buys at the enforcement layer: one monitor to verify, instead of four that must agree.
 
@@ -372,7 +376,7 @@ Wasm module
             → selected filesystem, socket, clock, or service
 ```
 
-There is no syscall instruction to perform, so reach to the host kernel does not exist. Unnameability comes free from the execution semantics rather than from a device model someone had to get right. The vocabulary is legible — `open-at` means far more than a block offset — and the import list is the local audit surface the capabilities article describes.
+There is no syscall instruction to perform, so reach to the host kernel does not exist. Unnameability comes free from the execution semantics rather than from a device model someone had to get right. The vocabulary is legible — `open-at` means far more than a block offset — and the import list is a local audit surface, which [Part 4](/programming/capabilities.html#complete-over-the-intended-state-not-the-reachable-state) weighs against a global one.
 
 **Effect systems** reach the same shape from the language side. The type system records each effect a function may perform, and a handler supplies its interpretation:
 
@@ -443,11 +447,11 @@ container contract
 
 Same names, three different enforcers. Under runc, the workload talks straight to the host kernel, so a reachable kernel bug is an escape. Under gVisor, it talks to a userspace kernel, and the host kernel sees a much smaller surface. Under Kata, the hypervisor is what the workload must defeat. These are interchangeable to the consumer and not remotely comparable as boundaries. "We run it in a container" names the interface, not the enforcer.
 
-This is the carriers article's policy/mechanism separation one level down. The contract is what the workload may assume about its environment. The runtime is who makes it true. Keeping the seam there is what lets you change your mind about isolation strength without repackaging anything.
+This is the separation of policy from mechanism, one level down. [Part 3](/programming/carriers.html#policy-and-mechanism) takes it up for carriers. The contract is what the workload may assume about its environment. The runtime is who makes it true. Keeping the seam there is what lets you change your mind about isolation strength without repackaging anything.
 
 #### Membranes: subtraction plus mediation
 
-Subtraction cannot mediate. You can remove a column. There is no namespace operation for "Alice reaches X only through Bob," because the thing in the middle has to hold a row and be a column at once — [Property E](/programming/capabilities.html#the-six-properties) — and a namespace has visibility rather than entities.
+Subtraction cannot mediate. You can remove a column. There is no namespace operation for "Alice reaches X only through Bob," because the thing in the middle has to hold a row and be a column at once, and a namespace has visibility rather than entities. [Part 4](/programming/capabilities.html#the-six-properties) calls this Property E: resources are also subjects.
 
 > **Subtraction plus mediation is construction.**
 

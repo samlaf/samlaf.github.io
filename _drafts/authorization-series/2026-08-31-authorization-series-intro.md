@@ -4,69 +4,109 @@ category: programming
 date: 2026-08-31
 ---
 
-This is the intro to a short series on authorization — not a survey of policy engines, but the structure underneath them: where authority is written down, who is allowed to change it, what makes any of it binding, and what breaks when the thing you are constraining decides at runtime what it wants to do.
+Despite security and authorization having been parts of computer science and programming for decades, the field is still [evolving rapidly][state-union-authorization]:
 
-## One picture, four boxes
+![](/assets/authorization/auth-timeline.png)
 
-Almost every authorization product ships some version of this diagram. The four boxes come from XACML, and the four-letter names are ugly, but the decomposition is the best map of the territory anyone has drawn. This version is Figure 5 of [NIST SP 800-162][nist-sp-800-162], the NIST guide to attribute-based access control:
+While still being quite fragmented in practice, there is a growing understanding of the underlying principles that govern how authority is represented and managed, and we are starting to see a convergence on the fundamental abstractions that underlie all models. Furthermore, with LLMs and agents now being ubiquitous in software systems, there is a pressing need to understand and formalize how authorization decisions are made and enforced in these dynamic environments.
 
-![PEP, PDP, PAP and PIP, with the policy repository, the attribute repository and environment conditions](/assets/authorization/nist-abac-functional-points.png)
+The goal of this series is to take a holistic view on the mechanisms underlying authorization:
 
-A subject wants to act on an object. Four distinct things have to happen, and each one is a separate engineering problem:
+1. **Deciding is a database problem.** Facts are stored, rules derive a view from them, and every check is a query against that view.
+2. **Enforcing makes the answer bind.** Either something in the path applies the decision, or the path is not there at all. The second is what sandboxes do.
+3. **Carriers bring the answer to the enforcer.** A token is a copy of a decision that travels with the request, so the check does not have to go back to the database.
+4. **Capabilities join the two ways of enforcing.** If the only names you hold are the ones you were given, what you can reach is what you may do.
 
-- **PEP**, policy enforcement point. Sits in the path of the effect. The subject's request physically goes through it on its way to the object, and it does what the decision says.
-- **PDP**, policy decision point. Evaluates policy against facts and returns a decision. It need not sit in the path at all.
-- **PAP**, policy administration point. Where policy is authored, and — more interestingly — who is allowed to author it. It writes to the policy repository.
-- **PIP**, policy information point. Where the facts come from. It draws on two kinds: attributes that someone assigned and stored, such as group membership, ACL entries and security labels; and *environment conditions*, which nobody assigns and which are measured at decision time, such as the time, the location or the threat level.
+## Deciding is a database problem
 
-The policy repository and the attribute repository are the split worth dwelling on, because it is the code/data split. The policy repository holds rules; the attribute repository holds facts; the PDP is a pure function of both. The split is clean in ABAC, the model the figure was drawn for, and it blurs in most others. Either way, "change the policy" almost always means "write to a repository," and that is why the question of *who may write there* turns out to organize the whole field.
-
-One arrow in the figure has a standard today: PEP to PDP. [AuthZEN][authzen-api], the OpenID Foundation's Authorization API, defines that exchange and nothing else:
+Many people present authorization in its very circumscribed functional form, as the decision that every system must compute for each request:
 
 ```text
 f(subject, action, resource, context) → allow | deny
 ```
 
-Stored attributes describe the subject and the resource. The environment conditions are the context. That is the state of the field in one line: the shape of `f` is settled, and everything else on the diagram is not.
+Indeed, all authorization models such as ACL, RBAC, ReBAC, and ABAC can be understood as different ways to represent and compute this function.
+
+XACML first expanded this pure function into a system. This is how NIST draws it, in [SP 800-162][nist-sp-800-162]:
+
+![PEP, PDP, PAP and PIP, with the policy repository, the attribute repository and environment conditions](/assets/authorization/nist-abac-functional-points.png)
+
+XACML was specialized to ABAC systems, but [AuthZEN][authzen-api], the OpenID Foundation's Authorization API, recently generalized and standardized the PEP<>PDP interface to work with all authorization models.
+
+The main point is that we can think of the PDP (Policy Decision Point) as a database system that answers the authorization query from above. From this perspective, we are able to bring to this problem 40+ years of database expertise that has been developed. An ACL stores the rows of `Allowed` directly. RBAC stores two tables and joins them. ReBAC stores a graph and walks it. ABAC stores attributes and evaluates a predicate over them. We expand on all of these with concrete examples in [Part 1](/programming/authorization-models.html).
+
+## A database answer binds nothing
+
+A database enforces its own answers. It never returns a row nobody selected. Postgres row-level security is the rare case where an authorization decision works the same way: the database adds the policy to every query on the table, so deciding and enforcing are one act.
+
+Everywhere else, the decision is about an effect on another system: a file opened, a packet sent, a payment made. Something in the path of that effect has to apply the answer. That is the PEP, and it is the **narrow** sense of a reference monitor. Anderson gave the reference monitor three properties: always invoked, tamperproof and verifiable. The PDP has to be correct. The PEP has to be unavoidable.
+
+The PEP also has to know who is asking. `f` takes a subject, and the database cannot pick one for itself. So every request carries something that ties it to a subject: a header, a signature, or the channel it arrived on. Checking that claim is authentication. It has its own column on the grid below, and the series on identity and applied cryptography cover it.
+
+## Or leave nothing to ask for
+
+Deciding is not the only way to stop a request. A request has to get to the decision first, and it passes two stages on the way. First a name has to resolve to an object: the kernel walks a path, DNS maps a host, a table maps a file descriptor to an open file. Call that **designate**. Then the request has to be carried to whatever serves the object: a syscall boundary, a route, an IPC endpoint. Call that **reach**.
+
+Cut either stage and nothing is ever decided. Most sandboxes work this way:
+
+- A `chroot` or a mount namespace changes what a path resolves to. The file the workload asks for is not there.
+- A network namespace with no route removes reach. The name resolves, and the packet goes nowhere.
+- Seccomp removes kernel entry points. The call never starts.
+- A VM does both for the whole host. Host paths mean nothing inside the guest, and there is no device to reach the host through.
+
+Call this **unnameability**, and the PEP's way **adjudication**. Most arguments about sandboxing are about which of the two is in use, and on which stage.
+
+The two need each other. A PEP is unavoidable only if there is no other path around it, and whether there is depends on the shape of reach, not on any policy. An `HTTP_PROXY` setting is a request the workload can ignore. The same proxy becomes a real PEP once the network gives the workload no other route.
+
+So each stage has its own enforcer, and Anderson's properties apply to each one. That is the **broad** sense of a reference monitor. The series needs both, and [Part 2](/programming/authority-enforcement.html) covers them, from Linux namespaces to VMs to seL4.
+
+## Carriers bring the answer to the enforcer
+
+The PEP needs the decision, but the database may be far away. So the request brings something along. At the least, it brings who is asking. It can bring much more. The Windows logon token is RBAC, joined at logon and carried by every process the user starts. An OAuth access token carries a scoped decision on the web. Each one is a copy of something written, riding with the request so the check does not have to go back to the store. Call it a **carrier**.
+
+The identity carrier is required. Every carrier beyond it is a cache, and it has the cost of one. Checks are fast, and they work without the store. But once the copy leaves, revoking it means reaching every copy. [Part 3](/programming/carriers.html) follows that trade.
+
+## Capabilities: authority becomes reachability
+
+Push the carrier far enough and it stops being a copy. A capability has nothing to look up: the subject arrives holding the authority. It needs no authentication either, because there is no subject to look up. An object capability goes further. The reference that names the object is also the route to it and the permission to use it, so designate, reach and decide become one act.
+
+That is where the two ways of enforcing meet. Under object capabilities, every name a program holds was given to it, and everything it was not given is unnameable. The question "may Alice do this?" turns into "can Alice reach this?", which is a question about who holds references to what. That is not a faster way to consult the database. It is a different database, and the access matrix has to be [square](/programming/capabilities.html#squaring-the-matrix) to describe it. [Part 4](/programming/capabilities.html) makes that case.
 
 ## From a chain to a grid
 
-The four boxes describe one stage of a request: the decision. NIST draws the whole path of a request in a second figure, which it calls a *trust chain*:
+The four boxes cover one stage of a request: the decision. NIST draws the whole path in a second figure, which it calls a *trust chain*:
 
 ![NIST SP 800-162, Figure 8: the ABAC trust chain](/assets/authorization/nist-abac-trust-chain.png)
 
-Read it as a spine with bones. The spine runs left to right, and it is what happens during one request: the subject authenticates, a decision is made, and the decision is enforced on the way to the object. The bones are what each stage rests on, and almost all of them were written earlier, by someone: a credential issued, an identity provisioned, an attribute assigned, a rule managed. The effect at the end is only as trustworthy as every bone behind it. That is why NIST calls it a chain.
+Read it as a spine with bones. The spine runs left to right, and it is what happens during one request: the subject authenticates, a decision is made, and the decision is enforced on the way to the object. The bones are what each stage rests on, and someone wrote almost all of them earlier: a credential issued, an identity provisioned, an attribute assigned, a rule managed. The effect at the end is only as trustworthy as every bone behind it. That is why NIST calls it a chain.
 
-Karp's four steps of access control split across the two halves. [Karp][from-abac-zbac-evolution] names them identification, authentication, authorization and access decision. Two of them are writes, made before any request: identification provisions an identity, and authorization grants a permission. The other two happen on the spine, at request time.
-
-The chain leaves out two stages. It assumes the subject can already name the object and get a request to it, and neither is free. First a name has to resolve to an object: the kernel walks a path, DNS maps a host, a table maps a file descriptor to an open file. Call that **designate**. Then the request has to be carried to whatever serves the object: a syscall boundary, a route, an IPC endpoint. Call that **reach**. NIST has one bone for all of this, "Network Access," and it feeds authentication rather than standing on the spine.
-
-Put designate and reach on the spine, and enforcement stops being a stage. NIST's "Access Control Enforcement" box is the PEP: the gate that applies a decision. That is the **narrow** sense of a reference monitor. But a `chroot` enforces too, and so does an empty network namespace. The name resolves to nothing, or the packet has no route, and nothing was ever decided. Designate and reach have enforcers of their own. So enforcement is not a stage after the decision. It is a row under every stage, and Anderson's three properties — always invoked, tamperproof, verifiable — apply to whatever carries out each one. That is the **broad** sense of a reference monitor. The series needs both.
-
-The result is a grid. Here it is as a map of this series, with each cell tagged by the article that covers it:
+The bones are the write path, and the spine is the read path. So the database picture is not special to the decision. Every stage rests on something written, and computes something at request time. NIST gives designate and reach a single bone, "Network Access," which feeds authentication rather than standing on the spine. Put them on the spine, add a row for each stage's enforcer, and the chain becomes a grid. Here it is as a map of this series, with each cell tagged by the article that covers it:
 
 ![Series roadmap: the grid of four stages and three rows, with each cell tagged by the article that covers it](/assets/authorization/series-roadmap.svg)
 
 The columns are the stages of a request: designate, reach, authenticate, decide. The rows are:
 
-- **Written:** what the stage rests on, and who may write it.
-- **Request:** what the stage computes while the request is in flight.
-- **Enforced:** what makes the stage binding.
+- **Written:** what the stage rests on, and who may write it. This is the write path.
+- **Request:** what the stage computes while the request is in flight. This is the read path.
+- **Enforced:** what makes the stage binding. Unnameability sits under designate, "no way around" under reach, and adjudication, the narrow reference monitor, under decide.
 
-Two regions sit outside the cells. **Carriers** are copies of something written that travel with the request, so the stage does not have to look it up: a certificate, a session cookie, a scoped token, a capability. **Bindings** are artifacts that serve several stages at once. A capability designates, reaches and decides in one object.
+The Decide column holds the database and its PEP. Its Written and Request cells are the database of [Part 1](/programming/authorization-models.html), and its Enforced cell is the PEP.
 
-Everything earlier in this intro lands on the grid. The four boxes are the Decide column: the PAP and the attribute authorities write it, the PIP and the PDP evaluate it, and the PEP enforces it. [Part 1](/programming/authorization-models.html) redraws that column as a data system. Karp's four steps take four cells.
+Below the cells sit the carriers. A **carrier** is a copy of a stage's Written cell that travels to its Request cell, so the stage does not have to look it up: a session cookie for authenticate, a scoped token for decide. Designate and reach have no carrier of their own. A carrier can also serve several stages at once. A capability designates, reaches and decides in one object.
+
+Other maps of authorization land on the grid too. The XACML boxes are the Decide column: the PAP and the attribute authorities write it, the PIP and the PDP evaluate it, and the PEP enforces it. [IDPro's six axes][authorization-terminology-mess] also fit inside that one column, which is why they have no place for sandboxes or capabilities. And [Karp's][from-abac-zbac-evolution] four steps of access control take four cells. Identification and authorization are writes, made before any request: one provisions an identity, the other grants a permission. Authentication and the access decision happen at request time.
 
 ## The articles
 
 - **[Prologue: Who is the adversary](/programming/who-is-the-adversary.html)** — five positions the attacker has occupied, from a stranger at the gate to the data your delegate reads. Why identity stopped being the useful thing to key on, and where to find a technical threat model.
 - **[Part 1: Authorization models](/programming/authorization-models.html)** — the Decide column read as a data system: stored facts, the rules that derive a view from them, and who may write either. Where the view is computed, which questions it answers cheaply, and how fresh its answers are. Along the way, why DAC and MAC are answers to the mutation question rather than rungs of a ladder.
-- **[Part 2: Carriers](/programming/carriers.html)** — copies of a decision that travel with the request. How much of the decision rides along, Karp's where and when, bearer tokens and the registries they grow, OAuth, and the trade between a fresh lookup and a frozen copy.
-- **[Part 3: Capabilities](/programming/capabilities.html)** — the Bindings region: authority you hold, not authority you are. The four boxes assume the PDP looks the subject up; a capability has nothing to look up, because the subject arrives holding the authority. Why the access matrix has to be square to describe that. Four things get called capabilities; only one of them makes designation and authority the same act, which is why the confused deputy is structural. Then the three classic objections, and where the property can be bought.
-- **[Part 4: How authority is enforced](/programming/authority-enforcement.html)** — the Enforced row. The reference monitor in both senses, and its three properties. Each stage has its own enforcer, and unnameability versus adjudication is a choice of which stage to cut. Then granularity and the routes down it, why Linux is a toolkit rather than a primitive, and what can change between the check and the use.
+- **[Part 2: How authority is enforced](/programming/authority-enforcement.html)** — the Enforced row. The reference monitor in both senses, and its three properties. Each stage has its own enforcer, and unnameability versus adjudication is a choice of which stage to cut. Then granularity and the routes down it, why Linux is a toolkit rather than a primitive, and what can change between the check and the use.
+- **[Part 3: Carriers](/programming/carriers.html)** — copies of a decision that travel with the request. How much of the decision rides along, Karp's where and when, bearer tokens and the registries they grow, OAuth, and the trade between a fresh lookup and a frozen copy.
+- **[Part 4: Capabilities](/programming/capabilities.html)** — the carrier that serves several stages at once: authority you hold, not authority you are. The four boxes assume the PDP looks the subject up; a capability has nothing to look up, because the subject arrives holding the authority. Why the access matrix has to be square to describe that. Four things get called capabilities; only one of them makes designation and authority the same act, which is why the confused deputy is structural. Then the three classic objections, and where the property can be bought.
 - **[Part 5: LLM sandboxing](/programming/llm-sandbox.html)** — every region at once: the gateway, correct and unavoidable. A system that has the substrate and threw the property away: the runtime–gateway contract, the landscape scored against it, and a recommended architecture.
 
+[authorization-terminology-mess]: https://idpro.org/authorization-terminology-is-a-mess-lets-fix-it/ "Authorization Terminology Is a Mess. Let's Fix It."
 [authzen-api]: https://openid.net/specs/authorization-api-1_0.html "Authorization API 1.0 - OpenID Foundation"
 [from-abac-zbac-evolution]: https://shiftleft.com/mirrors/www.hpl.hp.com/techreports/2009/HPL-2009-30.pdf "From ABAC to ZBAC: The Evolution of Access Control Models"
 [nist-sp-800-162]: https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-162.pdf "NIST SP 800-162: Guide to Attribute Based Access Control (ABAC) Definition and Considerations"
-[xacml-core]: https://docs.oasis-open.org/xacml/3.0/xacml-3.0-core-spec-os-en.html "eXtensible Access Control Markup Language (XACML) Version 3.0"
+[state-union-authorization]: https://idpro.org/the-state-of-the-union-of-authorization/ "The State of the Union of Authorization"

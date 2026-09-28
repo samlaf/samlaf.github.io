@@ -21,13 +21,15 @@
 <text x="1296" y="152" font-size="17" font-weight="700" fill="#0f172a" text-anchor="middle">Decide</text>
 <text x="1296" y="173" font-size="12.5" font-weight="400" fill="#64748b" text-anchor="middle">May it do this?</text>
 <text x="36" y="226" font-size="16" font-weight="700" fill="#0f172a" text-anchor="start">Written</text>
+<text x="36" y="246" font-size="12.5" font-weight="400" fill="#64748b" text-anchor="start">the write path</text>
 <text x="36" y="348" font-size="16" font-weight="700" fill="#0f172a" text-anchor="start">Request</text>
+<text x="36" y="368" font-size="12.5" font-weight="400" fill="#64748b" text-anchor="start">the read path</text>
 <text x="36" y="470" font-size="16" font-weight="700" fill="#0f172a" text-anchor="start">Enforced</text>
-<text x="36" y="586" font-size="16" font-weight="700" fill="#0f172a" text-anchor="start">Across stages</text>
+<text x="36" y="490" font-size="12.5" font-weight="400" fill="#64748b" text-anchor="start">the reference monitor</text>
 <rect x="210" y="196" width="300" height="110" rx="8" fill="#e3f1f3" stroke="#0f7d8c" stroke-width="1.2"/>
 <text x="226" y="226" font-size="14.5" font-weight="700" fill="#0f172a" text-anchor="start">Where names come from</text>
 <rect x="226" y="270" width="66" height="22" rx="11" fill="#0f7d8c"/>
-<text x="259" y="285" font-size="11.5" font-weight="700" fill="#fff" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">Part 3</text>
+<text x="259" y="285" font-size="11.5" font-weight="700" fill="#fff" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">Part 4</text>
 <text x="496" y="286" font-size="11" font-weight="500" fill="#94a3b8" text-anchor="end" font-style="italic">also identity</text>
 <rect x="522" y="196" width="300" height="110" rx="8" fill="#f1f3f5" stroke="#cbd5e1" stroke-width="1.2"/>
 <text x="538" y="226" font-size="14.5" font-weight="700" fill="#64748b" text-anchor="start">Routes</text>
@@ -36,7 +38,8 @@
 <text x="850" y="226" font-size="14.5" font-weight="700" fill="#64748b" text-anchor="start">Name → key bindings</text>
 <text x="1120" y="286" font-size="11" font-weight="500" fill="#94a3b8" text-anchor="end" font-style="italic">identity series</text>
 <rect x="1146" y="196" width="300" height="110" rx="8" fill="#e3f1f3" stroke="#0f7d8c" stroke-width="1.2"/>
-<text x="1162" y="226" font-size="14.5" font-weight="700" fill="#0f172a" text-anchor="start">Rules and attributes</text>
+<text x="1162" y="226" font-size="14.5" font-weight="700" fill="#0f172a" text-anchor="start">Facts and rules</text>
+<text x="1162" y="248" font-size="12.5" font-weight="400" fill="#475569" text-anchor="start">the database: what is stored</text>
 <rect x="1162" y="270" width="66" height="22" rx="11" fill="#0f7d8c"/>
 <text x="1195" y="285" font-size="11.5" font-weight="700" fill="#fff" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">Part 1</text>
 <rect x="210" y="318" width="300" height="110" rx="8" fill="#f1f3f5" stroke="#cbd5e1" stroke-width="1.2"/>
@@ -49,6 +52,7 @@
 <text x="1120" y="408" font-size="11" font-weight="500" fill="#94a3b8" text-anchor="end" font-style="italic">crypto series</text>
 <rect x="1146" y="318" width="300" height="110" rx="8" fill="#e3f1f3" stroke="#0f7d8c" stroke-width="1.2"/>
 <text x="1162" y="348" font-size="14.5" font-weight="700" fill="#0f172a" text-anchor="start">Access decision</text>
+<text x="1162" y="370" font-size="12.5" font-weight="400" fill="#475569" text-anchor="start">the PDP: a query against the view</text>
 <rect x="1162" y="392" width="66" height="22" rx="11" fill="#0f7d8c"/>
 <text x="1195" y="407" font-size="11.5" font-weight="700" fill="#fff" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">Part 1</text>
 <rect x="1236" y="392" width="66" height="22" rx="11" fill="#0f7d8c"/>
@@ -56,48 +60,51 @@
 <rect x="210" y="440" width="300" height="110" rx="8" fill="#e3f1f3" stroke="#0f7d8c" stroke-width="1.2"/>
 <text x="226" y="470" font-size="14.5" font-weight="700" fill="#0f172a" text-anchor="start">Unnameability</text>
 <rect x="226" y="514" width="66" height="22" rx="11" fill="#0f7d8c"/>
-<text x="259" y="529" font-size="11.5" font-weight="700" fill="#fff" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">Part 4</text>
+<text x="259" y="529" font-size="11.5" font-weight="700" fill="#fff" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">Part 2</text>
 <rect x="522" y="440" width="300" height="110" rx="8" fill="#e3f1f3" stroke="#0f7d8c" stroke-width="1.2"/>
 <text x="538" y="470" font-size="14.5" font-weight="700" fill="#0f172a" text-anchor="start">No way around</text>
 <rect x="538" y="514" width="66" height="22" rx="11" fill="#0f7d8c"/>
-<text x="571" y="529" font-size="11.5" font-weight="700" fill="#fff" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">Part 4</text>
+<text x="571" y="529" font-size="11.5" font-weight="700" fill="#fff" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">Part 2</text>
 <text x="808" y="530" font-size="11" font-weight="500" fill="#94a3b8" text-anchor="end" font-style="italic">also crypto</text>
 <rect x="834" y="440" width="300" height="110" rx="8" fill="#f1f3f5" stroke="#cbd5e1" stroke-width="1.2"/>
 <text x="850" y="470" font-size="14.5" font-weight="700" fill="#64748b" text-anchor="start">Custody</text>
 <text x="1120" y="530" font-size="11" font-weight="500" fill="#94a3b8" text-anchor="end" font-style="italic">crypto series</text>
 <rect x="1146" y="440" width="300" height="110" rx="8" fill="#e3f1f3" stroke="#0f7d8c" stroke-width="1.2"/>
 <text x="1162" y="470" font-size="14.5" font-weight="700" fill="#0f172a" text-anchor="start">Narrow reference monitor</text>
+<text x="1162" y="492" font-size="12.5" font-weight="400" fill="#475569" text-anchor="start">the PEP: applies the answer</text>
 <rect x="1162" y="514" width="66" height="22" rx="11" fill="#0f7d8c"/>
-<text x="1195" y="529" font-size="11.5" font-weight="700" fill="#fff" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">Part 4</text>
+<text x="1195" y="529" font-size="11.5" font-weight="700" fill="#fff" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">Part 2</text>
 <rect x="1236" y="514" width="66" height="22" rx="11" fill="#0f7d8c"/>
 <text x="1269" y="529" font-size="11.5" font-weight="700" fill="#fff" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">Part 5</text>
 <rect x="210" y="562" width="1236" height="60" rx="8" fill="#e3f1f3" stroke="#0f7d8c" stroke-width="1.2"/>
 <text x="226" y="598" font-size="14.5" font-weight="700" fill="#0f172a" text-anchor="start">Broad reference monitor</text>
 <rect x="1356" y="581" width="66" height="22" rx="11" fill="#0f7d8c"/>
-<text x="1389" y="596" font-size="11.5" font-weight="700" fill="#fff" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">Part 4</text>
+<text x="1389" y="596" font-size="11.5" font-weight="700" fill="#fff" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">Part 2</text>
 <line x1="36" y1="642" x2="1446" y2="642" stroke="#cbd5e1" stroke-dasharray="3 4"/>
 <text x="36" y="684" font-size="16" font-weight="700" fill="#0f172a" text-anchor="start">Carriers</text>
-<rect x="210" y="656" width="612" height="60" rx="8" fill="#f1f3f5" stroke="#cbd5e1" stroke-width="1.2"/>
-<text x="226" y="692" font-size="14.5" font-weight="700" fill="#64748b" text-anchor="start">Copies of identity</text>
-<text x="808" y="696" font-size="11" font-weight="500" fill="#94a3b8" text-anchor="end" font-style="italic">identity series</text>
-<rect x="834" y="656" width="612" height="60" rx="8" fill="#e3f1f3" stroke="#0f7d8c" stroke-width="1.2"/>
-<text x="850" y="692" font-size="14.5" font-weight="700" fill="#0f172a" text-anchor="start">Copies of decisions</text>
-<rect x="1356" y="675" width="66" height="22" rx="11" fill="#0f7d8c"/>
-<text x="1389" y="690" font-size="11.5" font-weight="700" fill="#fff" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">Part 2</text>
-<text x="36" y="760" font-size="16" font-weight="700" fill="#0f172a" text-anchor="start">Bindings</text>
-<rect x="210" y="732" width="1236" height="60" rx="8" fill="#e3f1f3" stroke="#0f7d8c" stroke-width="1.2"/>
-<text x="226" y="768" font-size="14.5" font-weight="700" fill="#0f172a" text-anchor="start">One artifact for several stages</text>
-<rect x="1356" y="751" width="66" height="22" rx="11" fill="#0f7d8c"/>
-<text x="1389" y="766" font-size="11.5" font-weight="700" fill="#fff" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">Part 3</text>
-<line x1="36" y1="812" x2="1446" y2="812" stroke="#cbd5e1" stroke-dasharray="3 4"/>
-<text x="36" y="854" font-size="16" font-weight="700" fill="#0f172a" text-anchor="start">Every region</text>
-<rect x="210" y="826" width="1236" height="60" rx="8" fill="#e3f1f3" stroke="#0f7d8c" stroke-width="1.2"/>
-<text x="226" y="862" font-size="14.5" font-weight="700" fill="#0f172a" text-anchor="start">LLM agents: the gateway, correct and unavoidable</text>
-<rect x="1356" y="845" width="66" height="22" rx="11" fill="#0f7d8c"/>
-<text x="1389" y="860" font-size="11.5" font-weight="700" fill="#fff" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">Part 5</text>
-<text x="36" y="930" font-size="16" font-weight="700" fill="#0f172a" text-anchor="start">Every cell</text>
-<rect x="210" y="902" width="1236" height="60" rx="8" fill="#e3f1f3" stroke="#0f7d8c" stroke-width="1.2"/>
-<text x="226" y="938" font-size="14.5" font-weight="700" fill="#0f172a" text-anchor="start">The adversary: which attacker each cell has to hold against</text>
-<rect x="1356" y="921" width="66" height="22" rx="11" fill="#0f7d8c"/>
-<text x="1389" y="936" font-size="11.5" font-weight="700" fill="#fff" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">Prologue</text>
+<text x="36" y="704" font-size="12.5" font-weight="400" fill="#64748b" text-anchor="start">one stage, or several</text>
+<rect x="834" y="656" width="300" height="76" rx="8" fill="#f1f3f5" stroke="#cbd5e1" stroke-width="1.2"/>
+<text x="850" y="684" font-size="14.5" font-weight="700" fill="#64748b" text-anchor="start">Materialized identity</text>
+<text x="850" y="706" font-size="12.5" font-weight="400" fill="#475569" text-anchor="start">session cookie, id_token, process uid</text>
+<text x="1120" y="720" font-size="11" font-weight="500" fill="#94a3b8" text-anchor="end" font-style="italic">identity series</text>
+<rect x="1146" y="656" width="300" height="76" rx="8" fill="#e3f1f3" stroke="#0f7d8c" stroke-width="1.2"/>
+<text x="1162" y="684" font-size="14.5" font-weight="700" fill="#0f172a" text-anchor="start">Materialized decision</text>
+<text x="1162" y="706" font-size="12.5" font-weight="400" fill="#475569" text-anchor="start">scoped token, logon token</text>
+<rect x="1356" y="683" width="66" height="22" rx="11" fill="#0f7d8c"/>
+<text x="1389" y="698" font-size="11.5" font-weight="700" fill="#fff" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">Part 3</text>
+<rect x="210" y="744" width="1236" height="60" rx="8" fill="#e3f1f3" stroke="#0f7d8c" stroke-width="1.2"/>
+<text x="226" y="780" font-size="14.5" font-weight="700" fill="#0f172a" text-anchor="start">Several stages at once: a capability designates, reaches and decides</text>
+<rect x="1356" y="763" width="66" height="22" rx="11" fill="#0f7d8c"/>
+<text x="1389" y="778" font-size="11.5" font-weight="700" fill="#fff" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">Part 4</text>
+<line x1="36" y1="824" x2="1446" y2="824" stroke="#cbd5e1" stroke-dasharray="3 4"/>
+<text x="36" y="866" font-size="16" font-weight="700" fill="#0f172a" text-anchor="start">Every region</text>
+<rect x="210" y="838" width="1236" height="60" rx="8" fill="#e3f1f3" stroke="#0f7d8c" stroke-width="1.2"/>
+<text x="226" y="874" font-size="14.5" font-weight="700" fill="#0f172a" text-anchor="start">LLM agents: the gateway, correct and unavoidable</text>
+<rect x="1356" y="857" width="66" height="22" rx="11" fill="#0f7d8c"/>
+<text x="1389" y="872" font-size="11.5" font-weight="700" fill="#fff" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">Part 5</text>
+<text x="36" y="942" font-size="16" font-weight="700" fill="#0f172a" text-anchor="start">Every cell</text>
+<rect x="210" y="914" width="1236" height="60" rx="8" fill="#e3f1f3" stroke="#0f7d8c" stroke-width="1.2"/>
+<text x="226" y="950" font-size="14.5" font-weight="700" fill="#0f172a" text-anchor="start">The adversary: which attacker each cell has to hold against</text>
+<rect x="1356" y="933" width="66" height="22" rx="11" fill="#0f7d8c"/>
+<text x="1389" y="948" font-size="11.5" font-weight="700" fill="#fff" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">Prologue</text>
 </svg>

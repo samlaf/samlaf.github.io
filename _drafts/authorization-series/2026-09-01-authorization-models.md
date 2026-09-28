@@ -10,28 +10,28 @@ date:   2026-09-01
 >
 > - **[Prologue: Who is the adversary](/programming/who-is-the-adversary.html)** — five positions the attacker has occupied, and why identity stopped being the useful thing to key on.
 > - **Part 1: Authorization models** — what every system computes, and who may change it.
-> - **[Part 2: Carriers](/programming/carriers.html)** — decisions that travel with the request.
-> - **[Part 3: Capabilities](/programming/capabilities.html)** — authority you hold, not authority you are.
-> - **[Part 4: How authority is enforced](/programming/authority-enforcement.html)** — what makes any of it binding.
+> - **[Part 2: How authority is enforced](/programming/authority-enforcement.html)** — what makes any of it binding.
+> - **[Part 3: Carriers](/programming/carriers.html)** — decisions that travel with the request.
+> - **[Part 4: Capabilities](/programming/capabilities.html)** — authority you hold, not authority you are.
 > - **[Part 5: LLM sandboxing](/programming/llm-sandbox.html)** — the gateway, correct and unavoidable.
 
 - [One function, one relation](#one-function-one-relation)
 - [The write path](#the-write-path)
   - [Facts: schemas for the matrix](#facts-schemas-for-the-matrix)
+    - [Access control lists and capability lists](#access-control-lists-and-capability-lists)
+    - [RBAC](#rbac)
+    - [ABAC](#abac)
+    - [ReBAC](#rebac)
   - [Rules: a policy is a view](#rules-a-policy-is-a-view)
   - [Writers](#writers)
+    - [DAC and MAC are not rungs](#dac-and-mac-are-not-rungs)
+    - [Policies compose, and the rule is not the same as the edit right](#policies-compose-and-the-rule-is-not-the-same-as-the-edit-right)
 - [Materialization: where the boundary falls](#materialization-where-the-boundary-falls)
 - [The read path](#the-read-path)
   - [Queries](#queries)
   - [Freshness](#freshness)
 - [Real-world examples](#real-world-examples)
 - [References](#references)
-
-Despite security and authorization having been parts of computer science and programming for decades, the field is still [evolving rapidly][state-union-authorization]:
-
-![](/assets/authorization/auth-timeline.png)
-
-While still being quite fragmented in practice, there is a growing understanding of the underlying principles that govern how authority is represented and managed, and we are starting to see a convergence on the fundamental abstractions that underlie all models. The [series intro](/programming/authorization-series-intro.html) lays out the parts of an authorization system. This article takes one of them, the decision, and reads it the way Martin Kleppmann reads a database in [Designing Data-Intensive Applications][ddia]: as stored facts, rules that derive a view from them, and the two paths that write and read it.
 
 ## One function, one relation
 
@@ -61,7 +61,7 @@ Seen as a data system, then, `f` is a query. Writers change facts and rules on t
 
 ![The Decide column as a data system: writers, facts and rules on the write path, queries and the evaluator on the read path, meeting at the view; materialization decides where the boundary falls; carriers and enforcement extend beyond one database](/assets/authorization/decide-column.svg)
 
-The rest of this article walks the figure. The write path comes first: what the facts look like, how rules turn them into the view, and who may write either. Then the boundary between the paths, which decides how much of the view is computed ahead of time. Then the read path: which questions the view can answer, and how fresh the answers are. The bottom row leaves the database. Carriers are [Part 2](/programming/carriers.html), and enforcement is [Part 4](/programming/authority-enforcement.html).
+The rest of this article walks the figure. The write path comes first: what the facts look like, how rules turn them into the view, and who may write either. Then the boundary between the paths, which decides how much of the view is computed ahead of time. Then the read path: which questions the view can answer, and how fresh the answers are. The bottom row leaves the database. Enforcement is [Part 2](/programming/authority-enforcement.html), and carriers are [Part 3](/programming/carriers.html).
 
 ## The write path
 
@@ -179,7 +179,7 @@ A second `allow` rule would be a second branch of a `UNION`. Rego gets this shap
 
 The last three lines of the rule have no SQL counterpart, and that is the ABAC argument again. A view is a table computed from other tables, and a table has no axis for context. The honest SQL translation is a function that takes the context as an argument.
 
-Taxonomies of authorization often list policy formats: hardcoded code, a structured document, a declarative language, a database row. They are four ways to write the same view definition, or to skip it:
+[IDPro's taxonomy][authorization-terminology-mess] lists four policy formats: hardcoded code, a structured document, a declarative language, a database row. They are four ways to write the same view definition, or to skip it:
 
 - **Code.** The rule is an `if` in the application. It is imperative, and changing it takes a deploy.
 - **A structured document.** The rule is encoded as data, as in an AWS IAM policy's JSON. It can change without a deploy, and like any encoding it has to evolve without breaking what reads it.
@@ -193,7 +193,7 @@ ALTER TABLE files ENABLE ROW LEVEL SECURITY;
 CREATE POLICY owner_only ON files USING (owner = current_user);
 ```
 
-From then on, [Postgres adds][postgres-row-security] the `USING` predicate to every query on `files`, for every role that row-level security applies to. The policy is a view the database applies for you. Here the decision and its enforcement are one act, which is rare, and [Part 4](/programming/authority-enforcement.html) is about everywhere else.
+From then on, [Postgres adds][postgres-row-security] the `USING` predicate to every query on `files`, for every role that row-level security applies to. The policy is a view the database applies for you. Here the decision and its enforcement are one act, which is rare, and [Part 2](/programming/authority-enforcement.html) is about everywhere else.
 
 ### Writers
 
@@ -217,7 +217,7 @@ object capability  the holder
 
 Six of those seven answers are a version of "someone with administrative standing," and they all have to be supplied from outside the model. The seventh is the rule the [square matrix](/programming/capabilities.html#squaring-the-matrix) states about itself, and it is the argument of the capabilities article.
 
-There is a sharper way to see the split. Ask whether the mutation right is **monotone**. Delegation can only ever hand on less than the holder has, so authority shrinks along every edge. Administrative rights do the opposite: they manufacture authority the grantor does not hold, which is what makes "admin" a different power rather than a larger one. Two very different things wear the same word, and Part 3 depends on keeping them apart.
+There is a sharper way to see the split. Ask whether the mutation right is **monotone**. Delegation can only ever hand on less than the holder has, so authority shrinks along every edge. Administrative rights do the opposite: they manufacture authority the grantor does not hold, which is what makes "admin" a different power rather than a larger one. Two very different things wear the same word, and Part 4 depends on keeping them apart.
 
 There is a second question hiding in the same list: *where do you go* to make the change. To give Bob everything Alice has under an ACL, you visit every object. Under a capability list you go to Alice. That is a real operational difference and it is invisible in the evaluation view.
 
@@ -262,7 +262,7 @@ The two ends fail in opposite ways. Precompute, and checks are cheap, but every 
 
 The data-models figure reads as if the model fixed where the boundary sits. It doesn't. ABAC decisions can be cached, and RBAC can be expanded ahead of time. The schema says what the facts look like. Materialization says when the view is computed, and any schema can move along it.
 
-A materialized view does not have to stay in the store, either. The Windows access token is RBAC, joined at logon and carried by every process the user starts. Once the copy leaves the store, revoking it means reaching the copy. That is the subject of [Part 2](/programming/carriers.html).
+A materialized view does not have to stay in the store, either. The Windows access token is RBAC, joined at logon and carried by every process the user starts. Once the copy leaves the store, revoking it means reaching the copy. That is the subject of [Part 3](/programming/carriers.html).
 
 ## The read path
 
@@ -274,7 +274,7 @@ Which of them is cheap depends on the key the facts are stored under. An ACL ans
 
 RBAC answers both through its join. ReBAC answers the check by walking the graph, and needs a reverse index for the rest: SpiceDB's `LookupResources` and OpenFGA's `ListObjects` exist for that. ABAC is the hard case. The predicate has to be tried against every resource, unless the engine can turn it into a filter the database runs. OPA's partial evaluation does exactly that: it compiles the policy into query conditions, which turns the policy back into what the Rules section said it was, a view.
 
-[Part 2](/programming/carriers.html) leans on these queries. They are the questions a central store can answer and a capability cannot.
+[Part 3](/programming/carriers.html) leans on these queries. They are the questions a central store can answer and a capability cannot.
 
 ### Freshness
 
@@ -282,7 +282,7 @@ A lookup is not automatically current. The store that answers a check is usually
 
 Zanzibar's paper calls the result the *new enemy problem*. Alice removes Bob from a document's ACL, and then new content is added to the document. If the check on that content reads a replica that has not yet seen the removal, Bob sees content written after he lost access. Zanzibar's fix is the *zookie*. When content changes, the client asks Zanzibar for a zookie and stores it with the content. Later checks on that content pass the zookie, and Zanzibar evaluates them at a snapshot at least as fresh as the one it names. In Kleppmann's terms, that is causal consistency: a check may not see a world older than the write it depends on.
 
-Freshness is a guarantee you ask for, not a property of looking things up. It also qualifies [Part 2](/programming/carriers.html#fresh-or-frozen)'s trade between a fresh lookup and a frozen copy: the lookup is only as fresh as the replica it reads.
+Freshness is a guarantee you ask for, not a property of looking things up. It also qualifies [Part 3](/programming/carriers.html#fresh-or-frozen)'s trade between a fresh lookup and a frozen copy: the lookup is only as fresh as the replica it reads.
 
 Where the evaluator runs — inside the application, as a library, or as a service — is the last choice on the read path. It mostly decides latency and what fails when the evaluator is down. [Part 5](/programming/llm-sandbox.html) deals with it for a PDP in the path of every effect.
 
@@ -304,9 +304,9 @@ A system is not one model. It makes a choice on each axis of the figure:
 | Cedar / AWS Verified Permissions, Oso, Aserto Topaz | entities, relationships and attributes | one language for ReBAC and ABAC | computed per request | policy authors |
 | KeyKOS, EROS, seL4, Fuchsia, Cap'n Proto, WASI Preview 2 | references held by each process | none | stored as the references themselves | the holder |
 
-The last row is a different matrix, and [Part 3](/programming/capabilities.html) is about it.
+The last row is a different matrix, and [Part 4](/programming/capabilities.html) is about it.
 
-Everything in this article decides at the resource. The PDP looks up what was written and computes `f`. The [next article](/programming/carriers.html) asks what changes when the request brings a copy of the decision with it.
+Everything in this article decides at the resource. The PDP looks up what was written and computes `f`. The [next article](/programming/authority-enforcement.html) asks what makes that answer bind on the system where the effect happens. [Part 3](/programming/carriers.html) then asks what changes when the request brings a copy of the decision with it.
 
 ## References
 
@@ -321,6 +321,7 @@ Everything in this article decides at the resource. The PDP looks up what was wr
 9. [OPA policy language][opa-policy-language] — Rego and its Datalog lineage
 10. [Postgres row security policies][postgres-row-security] — `CREATE POLICY`, a view the database applies to every query
 
+[authorization-terminology-mess]: https://idpro.org/authorization-terminology-is-a-mess-lets-fix-it/ "Authorization Terminology Is a Mess. Let's Fix It."
 [authzen]: https://openid.net/wg/authzen/ "AuthZEN - OpenID Foundation working group"
 [authzen-spec]: https://openid.net/specs/authorization-api-1_0.html#name-information-model "Authorization API 1.0: information model - OpenID Foundation"
 [ddia]: https://dataintensive.net/ "Designing Data-Intensive Applications"
@@ -338,4 +339,4 @@ Everything in this article decides at the resource. The PDP looks up what was wr
 
 [^authzen-shape]: This signature doesn't generalize all authorization models by coincidence; it is also the signature that the industry converged on and is in the process of standardizing via [AuthZEN][authzen], the OpenID Foundation's decision-point protocol. It deliberately says nothing about how the answer is reached. It standardizes only the shape of the question, which is a strong signal that the shape is the settled part.
 
-[^access-profile]: [RFC 4949][rfc4949], the Internet Security Glossary, has a name for this row that keeps it away from the word capability: defining the access control matrix, it says "each row is equivalent to an *access profile* for the subject." The glossary does not actually recommend the term — `access profile` is marked "O", meaning non-Internet origin and not for use in Internet documents, and its entry reads only "synonym for capability list." `capability list` is the entry it recommends. The distinction RFC 4949 does draw is the one worth holding on to: a *capability list* enumerates what a subject may reach, while a *capability token* is an unforgeable object whose possession is itself the proof. Part 3 lives in the gap between those two. I keep "capability list" here, which also matches the Linux sense of the word — `CAP_NET_ADMIN` and friends are a per-process list of permitted operations, a row and not a token.
+[^access-profile]: [RFC 4949][rfc4949], the Internet Security Glossary, has a name for this row that keeps it away from the word capability: defining the access control matrix, it says "each row is equivalent to an *access profile* for the subject." The glossary does not actually recommend the term — `access profile` is marked "O", meaning non-Internet origin and not for use in Internet documents, and its entry reads only "synonym for capability list." `capability list` is the entry it recommends. The distinction RFC 4949 does draw is the one worth holding on to: a *capability list* enumerates what a subject may reach, while a *capability token* is an unforgeable object whose possession is itself the proof. Part 4 lives in the gap between those two. I keep "capability list" here, which also matches the Linux sense of the word — `CAP_NET_ADMIN` and friends are a per-process list of permitted operations, a row and not a token.

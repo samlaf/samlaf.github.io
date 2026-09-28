@@ -36,11 +36,11 @@
 <text x="1160" y="182" font-size="12.5" font-weight="400" fill="#334155" text-anchor="start">the route and the authority.</text>
 <text x="1160" y="228" font-size="11" font-weight="400" fill="#64748b" text-anchor="start" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">seL4, Cap'n Proto, workerd</text>
 <rect x="40" y="262" width="788" height="34" rx="6" fill="#eef6f7" stroke="#0f7d8c" stroke-width="1.2"/>
-<text x="56" y="284" font-size="13" font-weight="700" fill="#0f172a" text-anchor="start">Carriers · Part 2</text>
+<text x="56" y="284" font-size="13" font-weight="700" fill="#0f172a" text-anchor="start">Carriers · Part 3</text>
 <text x="190" y="284" font-size="12.5" font-weight="400" fill="#334155" text-anchor="start">how much of the decision travels, and who can take it back</text>
 <rect x="868" y="262" width="512" height="34" rx="6" fill="#e3f1f3" stroke="#0f7d8c" stroke-width="1.2"/>
-<text x="884" y="284" font-size="13" font-weight="700" fill="#0f172a" text-anchor="start">Bindings · Part 3</text>
-<text x="1018" y="284" font-size="12.5" font-weight="400" fill="#334155" text-anchor="start">one object designates, reaches and decides</text>
+<text x="884" y="284" font-size="13" font-weight="700" fill="#0f172a" text-anchor="start">Capabilities · Part 4</text>
+<text x="1050" y="284" font-size="12.5" font-weight="400" fill="#334155" text-anchor="start">one object designates, reaches and decides</text>
 <rect x="158" y="306" width="276" height="30" rx="6" fill="#f9eee2" stroke="#c2793a" stroke-width="1.2"/>
 <text x="296" y="326" font-size="12" font-weight="600" fill="#a55f22" text-anchor="middle">custody: the applied crypto series</text>
 </svg>

@@ -10,9 +10,9 @@ date: 2026-08-31
 >
 > - **Prologue: Who is the adversary** — five positions the attacker has occupied, and why identity stopped being the useful thing to key on.
 > - **[Part 1: Authorization models](/programming/authorization-models.html)** — what every system computes, and who may change it.
-> - **[Part 2: Carriers](/programming/carriers.html)** — decisions that travel with the request.
-> - **[Part 3: Capabilities](/programming/capabilities.html)** — authority you hold, not authority you are.
-> - **[Part 4: How authority is enforced](/programming/authority-enforcement.html)** — what makes any of it binding.
+> - **[Part 2: How authority is enforced](/programming/authority-enforcement.html)** — what makes any of it binding.
+> - **[Part 3: Carriers](/programming/carriers.html)** — decisions that travel with the request.
+> - **[Part 4: Capabilities](/programming/capabilities.html)** — authority you hold, not authority you are.
 > - **[Part 5: LLM sandboxing](/programming/llm-sandbox.html)** — the gateway, correct and unavoidable.
 
 - [1 · Outside the boundary](#1--outside-the-boundary)
@@ -51,7 +51,7 @@ So it is worth asking where the adversary sits before describing what stops them
 
 **Threat.** A program, carrying your full authority because it inherited it by running as you. It need not be malicious. It only needs to be talked into using a power it holds for a purpose it was not asked for.
 
-**Theory.** Saltzer and Schroeder named the cure in 1975: every program should run with the least authority its job requires. Hardy named the disease in 1988, after watching a compiler be persuaded to overwrite a billing file it was merely *able* to reach — the confused deputy. Note the thirteen-year gap, and note which came first. The capability tradition had the structural answer even earlier: Dennis and Van Horn (1966), then KeyKOS and the systems [Part 3](/programming/capabilities.html) is about, all of which make designating a thing and holding authority over it the same act, so that there is no name an attacker can utter to borrow a power they were never given.
+**Theory.** Saltzer and Schroeder named the cure in 1975: every program should run with the least authority its job requires. Hardy named the disease in 1988, after watching a compiler be persuaded to overwrite a billing file it was merely *able* to reach — the confused deputy. Note the thirteen-year gap, and note which came first. The capability tradition had the structural answer even earlier: Dennis and Van Horn (1966), then KeyKOS and the systems [Part 4](/programming/capabilities.html) is about, all of which make designating a thing and holding authority over it the same act, so that there is no name an attacker can utter to borrow a power they were never given.
 
 **Implementation.** Essentially none, on the platform where it mattered most. The desktop operating system shipped position-two controls into a position-three world and still does: every program you launch holds everything you can do. Mobile platforms bought some of it back with per-app permissions and per-app storage, twenty years late and only for one class of software.
 
@@ -61,7 +61,7 @@ So it is worth asking where the adversary sits before describing what stops them
 
 **Threat.** Software acting for you, on purpose, with authority you deliberately handed it — and exercising that authority for something you did not intend. An OAuth client, a service account, a CI job, an integration. Nothing is stolen and nobody is impersonated.
 
-**Theory and implementation.** This is the position where the industry did real work, because delegation became the normal way software is composed and the bill arrived quickly. OAuth 1.0 (2007) and 2.0 (2012) made third-party delegation routine; scopes, audiences and short expiry made it survivable; macaroons (2014) showed that a credential can carry its own attenuation so that a delegate can hand on strictly less than it holds. [Part 2](/programming/carriers.html) is mostly about how well that worked and where it stopped short.
+**Theory and implementation.** This is the position where the industry did real work, because delegation became the normal way software is composed and the bill arrived quickly. OAuth 1.0 (2007) and 2.0 (2012) made third-party delegation routine; scopes, audiences and short expiry made it survivable; macaroons (2014) showed that a credential can carry its own attenuation so that a delegate can hand on strictly less than it holds. [Part 3](/programming/carriers.html) is mostly about how well that worked and where it stopped short.
 
 **Why it moved.** It didn't, entirely — this is a live position. But it rests on an assumption that held until recently: the delegate's *plan* is fixed. You grant a CI job the authority its pipeline needs because you can read the pipeline. When the plan stops being knowable in advance, the scoping story stops working.
 
@@ -89,7 +89,7 @@ One more framing before the series proper, because it changes what a boundary ha
 
 In most security writing the asset is data. Here it is not. The asset is **the authority to cause an effect** — a repository that can be force-pushed, a credential that can be spent, a table that can be dropped, a package that can be published. Confidentiality is one effect among these, not the organizing one.
 
-The practical difference is in what you end up enumerating. Inventory data and you protect stores. Inventory effects and you enumerate the paths by which the workload can cause each one — which is the only inventory that can tell you whether a monitor sits in all of them. [Part 4](/programming/authority-enforcement.html) builds directly on that.
+The practical difference is in what you end up enumerating. Inventory data and you protect stores. Inventory effects and you enumerate the paths by which the workload can cause each one — which is the only inventory that can tell you whether a monitor sits in all of them. [Part 2](/programming/authority-enforcement.html) builds directly on that.
 
 ## Where to get a technical threat model
 

@@ -1,18 +1,18 @@
 ---
 title:  "Capabilities: authority you hold, not authority you are"
-series: "Authorization, Part 3"
+series: "Authorization, Part 4"
 series_url: "/programming/authorization-series-intro.html"
 category: programming
-date:   2026-09-03
+date:   2026-09-04
 ---
 
-> This is Part 3 of a six-part [series on authorization](/programming/authorization-series-intro.html).
+> This is Part 4 of a six-part [series on authorization](/programming/authorization-series-intro.html).
 >
 > - **[Prologue: Who is the adversary](/programming/who-is-the-adversary.html)** — five positions the attacker has occupied, and why identity stopped being the useful thing to key on.
 > - **[Part 1: Authorization models](/programming/authorization-models.html)** — what every system computes, and who may change it.
-> - **[Part 2: Carriers](/programming/carriers.html)** — decisions that travel with the request.
-> - **Part 3: Capabilities** — authority you hold, not authority you are.
-> - **[Part 4: How authority is enforced](/programming/authority-enforcement.html)** — what makes any of it binding.
+> - **[Part 2: How authority is enforced](/programming/authority-enforcement.html)** — what makes any of it binding.
+> - **[Part 3: Carriers](/programming/carriers.html)** — decisions that travel with the request.
+> - **Part 4: Capabilities** — authority you hold, not authority you are.
 > - **[Part 5: LLM sandboxing](/programming/llm-sandbox.html)** — the gateway, correct and unavoidable.
 
 - [Squaring the matrix](#squaring-the-matrix)
@@ -38,9 +38,9 @@ date:   2026-09-03
 - [Where the property can be bought](#where-the-property-can-be-bought)
 - [References](#references)
 
-The [series intro](/programming/authorization-series-intro.html#from-a-chain-to-a-grid) follows a request through four stages: designate, reach, authenticate and decide. The industry has spent twenty years on the last two, and they are genuinely good now. Designate and reach, the stages that carry names and requests, are rarely treated as authorization at all. Two regions sit outside the grid's cells, and this article is about one of them: *bindings*, artifacts that serve several stages at once. That is where the only structural difference between capabilities and everything else lives.
+The [series intro](/programming/authorization-series-intro.html#from-a-chain-to-a-grid) follows a request through four stages: designate, reach, authenticate and decide. The industry has spent twenty years on the last two, and they are genuinely good now. Designate and reach, the stages that carry names and requests, are rarely treated as authorization at all. [Part 2](/programming/authority-enforcement.html#which-stage-do-you-cut) treated them as stages an enforcer can cut. This article treats them as stages an artifact can carry. Its subject is the carrier that serves several stages at once. That is where the only structural difference between capabilities and everything else lives.
 
-[Part 2](/programming/carriers.html#from-carriers-to-bindings) ended on a line from bearer tokens to object capabilities, and this article is about its last two steps. It is also about a word that has been ruined by overuse. "Capability" names at least four distinct things, the arguments people have about capabilities are usually arguments about different ones, and most of the famous objections are true of some and false of others.
+[Part 3](/programming/carriers.html#from-one-stage-to-several) ended on a line from bearer tokens to object capabilities, and this article is about its last two steps. It is also about a word that has been ruined by overuse. "Capability" names at least four distinct things, the arguments people have about capabilities are usually arguments about different ones, and most of the famous objections are true of some and false of others.
 
 ## Squaring the matrix
 
@@ -134,7 +134,7 @@ That last one matters more than it looks, because SPKI is the shape most distrib
 
 ### The key metaphor
 
-[Part 2](/programming/carriers.html#policy-and-mechanism) draws three ways to open a door: a physical key, a card checked against a central list, and a capability token. The third panel is the picture everyone draws, and it is Model 3. Worth being explicit, because the metaphor is doing quiet damage. A key ring gets Property D right — you must select a key — and gets A, E and F wrong. You can hold a key without knowing its door. A key is not itself a lock. And you may hand a copy to anyone you can physically reach, which in the physical world is anyone at all.
+[Part 3](/programming/carriers.html#policy-and-mechanism) draws three ways to open a door: a physical key, a card checked against a central list, and a capability token. The third panel is the picture everyone draws, and it is Model 3. Worth being explicit, because the metaphor is doing quiet damage. A key ring gets Property D right — you must select a key — and gets A, E and F wrong. You can hold a key without knowing its door. A key is not itself a lock. And you may hand a copy to anyone you can physically reach, which in the physical world is anyone at all.
 
 So the key metaphor teaches the correct lesson about ambient authority and the wrong lesson about confinement and revocation. It is a good picture of why capabilities are fast and offline, and a bad picture of what makes them safe.
 
@@ -194,7 +194,7 @@ Property A has a second name, from a completely different tradition. Alan Karp, 
 
 That is Property A read from the wire rather than from the object graph. A credential that arrives alongside a request, rather than inside it, cannot be specific to the request. It therefore carries everything its holder has.
 
-This is why Karp puts identity, roles and attributes in one family, NBAC, from [Part 2](/programming/carriers.html#where-and-when). All three answer "who is asking," and the answer is independent of what is being asked. ZBAC presents an authorization with the request instead.
+This is why Karp puts identity, roles and attributes in one family, NBAC, from [Part 3](/programming/carriers.html#where-and-when). All three answer "who is asking," and the answer is independent of what is being asked. ZBAC presents an authorization with the request instead.
 
 The two vocabularies are worth holding at once. Miller is describing an object graph; Karp is describing a protocol. They are making the same claim.
 
@@ -224,7 +224,7 @@ The same structure explains malware. Every program you run authenticates as you,
 
 ## Delegation
 
-[Part 2](/programming/carriers.html#three-kinds-of-delegation) separated three kinds of delegation. Only the third, authority delegation, hands over one specific power and nothing else, and it is the kind capabilities are built for.
+[Part 3](/programming/carriers.html#three-kinds-of-delegation) separated three kinds of delegation. Only the third, authority delegation, hands over one specific power and nothing else, and it is the kind capabilities are built for.
 
 Where the stages are separate, even that happens twice. Alice tells Bob a path, and then someone edits the ACL. She sends him a URL, and then an authorization server issues him a token. The name and the permission travel separately and something has to recombine them, which is Property A failing at delegation time.
 
@@ -302,7 +302,7 @@ Here is what the four-model table does to it. Objections one and two are **true 
 
 ### Revocation needs composability
 
-The standard answer is Redell's indirection: interpose a forwarder you can sever. It is described in Saltzer and Schroeder's own paper, and it is the seed of what later became the membrane pattern.
+The standard answer is Redell's indirection: interpose a forwarder you can sever. It is described in Saltzer and Schroeder's own paper, and it is the seed of what later became the [membrane pattern](/programming/authority-enforcement.html#membranes-subtraction-plus-mediation).
 
 The reason it works in Model 4 and not in Model 3 is Property E. A forwarder has to be a resource that is also a subject. Where resources and subjects are separate type categories — where you have doors on one side and keys on the other — there is nowhere to put one.
 
@@ -318,7 +318,7 @@ Under ZBAC the delegation chain carries responsibility. It is the record that sa
 
 > If Marc finds a new scratch on his car, he knows to ask me to pay for the repair. It's up to me to collect from my neighbor.
 
-So capabilities do not lose accountability. They lose *global* review, which is a different thing. [Part 2](/programming/carriers.html#local-authority-versus-global-knowledge) weighs that trade from the administrator's side.
+So capabilities do not lose accountability. They lose *global* review, which is a different thing. [Part 3](/programming/carriers.html#local-authority-versus-global-knowledge) weighs that trade from the administrator's side.
 
 ### The patches converge
 
@@ -366,7 +366,7 @@ Everything above reduces to Property F, and Property F has a precondition that n
 
 > **To pass a capability only to someone you can already reach, something must be able to deny communication.**
 
-On the grid, that is the loop. The arrow from reach back to acquire constrains anything only if reach can be refused, and reach can be refused only where names are local — where the name is the route.
+On the grid, that is the loop. The arrow from reach back to acquire constrains anything only if reach can be refused, and reach can be refused only where names are local — where the name is the route. Refusing reach is the enforcer's job from [Part 2](/programming/authority-enforcement.html#non-bypassability-is-a-property-of-reach). Capabilities do not replace that enforcer. They depend on it.
 
 That is not a design preference. It is an infrastructure requirement, and it explains every data point in this article at once:
 

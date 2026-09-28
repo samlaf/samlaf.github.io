@@ -114,15 +114,15 @@
 <text x="1440" y="687" font-size="11.5" font-weight="400" fill="#64748b" text-anchor="end" font-style="italic">Checks are lookups. Revoking rewrites the view.</text>
 <text x="40" y="742" font-size="15" font-weight="700" fill="#0f172a" text-anchor="start">Beyond one database</text>
 <rect x="40" y="758" width="730" height="104" rx="8" fill="#fff" stroke="#334155" stroke-width="1.2" stroke-dasharray="5 4"/>
-<text x="58" y="788" font-size="15" font-weight="700" fill="#0f172a" text-anchor="start">Carriers</text>
-<rect x="138" y="773" width="62" height="21" rx="10.5" fill="#0f7d8c"/>
-<text x="169" y="788" font-size="11.5" font-weight="700" fill="#fff" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">Part 2</text>
-<text x="58" y="816" font-size="12.5" font-weight="400" fill="#334155" text-anchor="start">The view leaves the store. A copy rides with the request: a token, a cookie, a capability.</text>
-<text x="58" y="836" font-size="12.5" font-weight="400" fill="#334155" text-anchor="start">It works without the store, and revoking it means reaching every copy.</text>
+<text x="58" y="788" font-size="15" font-weight="700" fill="#0f172a" text-anchor="start">Enforcement</text>
+<rect x="166" y="773" width="62" height="21" rx="10.5" fill="#0f7d8c"/>
+<text x="197" y="788" font-size="11.5" font-weight="700" fill="#fff" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">Part 2</text>
+<text x="58" y="816" font-size="12.5" font-weight="400" fill="#334155" text-anchor="start">A database enforces its own answers: it never returns a row nobody selected.</text>
+<text x="58" y="836" font-size="12.5" font-weight="400" fill="#334155" text-anchor="start">An authorization answer must bind on another system, and nothing in the store makes it.</text>
 <rect x="790" y="758" width="730" height="104" rx="8" fill="#fff" stroke="#334155" stroke-width="1.2" stroke-dasharray="5 4"/>
-<text x="808" y="788" font-size="15" font-weight="700" fill="#0f172a" text-anchor="start">Enforcement</text>
-<rect x="916" y="773" width="62" height="21" rx="10.5" fill="#0f7d8c"/>
-<text x="947" y="788" font-size="11.5" font-weight="700" fill="#fff" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">Part 4</text>
-<text x="808" y="816" font-size="12.5" font-weight="400" fill="#334155" text-anchor="start">A database enforces its own answers: it never returns a row nobody selected.</text>
-<text x="808" y="836" font-size="12.5" font-weight="400" fill="#334155" text-anchor="start">An authorization answer must bind on another system, and nothing in the store makes it.</text>
+<text x="808" y="788" font-size="15" font-weight="700" fill="#0f172a" text-anchor="start">Carriers</text>
+<rect x="888" y="773" width="62" height="21" rx="10.5" fill="#0f7d8c"/>
+<text x="919" y="788" font-size="11.5" font-weight="700" fill="#fff" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">Part 3</text>
+<text x="808" y="816" font-size="12.5" font-weight="400" fill="#334155" text-anchor="start">The view leaves the store. A copy rides with the request: a token, a cookie, a capability.</text>
+<text x="808" y="836" font-size="12.5" font-weight="400" fill="#334155" text-anchor="start">It works without the store, and revoking it means reaching every copy.</text>
 </svg>

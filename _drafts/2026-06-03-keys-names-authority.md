@@ -21,7 +21,7 @@ Each stage has three rows:
 - **Request:** what the stage computes while the request is in flight.
 - **Enforced:** what makes the stage binding. A name that resolves to nothing, a packet with no route, a key nobody else holds, a check nobody can go around.
 
-Two regions sit outside the cells. **Carriers** are copies of something written that travel with the request, so the stage does not have to look it up: a certificate, a session cookie, a scoped token. **Bindings** are artifacts that serve several stages at once. A capability designates, reaches and decides in one object.
+One region sits outside the cells. **Carriers** are copies of something written that travel with the request, so the stage does not have to look it up: a certificate, a session cookie, a scoped token. A carrier can also serve several stages at once. A capability designates, reaches and decides in one object.
 
 The [authorization series intro](/programming/authorization-series-intro.html#from-a-chain-to-a-grid) derives the grid from NIST's trust chain, and explains why enforcement is a row rather than a stage.
 
@@ -43,8 +43,8 @@ TODO: merge the two prologues into one history here. The crypto prologue has thr
 
 TODO: these are the places where two series currently cover the same idea. Each needs one home and links from the others.
 
-- **Carrier theory.** Identity Part 1's binding time, and "the scope of a binding is where copies of it live," is the general theory. Authorization Part 2 applies it to decisions.
-- **OAuth.** Identity Part 4 and Crypto Part 3 both send readers to authorization for OAuth. Its home is authorization Part 2, with custody linked to Crypto Part 3.
+- **Carrier theory.** Identity Part 1's binding time, and "the scope of a binding is where copies of it live," is the general theory. Authorization Part 3 applies it to decisions.
+- **OAuth.** Identity Part 4 and Crypto Part 3 both send readers to authorization for OAuth. Its home is authorization Part 3, with custody linked to Crypto Part 3.
 - **The grammar of a signed statement.** Crypto Part 4 and Identity Part 2 define the same table with different field names. Keep one definition, in Crypto Part 4.
 - **Saltzer.** Identity Part 1 is the theory behind the Designate and Reach columns. The authorization series should cite it once the identity series is published.
 - **Who may rewrite.** Recovery in Identity Part 4 is the Authenticate version of "who may change the policy" in Authorization Part 1.
