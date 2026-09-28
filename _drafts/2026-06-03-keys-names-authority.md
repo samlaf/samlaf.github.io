@@ -36,7 +36,9 @@ Only two cells are shared. Designate · Written is where names come from: identi
 
 ## The adversary
 
-TODO: merge the two prologues into one history here. The crypto prologue has three layers: the wire, the identity binding, and the authenticated counterparty. The authorization prologue has five positions, and positions 2 to 5 break down crypto's third layer. One history would run from the wire to the data a delegate reads.
+Every cell on the grid exists to stop someone, so [the prologue](/programming/threat-model.html) asks where that someone lives. Over sixty years the answer moved inward seven times: the wire, the identity binding, the gate, a hostile party inside the boundary, code running as you, a delegate you authorized, and the data that delegate reads. Each move happened because the previous position got closed.
+
+The positions split across the series. Crypto covers the wire, identity covers the binding, and the two share the gate. Authorization covers the next three. The last position belongs to the [LLM sandboxing article](/programming/llm-sandbox.html), which applies all three series to AI agents.
 
 ## Seams to resolve
 

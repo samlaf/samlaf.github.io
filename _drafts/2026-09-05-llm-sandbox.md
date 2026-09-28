@@ -40,6 +40,7 @@ date:   2026-09-05
 - [Part IV — What is left over](#part-iv--what-is-left-over)
   - [Agent-specific threats](#agent-specific-threats)
     - [Inference-endpoint exfiltration](#inference-endpoint-exfiltration)
+  - [Where to get a full threat model](#where-to-get-a-full-threat-model)
   - [Harness placement and the trust split](#harness-placement-and-the-trust-split)
   - [The seam nobody has named](#the-seam-nobody-has-named)
   - [Conclusion](#conclusion)
@@ -527,7 +528,7 @@ agent-creds shows one way to make that binding structural. Its guest-visible han
 
 The absence/judgment split from the enforcement article hides trust placement. In particular, "malicious code defeats judgment" is true of in-guest judgment but false of a host gateway designed to distrust the guest kernel.
 
-Making that precise means asking two questions instead of one: *which adversary* is a plane rated against, and *which harm* is it meant to prevent. Collapsing them into a single list is how sandboxes end up compared on a number nobody can define. The [prologue](/programming/who-is-the-adversary.html) supplies the first axis — three rungs, by how much of the machine the attacker owns, plus two that sit off the ladder and combine with any rung.
+Making that precise means asking two questions instead of one: *which adversary* is a plane rated against, and *which harm* is it meant to prevent. Collapsing them into a single list is how sandboxes end up compared on a number nobody can define. [Part 2](/programming/authority-enforcement.html#who-is-the-attacker) supplies the first axis — three rungs, by how much of the machine the attacker owns, plus two that sit off the ladder and combine with any rung.
 
 Rated against the rungs, the planes sort cleanly, and the sort is the entire argument for composing them:
 
@@ -691,7 +692,7 @@ They need not be separate deployments. They should be separate architectural int
 
 ## Agent-specific threats
 
-The table below is the same two axes applied to what is specific about agents. A1 is the input-controlling adversary from the prologue, arriving through a channel the agent needs open; the rest are harms peculiar to a delegate whose plan is discovered at runtime.
+The table below is the same two axes applied to what is specific about agents. A1 is the input-controlling adversary from [Part 2](/programming/authority-enforcement.html#who-is-the-attacker), arriving through a channel the agent needs open; the rest are harms peculiar to a delegate whose plan is discovered at runtime.
 
 | Threat | Compute boundary | Guest LSM | Capability gateway | Semantic governance | Upstream controls |
 | --- | --- | --- | --- | --- | --- |
@@ -707,6 +708,16 @@ A2 deserves special care. A coding agent reads source, places it in model contex
 One control does bite cleanly: **a secret that never enters the guest namespace cannot enter the model context**. This is absence applied to credentials. The credential gateway allows legitimate use without disclosure.
 
 Proprietary source is harder because the agent must often read it to work. Possible mitigations—context provenance, per-file policies, local models, DLP, approval, response auditing—are partial and workload-specific. The architecture should state this limitation rather than pretending an inference-host allowlist solves it.
+
+## Where to get a full threat model
+
+The tables above are a lens, not a checklist. They rate enforcement planes against attackers and harms. They do not list every threat category, score every product, or give you a coverage matrix, and deployment work needs all three. Three sources do that job well:
+
+- **[The Agent Sandbox Taxonomy][agent-sandbox-taxonomy]** splits agent sandboxing into seven defense layers and seven threat categories. It scores each mechanism on strength, granularity and portability, and publishes fingerprints for a couple of dozen products. Its strength ladder — cooperative, software-enforced, kernel-enforced, structural — is close to the one [Part 2](/programming/authority-enforcement.html#non-bypassability-is-a-property-of-reach) draws, from a cooperative `HTTP_PROXY` setting up to a route that does not exist. That is some evidence the distinction is real.
+- **[OWASP's Top 10 for LLM Applications][owasp-top-10-llm]** and the **[Agentic AI Threats and Mitigations][agentic-ai-threats-mitigations]** work from its Agentic Security Initiative are the standards-body lists. Audit a deployment against them.
+- **[MITRE ATLAS][mitre-atlas]** gives tactics, techniques and real case studies in the ATT&CK idiom, for anyone who already thinks in that vocabulary.
+
+I read the taxonomy differently in one place. It rules prompt injection, hallucination and misalignment out of scope as *vectors* rather than threats. Its reason is that a sandbox governs what an agent can do, not what it chooses to do, and choosing is an alignment problem. The first half is right, and the framing is useful. But I draw the opposite conclusion. Injection is a confused deputy, which is an authorization failure with a fifty-year-old structural cure. Treating it as somebody else's department is how it keeps getting answered with better judgment instead of less authority. [Data becomes executable](#data-becomes-executable) makes the argument, and [Part 4](/programming/capabilities.html) explains the cure.
 
 ## Harness placement and the trust split
 
@@ -844,15 +855,19 @@ The series covers these properly. Listed here because this article leans on them
 26. [Lingering Authority: Revocable Resource-and-Effect Capabilities for Coding Agents][lingering-authority-revocable-resource] — epoch-bound capability handles and the request–grant–invoke lifecycle
 27. [Recursive Language Models][recursive-language-models] — context as a live variable and recursive partition-and-map workloads
 28. [Inspect][inspect] — an agent/evaluation harness with model and tool semantics
+29. [OWASP's Top 10 for LLM Applications][owasp-top-10-llm] — the standards-body list of LLM application risks
+30. [Agentic AI Threats and Mitigations][agentic-ai-threats-mitigations] — the Agentic Security Initiative's follow-on for agents
+31. [MITRE ATLAS][mitre-atlas] — tactics, techniques and case studies in the ATT&CK idiom
 
 ## Landscape and performance
 
-29. [AI agent sandbox technologies: a 2026 comparison][ai-agent-sandbox-technologies] — startup, memory, eBPF network mediation, and confidential-computing comparisons
-30. [Best microVM sandboxes for AI code execution][best-microvm-sandboxes-ai] — vendor-authored comparison including filesystem, directory, and memory snapshot capabilities
-31. [List of coding agent sandboxes][list-coding-agent-sandboxes] — curated index of OS primitives, application kernels, microVM runtimes, and local CLI sandboxes
+32. [AI agent sandbox technologies: a 2026 comparison][ai-agent-sandbox-technologies] — startup, memory, eBPF network mediation, and confidential-computing comparisons
+33. [Best microVM sandboxes for AI code execution][best-microvm-sandboxes-ai] — vendor-authored comparison including filesystem, directory, and memory snapshot capabilities
+34. [List of coding agent sandboxes][list-coding-agent-sandboxes] — curated index of OS primitives, application kernels, microVM runtimes, and local CLI sandboxes
 
 [agent-creds]: https://github.com/dtkav/agent-creds "agent-creds"
 [agent-sandbox-taxonomy]: https://github.com/kajogo777/the-agent-sandbox-taxonomy "The Agent Sandbox Taxonomy"
+[agentic-ai-threats-mitigations]: https://genai.owasp.org/resource/agentic-ai-threats-and-mitigations/ "Agentic AI Threats and Mitigations"
 [ai-agent-sandbox-technologies]: https://grigio.org/ai-agent-sandbox-technologies-a-complete-2026-comparison/ "AI agent sandbox technologies: a 2026 comparison"
 [authzen]: https://openid.net/wg/authzen/ "AuthZEN - OpenID Foundation working group"
 [authzen-spec]: https://openid.net/specs/authorization-api-1_0.html#name-information-model "Authorization API 1.0: information model - OpenID Foundation"
@@ -875,10 +890,12 @@ The series covers these properly. Listed here because this article leans on them
 [lingering-authority-revocable-resource]: https://arxiv.org/abs/2606.22504 "Lingering Authority: Revocable Resource-and-Effect Capabilities for Coding Agents"
 [list-coding-agent-sandboxes]: https://gist.github.com/wincent/2752d8d97727577050c043e4ff9e386e "List of coding agent sandboxes"
 [macaroons-cookies-with-contextual]: https://static.googleusercontent.com/media/research.google.com/en/us/pubs/archive/41892.pdf "Macaroons: Cookies with Contextual Caveats"
-[nono-networking]: https://nono.sh/docs/cli/features/networking "nono - networking"
+[mitre-atlas]: https://atlas.mitre.org/ "MITRE ATLAS"
 [nono-landlock]: https://nono.sh/docs/cli/internals/landlock "nono — Landlock"
+[nono-networking]: https://nono.sh/docs/cli/features/networking "nono - networking"
 [nono-security-model]: https://nono.sh/docs/cli/internals/security-model "nono — security model"
 [opa-rego]: https://www.openpolicyagent.org/docs/latest/policy-language/ "OPA/Rego"
+[owasp-top-10-llm]: https://owasp.org/www-project-top-10-for-large-language-model-applications/ "OWASP's Top 10 for LLM Applications"
 [protection-information-computer-systems]: https://www.cs.virginia.edu/~evans/cs551/saltzer/ "The Protection of Information in Computer Systems"
 [recursive-language-models]: https://alexzhang13.github.io/blog/2025/rlm/ "Recursive Language Models"
 [sandbox-runtime]: https://github.com/anthropic-experimental/sandbox-runtime "sandbox-runtime"

@@ -44,7 +44,7 @@ Every post in the series is about the key at a different point in its life.
 
 ## The articles
 
-- **[Prologue: The Changing Internet Threat Model](/programming/threat-model.html)** — the motivation: forty years of the assumed adversary migrating from the wire, to identity binding, to the authenticated counterparty itself. The three layers are the three series, and this is the prologue to all of them.
+- **[Prologue: Where the Adversary Lives](/programming/threat-model.html)** — the motivation: sixty years of the assumed adversary moving inward, from the wire to the data an AI agent reads. The seven positions split across the three series, and this is the prologue to all of them. This series covers the wire, and half of the gate.
 - **[Part 1: Cryptographic Primitives](/programming/crypto-primitives.html)** — PRFs vs PRPs, block vs stream ciphers, AEAD, and MACs and signatures. The recurring punchline: one primitive (a PRF) underlies encryption, authentication, key derivation, and randomness alike.
 - **[Part 2: Key Exchange & Secure Channels](/programming/secure-channels.html)** — establishing the shared secret: the four tiers of channel establishment, from a shared symmetric key up to fully-negotiated TLS, with HPKE / TLS 1.3 / WireGuard / Signal as worked examples.
 - **[Part 3: Proving You Hold a Key](/programming/authentication.html)** — the 50-year arc from plaintext passwords to passkeys, read as one long story of moving the secret out of the server's hands: what the prover holds, what the verifier stores, and what crosses the wire.

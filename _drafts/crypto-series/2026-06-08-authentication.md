@@ -8,7 +8,7 @@ date: 2026-06-08
 
 > This is Part 3 of a six-part [series on applied cryptography](/programming/crypto-series-intro.html).
 >
-> - **[Prologue: The changing internet threat model](/programming/threat-model.html)** — forty years of the adversary migrating from the wire, to the identity binding, to the authenticated counterparty itself.
+> - **[Prologue: Where the adversary lives](/programming/threat-model.html)** — shared by all three series: seven positions the attacker has occupied, from the wire to the data an agent reads.
 > - **[Part 1: Cryptographic primitives](/programming/crypto-primitives.html)** — the atoms: PRFs and PRPs, block and stream ciphers, AEAD, MACs and signatures.
 > - **[Part 2: Key exchange & secure channels](/programming/secure-channels.html)** — establishing the shared secret, from a pre-shared key up to fully-negotiated TLS.
 > - **Part 3: Proving you hold a key** — from plaintext passwords to passkeys: what the prover holds, what the verifier stores, and what crosses the wire.

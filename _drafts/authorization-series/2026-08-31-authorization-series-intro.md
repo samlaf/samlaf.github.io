@@ -108,7 +108,6 @@ Other maps of authorization land on the grid too. The XACML boxes are the Decide
 
 ## The articles
 
-- **[Prologue: Who is the adversary](/programming/who-is-the-adversary.html)** — five positions the attacker has occupied, from a stranger at the gate to the data your delegate reads. Why identity stopped being the useful thing to key on, and where to find a technical threat model.
 - **[Part 1: Authorization models](/programming/authorization-models.html)** — the Decide column read as a data system: stored facts, the rules that derive a view from them, and who may write either. Where the view is computed, which questions it answers cheaply, and how fresh its answers are. Along the way, why DAC and MAC are answers to the mutation question rather than rungs of a ladder.
 - **[Part 2: How authority is enforced](/programming/authority-enforcement.html)** — the reference monitor row, and Anderson's three properties. Each stage has its own enforcer, one enforcer can hold several stages, and each stage is enforced by absence or by judgment. Then granularity and the routes down it, why Linux is a toolkit rather than a primitive, and what can change between the check and the use.
 - **[Part 3: Carriers](/programming/carriers.html)** — copies of a decision that travel with the request. How much of the decision rides along, Karp's where and when, bearer tokens and the registries they grow, OAuth, and the trade between a fresh lookup and a frozen copy.

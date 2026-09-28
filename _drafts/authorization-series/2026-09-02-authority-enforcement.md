@@ -6,14 +6,14 @@ category: programming
 date:   2026-09-02
 ---
 
-> This is Part 2 of a five-part [series on authorization](/programming/authorization-series-intro.html).
+> This is Part 2 of a four-part [series on authorization](/programming/authorization-series-intro.html).
 >
-> - **[Prologue: Who is the adversary](/programming/who-is-the-adversary.html)** — five positions the attacker has occupied, and why identity stopped being the useful thing to key on.
 > - **[Part 1: Authorization models](/programming/authorization-models.html)** — what every system computes, and who may change it.
 > - **Part 2: How authority is enforced** — what makes any of it binding.
 > - **[Part 3: Carriers](/programming/carriers.html)** — decisions that travel with the request.
 > - **[Part 4: Capabilities](/programming/capabilities.html)** — authority you hold, not authority you are.
 
+- [Who is the attacker](#who-is-the-attacker)
 - [What is sandboxing](#what-is-sandboxing)
 - [Theory](#theory)
   - [The reference monitor](#the-reference-monitor)
@@ -45,7 +45,26 @@ date:   2026-09-02
 
 [Part 1](/programming/authorization-models.html) read the decision as a database: stored facts, rules that derive a view, and checks that query it. A database enforces its own answers. It never returns a row nobody selected. An authorization answer is about an effect somewhere else, such as a file opened or a packet sent, and nothing in the store makes it hold. This article is about what does.
 
-There are two ways. Something in the path of the effect applies the decision, or the path is not there at all. The second is what sandboxes do, so this article starts there.
+There are two ways. Something in the path of the effect applies the decision, or the path is not there at all. Either way, the claim is only as good as the attacker it holds against. So this article starts with the attacker, then with sandboxes, which use both ways.
+
+## Who is the attacker
+
+Every mechanism in this article exists to stop someone. A monitor in the path, a missing route, a filter on a syscall: each is a claim about an attacker. The same seccomp filter binds a program fed a hostile file, and means nothing to a kernel exploit. So "this is sandboxed" is not an answer until it says which attacker it was measured against.
+
+Three attackers form a ladder, by how much of the machine they own:
+
+1. **The attacker controls the input.** They write what the program reads: a file, a page, a request. The program's own code stays honest. This attacker defeats any check that relies on the program telling a request it should honor from one it should not.
+2. **The attacker runs arbitrary code in the workload.** This defeats every cooperative convention: an `HTTP_PROXY` setting, a tool API, a policy a library enforces. Checks in the kernel still hold.
+3. **The attacker owns the kernel.** Every check enforced inside that machine fails at once. Every fact the machine reports about itself becomes a claim rather than evidence.
+
+Where a check runs sets the rung it survives. A check in the application falls at rung 2. A check in the guest kernel falls at rung 3. A check in the host, or at the resource server, survives all three.
+
+Two more attackers sit off the ladder, and either one joins any rung of it:
+
+- **Split the action.** The attacker spreads one intent across several requests, each allowed on its own. This defeats any monitor that judges one effect at a time, without defeating any single check.
+- **Edit the policy.** The attacker targets the policy itself: the matchers, the callbacks, the configuration. Policy arrives through the same supply chain as everything else.
+
+So attacker strength is a partial order, not a line. A threat table with a single column mixes two questions. Rate each mechanism against the ladder, and you get the argument for stacking several: whatever falls at one rung needs something behind it that holds there.
 
 ## What is sandboxing
 
@@ -67,6 +86,10 @@ So a sandbox is best defined by what it constrains, not by how it is built:
 > **A sandbox is an execution environment that restricts the effects a computation can have on the rest of the system.**
 
 That definition is deliberately mechanism-free. It covers a VM, a seccomp filter, a WASI runtime, and a proxy, because all four exist to shrink the same set.
+
+Note what that set holds. Most security writing treats data as the asset. Here the asset is **the authority to cause an effect**: a repository that can be force-pushed, a credential that can be spent, a table that can be dropped, a package that can be published. Reading a secret is one of these effects, not the one that organizes the rest.
+
+That choice decides what you list. List data, and you protect stores. List effects, and you list every path by which the workload can cause each one. Only the second list can tell you whether an enforcer sits on all of them, which is the question [non-bypassability](#non-bypassability-is-a-property-of-reach) asks.
 
 ## Theory
 
@@ -284,7 +307,7 @@ remote resource server
 
 ![image](/assets/authority-enforcement/legibility-vs-programmability.png)
 
-These vary independently. An LSM is structurally legible, weakly programmable, and trusted only as far as the guest kernel. A JavaScript callback in a host proxy is semantically legible, arbitrarily programmable, and survives a compromised guest. Neither dominates; they protect different boundaries.
+These vary independently. An LSM is structurally legible, weakly programmable, and trusted only as far as the guest kernel. A JavaScript callback in a host proxy is semantically legible, arbitrarily programmable, and survives a compromised guest. Neither dominates; they protect different boundaries. Trust placement is also what sets the rung a monitor survives on the [attacker ladder](#who-is-the-attacker).
 
 Non-bypassability is none of the three. It belongs to reach, and an earlier section already asked it.
 
