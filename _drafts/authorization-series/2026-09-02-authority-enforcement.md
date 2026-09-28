@@ -6,14 +6,13 @@ category: programming
 date:   2026-09-02
 ---
 
-> This is Part 2 of a six-part [series on authorization](/programming/authorization-series-intro.html).
+> This is Part 2 of a five-part [series on authorization](/programming/authorization-series-intro.html).
 >
 > - **[Prologue: Who is the adversary](/programming/who-is-the-adversary.html)** — five positions the attacker has occupied, and why identity stopped being the useful thing to key on.
 > - **[Part 1: Authorization models](/programming/authorization-models.html)** — what every system computes, and who may change it.
 > - **Part 2: How authority is enforced** — what makes any of it binding.
 > - **[Part 3: Carriers](/programming/carriers.html)** — decisions that travel with the request.
 > - **[Part 4: Capabilities](/programming/capabilities.html)** — authority you hold, not authority you are.
-> - **[Part 5: LLM sandboxing](/programming/llm-sandbox.html)** — the gateway, correct and unavoidable.
 
 - [What is sandboxing](#what-is-sandboxing)
 - [Theory](#theory)
@@ -21,8 +20,10 @@ date:   2026-09-02
   - [Decide vs. enforce](#decide-vs-enforce)
   - [Along the path: four stages](#along-the-path-four-stages)
   - [Every stage has its own enforcer](#every-stage-has-its-own-enforcer)
+  - [One enforcer, several stages](#one-enforcer-several-stages)
   - [Non-bypassability is a property of reach](#non-bypassability-is-a-property-of-reach)
   - [Which stage do you cut?](#which-stage-do-you-cut)
+    - [Absence is a lookup that comes back empty](#absence-is-a-lookup-that-comes-back-empty)
   - [How to compare reference monitors](#how-to-compare-reference-monitors)
   - [What can change between check and use](#what-can-change-between-check-and-use)
   - [Composing reference monitors](#composing-reference-monitors)
@@ -89,11 +90,11 @@ effect
 
 There is no escaping this. Every mechanism in the rest of this article is a reference monitor placed somewhere, and every failure is one of the three properties not holding.
 
-Anderson pictures one box on one path. Real systems break that box apart in two ways, and each gives the term a different scope. The decision separates from its enforcement, and the PEP that applies a decision is the *narrow* reference monitor. The path separates into stages, each with its own enforcer, and Anderson's properties applied to every stage are the *broad* one. The next sections take them in turn.
+Anderson pictures one box on one path. Real systems break that box apart in two ways. The decision separates from its enforcement: a PEP applies what a PDP decides. And the path separates into stages, each with its own reference monitor, and Anderson's properties apply to every one of them. The next sections take the two splits in turn.
 
 ### Decide vs. enforce
 
-"Reference monitor" names a function, not a component. In practice that function splits in two, and Part 5 leans on the split.
+"Reference monitor" names a function, not a component. In practice that function splits in two.
 
 ```text
 request ──► PEP ──────► PDP
@@ -115,6 +116,17 @@ That revocation channel is the honest cost of caching a decision. The cache make
 
 Every mechanism in the rest of this article sits somewhere on one path. The [series intro](/programming/authorization-series-intro.html#from-a-chain-to-a-grid) splits that path into four stages: designate, reach, authenticate and decide. Designate has a written half, *acquire*: how the subject came to hold the name in the first place.
 
+Each stage is a function, and each one can come back empty:
+
+```text
+designate      resolve(namespace, name)   → object  | ⊥
+reach          route(source, address)     → path    | ⊥
+authenticate   verify(claim, proof)       → subject | ⊥
+decide         f(s, a, r, ctx)            → allow   | deny
+```
+
+A *namespace* here is what Saltzer calls a context: a set of bindings from names to objects. This series keeps the word *context* for the fourth argument of `f`.
+
 Authenticate is the one stage this article leaves alone. What makes it binding is custody of a key, which is a question for cryptography rather than for a sandbox.
 
 This article asks what makes each stage hold. [Part 4](/programming/capabilities.html#two-bindings-collapse-the-stages) asks the other question: which artifact carries each stage, and what changes when one artifact carries them all. Cut one, and the request fails in a way that tells you which:
@@ -126,7 +138,7 @@ This article asks what makes each stage hold. [Part 4](/programming/capabilities
 | reach | the name resolves, and delivery fails | `ENETUNREACH` in an empty network namespace; a timeout |
 | decide | the request arrives, and the answer is no | `EACCES`; HTTP 403 |
 
-Real designators are layered, and each layer answers both questions. A URL is a host, resolved by DNS and reached over IP, plus a path, resolved and reached inside the server.
+The object a name resolves to is often a lower-level name. DNS resolves a host to an IP address, and the address is what reach routes. [RFC 1498][rfc1498] chains these bindings: service to node, node to attachment point, attachment point to path. So designate and reach are one pair that repeats at every layer. A URL is a host, resolved by DNS and reached over IP, plus a path, resolved and reached again inside the server.
 
 ### Every stage has its own enforcer
 
@@ -147,6 +159,21 @@ Separated stages mean several enforcers, often in different trust domains, and t
 
 Anderson's three properties therefore apply per stage. A PEP that is always invoked on decide does nothing about a name that resolves somewhere else, or a route that goes around it. And collapse does not make the reference enforce itself. Whoever owns the table does, which is why seL4, further down, is both the purest capability system in this article and the most thoroughly enforced.
 
+### One enforcer, several stages
+
+The table above counts enforcers per stage. One component can also enforce several stages. A service-mesh sidecar is the pod's only route out, because iptables sends every connection through it, so it enforces reach. It checks the peer's mTLS certificate, which is authenticate. And it evaluates an authorization policy, which is decide.
+
+That gives a second axis beside the one [Part 4](/programming/capabilities.html#two-bindings-collapse-the-stages) draws for artifacts. An artifact can carry one binding or several, and an enforcer can hold one stage or several:
+
+| | separate enforcers | one enforcer, several stages |
+|---|---|---|
+| **separate bindings** | pathname + ACL; OAuth bearer token | service-mesh sidecar |
+| **one artifact, several bindings** | share link; presigned URL | Capsicum FD; seL4; object capabilities |
+
+The two corners off the diagonal show why both halves matter. A share link joins name and authority in one string, but DNS, the network and the server still enforce apart. Nothing enforces reach, so the link works for anyone who learns it. A sidecar closes the gaps between enforcers, but the workload still speaks global names and presents an ambient identity, so a confused deputy is still possible inside the policy the sidecar enforces. A collapsed artifact needs a collapsed enforcer behind it: a descriptor index means something only because one kernel owns the table it indexes. A gateway that starts from the sidecar's shape, but hands the workload handles instead of global names, moves to the bottom-right corner.
+
+Collapse has a price. One enforcer across every stage leaves no gaps, and it leaves one thing to verify. That is the seL4 argument below. But one failure then opens every stage at once, and the enforcer's own authority is large. Separate enforcers in separate trust domains fail independently. The Lambda example at the end of this article relies on that: the IAM check at the resource holds even after a total escape from the guest.
+
 ### Non-bypassability is a property of reach
 
 Applied per stage, Anderson's first property becomes a question about topology. A check that is always invoked on one path does nothing if the workload can reach the resource by another. No policy language or hook can settle that. Only the shape of reach can: is there some other path to the protected resource?
@@ -163,12 +190,13 @@ Same code, same policies, same expressivity. Enforcement in one deployment and d
 
 ### Which stage do you cut?
 
-Almost every argument about sandboxing is an argument about which half of that condition is in use. The two halves are cuts on different stages.
+Almost every argument about sandboxing is an argument about which half of that condition is in use. The two halves are two strategies:
 
 ```text
-UNNAMEABILITY                         ADJUDICATION
+ABSENCE                               JUDGMENT
 
-cut acquire, designate or reach       leave those open, cut decide
+no path to the resource exists        every path passes a point
+                                      that decides
 
 the resource is absent from           the request is expressible,
 the reachable universe                it arrives, and something
@@ -177,22 +205,43 @@ the reachable universe                it arrives, and something
 "there is nothing to ask for"         "you asked; the answer is no"
 ```
 
-These are functions, not technology categories, and most mechanisms cut exactly one stage:
+They are not tied to stages. Each stage is one of the functions above, and each can be enforced either way, except decide, which is a judgment by definition:
 
-| Mechanism | Stage it cuts | Seen from inside |
+| | absence | judgment |
 |---|---|---|
-| WASI import not supplied, Capsicum `cap_enter()` | acquire | no name to try |
-| `chroot`, mount namespace | designate | `ENOENT`, or a different file |
-| network namespace, missing route | reach | `ENETUNREACH` |
-| VM | designate and reach, for the whole host | host names mean nothing; no device |
-| seccomp | reach, per kernel entry point | `EPERM`, `ENOSYS`, or the process dies |
-| LSM, Landlock | decide, on the resolved object | `EACCES` |
-| `setpriv` credentials | decide, on the subject side | `EACCES` |
-| ACL at the resource, branch protection | decide, on the object side | `EACCES`, HTTP 403 |
+| **designate** | `chroot`, mount namespace | a resolver that refuses names by policy |
+| **reach** | no route; a VM with no device | firewall, seccomp, egress allowlist |
+| **decide** | — | ACL, LSM, a PEP at the resource |
 
-Seccomp is the one people misplace. It decides which kernel entry points a process can get to, and it never sees the object a call would resolve to.
+These are functions, not technology categories, and most mechanisms cut exactly one stage, by one strategy:
 
-The strongest designs cut two stages at once. The workload never acquires the real GitHub token. It holds a placeholder handle that reaches only a gateway, and the gateway authorizes only approved operations. That is *authority attenuation* — possession of a powerful resource replaced by permission to request a smaller set of effects — and Part 5 builds it.
+| Mechanism | Stage it cuts | Strategy | Seen from inside |
+|---|---|---|---|
+| WASI import not supplied, Capsicum `cap_enter()` | acquire | absence | no name to try |
+| `chroot`, mount namespace | designate | absence | `ENOENT`, or a different file |
+| network namespace, missing route | reach | absence | `ENETUNREACH` |
+| VM | designate and reach, for the whole host | absence | host names mean nothing; no device |
+| seccomp | reach, per kernel entry point | judgment | `EPERM`, `ENOSYS`, or the process dies |
+| firewall, egress allowlist | reach, per destination | judgment | a refused or dropped connection |
+| LSM, Landlock | decide, on the resolved object | judgment | `EACCES` |
+| `setpriv` credentials | decide, on the subject side | judgment | `EACCES` |
+| ACL at the resource, branch protection | decide, on the object side | judgment | `EACCES`, HTTP 403 |
+
+Seccomp is the one people misplace, and they misplace it twice. It is a judge: the call is expressible, it arrives at a filter, and a policy says no. And it judges reach, not the object. It sees which kernel entry point a process is trying and the call's scalar arguments, never the object the call would resolve to. That is the difference from an LSM, which judges after designate has run.
+
+#### Absence is a lookup that comes back empty
+
+Formally, the two strategies are one. Every function above is a lookup, and absence is a lookup that returns ⊥. A `chroot` is a resolver with fewer bindings in its table. A network namespace with no route is a routing table that returns ⊥ for every destination. Even an ACL check fits: [Part 1](/programming/authorization-models.html#one-function-one-relation) asks "is this row present?", so a deny is a missing row.
+
+What separates the strategies is whose table the lookup reads. Under absence, each subject has its own namespace, holding only the bindings it was granted, and ⊥ means the name means nothing here. Under judgment, everyone shares one namespace of global names, and a policy filters it: the name means something, and you may not use it. That is Part 4's split between local and global names, seen from the enforcer's side.
+
+Three consequences follow, and they are why the distinction is worth keeping:
+
+- **New objects.** A per-subject namespace binds only what someone put in it, so a file created tomorrow is absent by default. A filter over a shared namespace has to classify every new name, and a denylist misses the syscall added next year.
+- **What leaks.** A no confirms that the object exists, and ⊥ says nothing. That is why GitHub answers 404, not 403, for a private repository you cannot see: a judge dressed as an absence. Seccomp can do the same by returning `ENOSYS`, so what the workload sees is not the test.
+- **What can fail.** A judge runs policy code on every request, and that code can be wrong or broken. XACML even has a decision for it, *Indeterminate*, which [Part 1](/programming/authorization-models.html#policies-compose-and-the-rule-is-not-the-same-as-the-edit-right) covers. Absence is computed by the ordinary resolver, which has to work anyway. Its risk moves to setup: was the namespace built right?
+
+The strongest designs cut two stages at once. The workload never acquires the real GitHub token. It holds a placeholder handle that reaches only a gateway, and the gateway authorizes only approved operations. That is *authority attenuation* — possession of a powerful resource replaced by permission to request a smaller set of effects.
 
 ### How to compare reference monitors
 
@@ -367,7 +416,7 @@ Policy and mechanism stay separate. seL4 enforces whatever capability graph exis
 
 #### WASI and effect systems
 
-**WebAssembly and WASI** are the cleanest modern instance of unnameability followed by adjudicated reintroduction. A Wasm module starts with linear memory and computation. It acquires no ambient filesystem, network, environment, or clock. Everything useful arrives as an import the host chose to supply.
+**WebAssembly and WASI** are the cleanest modern instance of absence followed by judged reintroduction. A Wasm module starts with linear memory and computation. It acquires no ambient filesystem, network, environment, or clock. Everything useful arrives as an import the host chose to supply.
 
 ```text
 Wasm module
@@ -376,7 +425,7 @@ Wasm module
             → selected filesystem, socket, clock, or service
 ```
 
-There is no syscall instruction to perform, so reach to the host kernel does not exist. Unnameability comes free from the execution semantics rather than from a device model someone had to get right. The vocabulary is legible — `open-at` means far more than a block offset — and the import list is a local audit surface, which [Part 4](/programming/capabilities.html#complete-over-the-intended-state-not-the-reachable-state) weighs against a global one.
+There is no syscall instruction to perform, so reach to the host kernel does not exist. Absence comes free from the execution semantics rather than from a device model someone had to get right. The vocabulary is legible — `open-at` means far more than a block offset — and the import list is a local audit surface, which [Part 4](/programming/capabilities.html#complete-over-the-intended-state-not-the-reachable-state) weighs against a global one.
 
 **Effect systems** reach the same shape from the language side. The type system records each effect a function may perform, and a handler supplies its interpretation:
 
@@ -399,7 +448,7 @@ Linux has no single sandbox primitive. It has a collection of mechanisms, each c
 
 ![](/assets/authority-enforcement/linux-security-mechanisms.png)
 
-The mechanism table above placed most of them. Namespaces cut designate or reach, one kernel subsystem at a time. Seccomp cuts reach to kernel entry points. Credentials and LSMs both cut decide, from different ends, and deserve a closer look.
+The mechanism table above placed most of them. Namespaces cut designate or reach by absence, one kernel subsystem at a time. Seccomp cuts reach to kernel entry points by judgment. Credentials and LSMs both cut decide, from different ends, and deserve a closer look.
 
 ##### Credentials: one stage, moving alone
 
@@ -407,7 +456,7 @@ The mechanism table above placed most of them. Namespaces cut designate or reach
 
 `no_new_privs` is the load-bearing bit. Without it the restriction is not monotonic — exec a setuid binary and the authority comes back — and an unprivileged process cannot install a seccomp filter at all. It is the precondition for every restriction a workload applies to itself.
 
-Credentials are also the cleanest case of one stage moving alone. They are ambient authority and nothing else. Shrink them and every name still resolves — `open("/etc/shadow")` stays a perfectly expressible request — and only the answer changes. No namespace, no label, no hook, no unnameability. Decide cut while acquire, designate and reach stay exactly as ambient as they were.
+Credentials are also the cleanest case of one stage moving alone. They are ambient authority and nothing else. Shrink them and every name still resolves — `open("/etc/shadow")` stays a perfectly expressible request — and only the answer changes. No namespace, no label, no hook, no absence. Decide cut while acquire, designate and reach stay exactly as ambient as they were.
 
 The vocabulary collides here, and the collision is worth naming. A Linux *ambient capability* is authority that survives `exec` with nobody designating anything, which is ambient authority in this series' sense. `--ambient-caps` is the knob that grants it, and `no_cap_ambient_raise` is the securebit that takes the knob away.
 
@@ -457,7 +506,7 @@ Subtraction cannot mediate. You can remove a column. There is no namespace opera
 
 The moment removal is not enough and you need to interpose, you introduce something that holds the real authority and speaks a protocol: a FUSE daemon, a proxy inside the network namespace, a broker. That thing is a membrane. Its clients acquire only what it hands them, over the one channel they have to it, so the loop holds again. You have rebuilt the capability system one resource class at a time.
 
-Without the membrane, subtraction stays subtraction. `chroot` cuts designate for everything outside the jail and leaves every stage ambient inside it, which is why it is not a capability system. Unnameability becomes capability discipline only when the name you hold is the only way to reach the object, and the only way to get more names.
+Without the membrane, subtraction stays subtraction. `chroot` cuts designate for everything outside the jail and leaves every stage ambient inside it, which is why it is not a capability system. Absence becomes capability discipline only when the name you hold is the only way to reach the object, and the only way to get more names.
 
 The membrane pattern is old, and the systems that use it at scale describe themselves in exactly these terms.
 
@@ -467,9 +516,9 @@ The membrane pattern is old, and the systems that use it at scale describe thems
 
 The target acquires only what the broker hands it, over the one channel it has. That is construction, rebuilt on top of Windows. The doc is just as plain about where enforcement is *not*. The hooks that forward Win32 calls to the broker are for convenience: "The interception + IPC mechanism does not provide security; it is designed to provide compatibility when code inside the sandbox cannot be modified to cope with sandbox restrictions." The token is the cut. The hook is `HTTP_PROXY` at the Win32 layer.
 
-**Google's safe proxies.** [*Building Secure and Reliable Systems*][bsrs-safe-proxies] describes the same shape for people. "Engineers are not able to run arbitrary commands directly on servers; they need to contact the Tool Proxy instead." That cuts reach. The proxy then authorizes each command against an access list, can require multi-party approval, rate-limits changes so a restart rolls out gradually, and logs every operation — adjudication, in the legible vocabulary of whole commands rather than packets. The chapter is candid about the cost, and lists among the downsides "a central machine that an adversary could take control of." That is the last question of the composition checklist, asked of a real system: what can the enforcer do if its policy is wrong?
+**Google's safe proxies.** [*Building Secure and Reliable Systems*][bsrs-safe-proxies] describes the same shape for people. "Engineers are not able to run arbitrary commands directly on servers; they need to contact the Tool Proxy instead." That cuts reach. The proxy then authorizes each command against an access list, can require multi-party approval, rate-limits changes so a restart rolls out gradually, and logs every operation — judgment, in the legible vocabulary of whole commands rather than packets. The chapter is candid about the cost, and lists among the downsides "a central machine that an adversary could take control of." That is the last question of the composition checklist, asked of a real system: what can the enforcer do if its policy is wrong?
 
-Part 5's capability gateways are the same membrane, placed in front of an agent.
+A capability gateway in front of an AI agent is the same membrane.
 
 #### Editing the object side
 
@@ -500,9 +549,9 @@ signed API request ──────► IAM at the AWS service: decide, on the 
 
 **Question six, asked of the enforcer.** That process is itself a monitor whose own code might fail, so it gets confined too. The [jailer][firecracker-jailer] enters a new mount namespace, pivots into a chroot that holds little more than the Firecracker binary, `/dev/kvm` and `/dev/net/tun`, places the process in a cgroup, joins a network namespace, drops to an unprivileged uid and gid, and only then execs Firecracker. Firecracker loads seccomp filters on each thread before running any guest code. A guest that escapes into the VMM lands in a process that can reach almost nothing. That is the Linux subtraction toolkit — `setpriv`, namespaces, seccomp — applied to the enforcer rather than the workload.
 
-**At the resource**, none of those layers holds the function's authority over the rest of AWS. Lambda puts the execution role's [temporary keys][lambda-envvars] in the function's environment, and each service authorizes the signed request against IAM policy. That is object-side adjudication, in the vocabulary of API actions, and it holds even if every layer above it fails.
+**At the resource**, none of those layers holds the function's authority over the rest of AWS. Lambda puts the execution role's [temporary keys][lambda-envvars] in the function's environment, and each service authorizes the signed request against IAM policy. That is object-side judgment, in the vocabulary of API actions, and it holds even if every layer above it fails.
 
-It is also the gap. The function *acquires* the real credential. Nothing between the function and S3 attenuates it, so whatever the role allows, a compromised function can do, from wherever the keys end up. Part 5's gateway closes that gap: the workload holds a handle, and the credential stays outside.
+It is also the gap. The function *acquires* the real credential. Nothing between the function and S3 attenuates it, so whatever the role allows, a compromised function can do, from wherever the keys end up. A gateway closes that gap: the workload holds a handle, and the credential stays outside.
 
 ## Conclusion: what this does not solve
 
@@ -512,7 +561,7 @@ Modern workloads do not have that shape. A single logical operation crosses a pr
 
 The answer is not that the reference monitor becomes distributed. It is that it gets **relocated and replicated**: several monitors, each complete within its own boundary, each seeing a different vocabulary, each surviving a different failure. The guest kernel mediates guest objects. The host mediates external effects. The resource server enforces its own invariant. No single one of them is complete, and the composition has to be designed rather than assumed.
 
-Which is exactly the problem LLM agents force you to confront, because an agent's authority is not known until it runs. That is Part 5.
+Between those monitors, decisions have to travel. A token issued in one domain is checked in another, long after it was issued. [Part 3](/programming/carriers.html) follows the decision on that trip.
 
 ## References
 
@@ -560,6 +609,7 @@ Which is exactly the problem LLM agents force you to confront, because an agent'
 [linux-security-modules-general]: https://www.usenix.org/legacy/publications/library/proceedings/sec02/full_papers/wright/wright_html/ "Linux Security Modules: General Security Support for the Linux Kernel"
 [robust-composition]: http://www.erights.org/talks/thesis/markm-thesis.pdf "Robust Composition"
 [sel4-reference-manual]: https://sel4.systems/Info/Docs/seL4-manual-latest.pdf "seL4 reference manual"
+[rfc1498]: https://www.rfc-editor.org/rfc/rfc1498.html "RFC 1498: On the Naming and Binding of Network Destinations"
 [setpriv]: https://man7.org/linux/man-pages/man1/setpriv.1.html "`setpriv`"
 [software-isolation-linux]: https://nikmav.blogspot.com/2015/06/software-isolation-in-linux_15.html "Software isolation in Linux"
 [wasi-security-principles]: https://github.com/bytecodealliance/wasi.dev/blob/main/docs/security.md "WASI security principles"

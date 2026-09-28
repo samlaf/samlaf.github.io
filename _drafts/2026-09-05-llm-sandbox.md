@@ -1,19 +1,10 @@
 ---
 title:  "LLM sandboxing: making the gateway correct and unavoidable"
-series: "Authorization, Part 5"
-series_url: "/programming/authorization-series-intro.html"
 category: programming
 date:   2026-09-05
 ---
 
-> This is Part 5 of a six-part [series on authorization](/programming/authorization-series-intro.html).
->
-> - **[Prologue: Who is the adversary](/programming/who-is-the-adversary.html)** — five positions the attacker has occupied, and why identity stopped being the useful thing to key on.
-> - **[Part 1: Authorization models](/programming/authorization-models.html)** — what every system computes, and who may change it.
-> - **[Part 2: How authority is enforced](/programming/authority-enforcement.html)** — what makes any of it binding.
-> - **[Part 3: Carriers](/programming/carriers.html)** — decisions that travel with the request.
-> - **[Part 4: Capabilities](/programming/capabilities.html)** — authority you hold, not authority you are.
-> - **Part 5: LLM sandboxing** — the gateway, correct and unavoidable.
+> This article applies the [series on authorization](/programming/authorization-series-intro.html) to AI agents. "Part 1" to "Part 4" below, and "the carriers article" and its siblings, point into that series.
 
 - [Why agents break the assumptions](#why-agents-break-the-assumptions)
   - [Data becomes executable](#data-becomes-executable)
@@ -71,9 +62,9 @@ The compute sandbox removes ambient access to the host. The capability gateway s
 
 The word *coupled* is doing the work. A proxy is not enforcement if the workload can route around it. A VM does not contain authority if it directly mounts host state or receives durable credentials. These are not two systems cooperating: they are one reference monitor whose two required properties are supplied by different technologies. The gateway is the decision point and must be **correct** — right policy, right answer, real credential held outside the guest. The sandbox decides nothing and must make the gateway **unavoidable**, which is a claim about topology rather than about policy. That is the [enforcement article](/programming/authority-enforcement.html)'s PEP/PDP split, with the enforcement point's non-bypassability delegated to whatever substrate you chose. Drop either half and you do not have a weaker sandbox. You have no reference monitor at all.
 
-The condition to aim at is the one [Part 2](/programming/authority-enforcement.html#non-bypassability-is-a-property-of-reach) stated: for every effect the workload can attempt, either no path to the resource exists, or every path passes through a point that decides. Its two halves are unnameability and adjudication. Every mechanism in this article is one of them, applied to one class of effect. The engineering claim is never that a decision point exists. It is that the union of them leaves no path uncovered.
+The condition to aim at is the one [Part 2](/programming/authority-enforcement.html#non-bypassability-is-a-property-of-reach) stated: for every effect the workload can attempt, either no path to the resource exists, or every path passes through a point that decides. Its two halves are absence and judgment. Every mechanism in this article is one of them, applied to one class of effect. The engineering claim is never that a decision point exists. It is that the union of them leaves no path uncovered.
 
-The first four articles supply that vocabulary: how decisions are represented, what makes a limit real, how copies of decisions travel, and what the capability property actually is and where it can be bought. This article is what happens when you point both at a program whose authority is not known until it runs.
+The authorization series supplies that vocabulary: how decisions are represented, what makes a limit real, how copies of decisions travel, and what the capability property actually is and where it can be bought. This article is what happens when you point both at a program whose authority is not known until it runs.
 
 ![sandboxing-taxonomy](/assets/llm-sandbox/confinement-hierarchy.png)
 
@@ -145,7 +136,7 @@ For a protected branch, a `PreToolUse` hook can reject `git push --force`; an HT
 
 ## The shape of the answer
 
-Take those four together and the architecture writes itself as three phases. Each one is a question the previous articles prepared:
+Take those four together and the architecture writes itself as three phases. Each one is a question the series prepared:
 
 ```text
 DECIDE      What authority should exist for this task?
@@ -263,7 +254,7 @@ host mints a lease
 guest receives an opaque handle
 ```
 
-The guest holds a name for the lease. The host holds the lease. This is unnameability applied to the grant itself, and it is what separates possession from use: stealing the handle gets you nothing you could not already ask the gateway to do.
+The guest holds a name for the lease. The host holds the lease. This is absence applied to the grant itself, and it is what separates possession from use: stealing the handle gets you nothing you could not already ask the gateway to do.
 
 Worth naming what that is. A handle table the host owns, holding entries the guest can only reference by index, where the reference both designates the operation and conveys the right to invoke it, and where the guest can only pass a handle to something it already reaches through the gateway — that is an object-capability system. Model 4, in the capabilities article's terms, built from scratch for the host–guest boundary. The interesting question for the rest of this article is how far up the stack that property survives.
 
@@ -326,7 +317,7 @@ agent ↔ tools (MCP)             Model 1 today
 agent ↔ the world (git, curl)   Model 3, permanently, and correctly
 ```
 
-**The bottom row is not a failure.** The agent runs `git push`, `curl`, `npm install`, `psql`, and you cannot hand `git` an object reference. Object capabilities require both ends of an interface to speak the model, and the premise of the whole design is that one end is the existing tool ecosystem. So legacy egress gets adjudication forever, and macaroons are the right credential there precisely because they are Model 3 done as well as Model 3 can be done: attenuable without a round trip, caveats travelling with the artifact, verifiable by a resource server that has never heard of your gateway.
+**The bottom row is not a failure.** The agent runs `git push`, `curl`, `npm install`, `psql`, and you cannot hand `git` an object reference. Object capabilities require both ends of an interface to speak the model, and the premise of the whole design is that one end is the existing tool ecosystem. So legacy egress gets judged forever, and macaroons are the right credential there precisely because they are Model 3 done as well as Model 3 can be done: attenuable without a round trip, caveats travelling with the artifact, verifiable by a resource server that has never heard of your gateway.
 
 **The middle two rows are the interesting ones,** because they carry no legacy constraint at all. Nobody is locked in. They were designed recently, by people who could have chosen either way.
 
@@ -449,7 +440,7 @@ The honest claim is empirical: for workloads requiring a general-purpose Linux s
 
 Two caveats survive:
 
-- **Granularity runs the other way.** Namespaces are selectively composable: share PID but not network, network but not mounts. A VM is comparatively all-or-nothing per machine. Containers are more expressive within the unnameability layer even when they provide a weaker kernel boundary.
+- **Granularity runs the other way.** Namespaces are selectively composable: share PID but not network, network but not mounts. A VM is comparatively all-or-nothing per machine. Containers are more expressive within the absence layer even when they provide a weaker kernel boundary.
 - **Configuration dominates the label.** A VM with the host home directory mounted read-write and unrestricted NAT may expose more useful authority than a carefully restricted container. Hole-punching is the actual variable.
 
 A third tier changes *who* the adversary is rather than which resources are reachable: confidential-computing systems such as Intel TDX, AMD SEV-SNP, and SGX attempt to remove parts of the host operator from the trusted computing base. That is a distinct problem from protecting a trusted host against an untrusted guest.
@@ -534,7 +525,7 @@ agent-creds shows one way to make that binding structural. Its guest-visible han
 
 ## Threat model by enforcement plane
 
-The unnameability/adjudication split from the enforcement article hides trust placement. In particular, "malicious code defeats adjudication" is true of in-guest adjudication but false of a host gateway designed to distrust the guest kernel.
+The absence/judgment split from the enforcement article hides trust placement. In particular, "malicious code defeats judgment" is true of in-guest judgment but false of a host gateway designed to distrust the guest kernel.
 
 Making that precise means asking two questions instead of one: *which adversary* is a plane rated against, and *which harm* is it meant to prevent. Collapsing them into a single list is how sandboxes end up compared on a number nobody can define. The [prologue](/programming/who-is-the-adversary.html) supplies the first axis — three rungs, by how much of the machine the attacker owns, plus two that sit off the ladder and combine with any rung.
 
@@ -617,7 +608,7 @@ The composition matters because the failures differ. If malicious code bypasses 
 
 No layer makes the others redundant. Semantic governance understands *why* an action is being attempted. Namespaces shape the guest's visible universe. Seccomp mediates the syscall vocabulary. LSMs and ordinary kernel access controls mediate resolved objects. The VM establishes the host trust boundary. The capability gateway controls external authority. The resource owner decides the final state transition. The theoretically strongest architecture composes all of them.
 
-Read that table against the earlier articles and the series closes on itself. The guest resource universe is unnameability. Syscall and object mediation are adjudication. The VM is a trust boundary, not a policy. The gateway is a PEP holding a materialized capability. The upstream resource policy is the ACL that was always there, doing the administrative job capabilities are bad at. Every row is one of the two strategies, placed in one of the trust domains, speaking at one of the legibility levels.
+Read that table against the series and the theory closes on itself. The guest resource universe is absence. Syscall and object mediation are judgment. The VM is a trust boundary, not a policy. The gateway is a PEP holding a materialized capability. The upstream resource policy is the ACL that was always there, doing the administrative job capabilities are bad at. Every row is one of the two strategies, placed in one of the trust domains, speaking at one of the legibility levels.
 
 ## Cost and compatibility
 
@@ -652,7 +643,7 @@ Five things fall out of that table.
 
 **The two jobs vary independently.** The first two rows are compute without a gateway. The last row is a gateway without compute. Nothing about a row's first column predicts its third or fifth. This is the article's thesis in tabular form: the interesting quantity is the composition, and most systems ship only one half of it.
 
-**Non-bypassability comes in four strengths.** An environment variable a program may ignore. A syscall filter that inspects each destination. An absent route, where the only descriptor reaching outside is a bind-mounted Unix socket and a program that ignores `HTTP_PROXY` does not escape but simply fails to connect. And a route that was never built, where the host is the peer and NAT does not exist. The last two differ from the second in failure mode: a filter has to be right about every destination, while absence has nothing to be right about. That is the enforcement article's unnameability, applied at the network layer, and it is usually the cheaper of the two to implement.
+**Non-bypassability comes in four strengths.** An environment variable a program may ignore. A syscall filter that inspects each destination. An absent route, where the only descriptor reaching outside is a bind-mounted Unix socket and a program that ignores `HTTP_PROXY` does not escape but simply fails to connect. And a route that was never built, where the host is the peer and NAT does not exist. The last two differ from the second in failure mode: a filter has to be right about every destination, while absence has nothing to be right about. That is the enforcement article's absence, applied at the network layer, and it is usually the cheaper of the two to implement.
 
 **Principal granularity runs opposite to compute strength.** A microVM gateway sees one principal, because the VM boundary destroys the process identities behind it. A host-kernel sandbox shares a kernel with its supervisor, so the supervisor can attribute a request to an exact command using facts the kernel vouches for: process ancestry, a per-command cgroup, a POSIX session id. nono brokers each tool invocation separately for this reason. Buying the stronger compute boundary costs the finer principal, and a guest that re-exports its own process identities is supplying evidence, not authority.
 
@@ -713,7 +704,7 @@ The table below is the same two axes applied to what is specific about agents. A
 
 A2 deserves special care. A coding agent reads source, places it in model context, and POSTs that context to an allowlisted inference provider. Content inspection cannot reliably separate normal operation from exfiltration because legitimate model traffic is full of file contents.
 
-One control does bite cleanly: **a secret that never enters the guest namespace cannot enter the model context**. This is unnameability applied to credentials. The credential gateway allows legitimate use without disclosure.
+One control does bite cleanly: **a secret that never enters the guest namespace cannot enter the model context**. This is absence applied to credentials. The credential gateway allows legitimate use without disclosure.
 
 Proprietary source is harder because the agent must often read it to work. Possible mitigations—context provenance, per-file policies, local models, DLP, approval, response auditing—are partial and workload-specific. The architecture should state this limitation rather than pretending an inference-host allowlist solves it.
 
@@ -800,7 +791,7 @@ The architecture is therefore not a single best sandbox. It is a composition:
 
 The compute sandbox determines which universe the workload inhabits. The capability gateway determines which external authority that universe may exercise. The contract between them is the boundary.
 
-The five articles were really one argument, arriving in five parts. Authority has to be *represented* somewhere, and the choice between a list at the resource and a reference in the subject's hand decides which questions stay cheap. A representation of either kind is inert until something *enforces* it, and enforcement is a reference monitor placed in a trust domain, using unnameability or adjudication or both. A decision can *travel* with the request, and every copy is a debt that someone must be able to call back. The strong version of that — designation and authority as one thing — has a precondition, which is a substrate that can deny communication: an enforcer again, this time on reach. And an agent is the case that will not let you separate those concerns in time, because it discovers what it needs while it runs.
+The authorization series was really one argument, arriving in four parts. Authority has to be *represented* somewhere, and the choice between a list at the resource and a reference in the subject's hand decides which questions stay cheap. A representation of either kind is inert until something *enforces* it, and enforcement is a reference monitor placed in a trust domain, using absence or judgment or both. A decision can *travel* with the request, and every copy is a debt that someone must be able to call back. The strong version of that — designation and authority as one thing — has a precondition, which is a substrate that can deny communication: an enforcer again, this time on reach. And an agent is the case that will not let you separate those concerns in time, because it discovers what it needs while it runs.
 
 There is one last thing worth saying plainly, because it is the part I did not expect to find. The capabilities article ends pessimistically: Model 4 is purchasable only where something mediates communication, the open internet mediates nothing, and so the deployed world is Model 3 and the old objections to capabilities remain true of everything anyone ships.
 
@@ -838,7 +829,7 @@ Which is why agents are worth the attention even if you never build one. They ta
 
 ## Foundations
 
-Earlier parts cover these properly. Listed here because this article leans on them directly.
+The series covers these properly. Listed here because this article leans on them directly.
 
 19. [The Protection of Information in Computer Systems][protection-information-computer-systems] — Saltzer and Schroeder's design principles, including complete mediation and least privilege
 20. [Capability Myths Demolished][capability-myths-demolished] — designation, authority, and confinement

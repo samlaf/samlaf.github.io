@@ -83,7 +83,7 @@ registration            an operator has stated which (node selectors, workload
                         selectors) map to which SPIFFE ID
 ```
 
-The workload connects to the agent over a Unix domain socket — reachable only from the node, which is the [enforcement article's](/programming/authority-enforcement.html) unnameability doing identity work — and receives an SVID for whichever ID its selectors match. It never presents a credential. Its identity is entirely a function of facts observed about it from outside.
+The workload connects to the agent over a Unix domain socket — reachable only from the node, which is the [enforcement article's](/programming/authority-enforcement.html) absence doing identity work — and receives an SVID for whichever ID its selectors match. It never presents a credential. Its identity is entirely a function of facts observed about it from outside.
 
 Service meshes are where most people meet SPIFFE without knowing it. Istio issues X.509 SVIDs to every sidecar and uses them for mutual TLS between services, so `payments` can be sure it is talking to `ledger` because the mesh's CA said so, having verified with the API server which pod the sidecar belongs to. The Web PKI's shape, inside one cluster, with the platform as CA.
 

@@ -6,14 +6,13 @@ category: programming
 date:   2026-09-04
 ---
 
-> This is Part 4 of a six-part [series on authorization](/programming/authorization-series-intro.html).
+> This is Part 4 of a five-part [series on authorization](/programming/authorization-series-intro.html).
 >
 > - **[Prologue: Who is the adversary](/programming/who-is-the-adversary.html)** — five positions the attacker has occupied, and why identity stopped being the useful thing to key on.
 > - **[Part 1: Authorization models](/programming/authorization-models.html)** — what every system computes, and who may change it.
 > - **[Part 2: How authority is enforced](/programming/authority-enforcement.html)** — what makes any of it binding.
 > - **[Part 3: Carriers](/programming/carriers.html)** — decisions that travel with the request.
 > - **Part 4: Capabilities** — authority you hold, not authority you are.
-> - **[Part 5: LLM sandboxing](/programming/llm-sandbox.html)** — the gateway, correct and unavoidable.
 
 - [Squaring the matrix](#squaring-the-matrix)
 - [Four things get called capabilities](#four-things-get-called-capabilities)
@@ -36,6 +35,7 @@ date:   2026-09-04
   - [The convergence is not symmetric](#the-convergence-is-not-symmetric)
   - [Complete over the intended state, not the reachable state](#complete-over-the-intended-state-not-the-reachable-state)
 - [Where the property can be bought](#where-the-property-can-be-bought)
+- [Conclusion: one argument in four parts](#conclusion-one-argument-in-four-parts)
 - [References](#references)
 
 The [series intro](/programming/authorization-series-intro.html#from-a-chain-to-a-grid) follows a request through four stages: designate, reach, authenticate and decide. The industry has spent twenty years on the last two, and they are genuinely good now. Designate and reach, the stages that carry names and requests, are rarely treated as authorization at all. [Part 2](/programming/authority-enforcement.html#which-stage-do-you-cut) treated them as stages an enforcer can cut. This article treats them as stages an artifact can carry. Its subject is the carrier that serves several stages at once. That is where the only structural difference between capabilities and everything else lives.
@@ -274,7 +274,7 @@ Karp's summary is that "in many cases, neither nor both is correct." A Navy eval
 
 Under ZBAC there is no question of credentials. Alice delegates the input capability to Bob. Bob delegates it onward to Carol along with the output capability. Carol ends with exactly what the job needs, and it can be revoked when the job completes.
 
-Keep this shape in mind. Part 5 is about agents calling tools that call other agents, and this is that problem with different nouns.
+AI agents calling tools that call other agents are this problem with different nouns.
 
 ### The control you think you have
 
@@ -398,7 +398,11 @@ The gap in between is a missing standard rather than a law of nature, and Karp h
 
 > There is no standard for chained, attenuated delegation, which is an opportunity for an IEEE standards group. […] We must start on these standards before the IoT world becomes embedded in our lives. If we don't, we'll end up with walled gardens, an AOL of Things.
 
-Part 5 is about a system that has the substrate and threw the property away.
+## Conclusion: one argument in four parts
+
+The four articles were one argument. Authority has to be *represented* somewhere, and the choice between a list at the resource and a reference in the subject's hand decides which questions stay cheap. That is [Part 1](/programming/authorization-models.html). A representation of either kind is inert until something *enforces* it: a reference monitor on every stage, working by absence or by judgment. That is [Part 2](/programming/authority-enforcement.html). A decision can *travel* with the request, and every copy is a debt that someone must be able to call back. That is [Part 3](/programming/carriers.html).
+
+This article took the strong version of the third step, designation and authority as one thing, and found a precondition: a substrate that can deny communication. That brings the argument back to Part 2, because denying communication is a reference monitor's job on reach. Capabilities do not replace enforcement. They are what enforcement makes possible.
 
 ## References
 

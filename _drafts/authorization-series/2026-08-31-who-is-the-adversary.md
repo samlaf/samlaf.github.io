@@ -6,14 +6,13 @@ category: programming
 date: 2026-08-31
 ---
 
-> This is the prologue to a six-part [series on authorization](/programming/authorization-series-intro.html).
+> This is the prologue to a five-part [series on authorization](/programming/authorization-series-intro.html).
 >
 > - **Prologue: Who is the adversary** — five positions the attacker has occupied, and why identity stopped being the useful thing to key on.
 > - **[Part 1: Authorization models](/programming/authorization-models.html)** — what every system computes, and who may change it.
 > - **[Part 2: How authority is enforced](/programming/authority-enforcement.html)** — what makes any of it binding.
 > - **[Part 3: Carriers](/programming/carriers.html)** — decisions that travel with the request.
 > - **[Part 4: Capabilities](/programming/capabilities.html)** — authority you hold, not authority you are.
-> - **[Part 5: LLM sandboxing](/programming/llm-sandbox.html)** — the gateway, correct and unavoidable.
 
 - [1 · Outside the boundary](#1--outside-the-boundary)
 - [2 · A subject you enrolled](#2--a-subject-you-enrolled)
@@ -25,7 +24,7 @@ date: 2026-08-31
 - [Where to get a technical threat model](#where-to-get-a-technical-threat-model)
 - [References](#references)
 
-Every mechanism in this series exists to stop someone. A list at a resource, a reference in a subject's hand, a monitor in the path — each is a claim about *someone*: non-bypassable by whom, unnameable to whom, correct against what. Change the adversary and the same mechanism goes from sufficient to decorative without a line of it changing.
+Every mechanism in this series exists to stop someone. A list at a resource, a reference in a subject's hand, a monitor in the path — each is a claim about *someone*: non-bypassable by whom, absent for whom, correct against what. Change the adversary and the same mechanism goes from sufficient to decorative without a line of it changing.
 
 So it is worth asking where the adversary sits before describing what stops them. Over fifty years the answer has moved five times, always inward, and always because the previous position got closed. As in the prologue to a later series on applied cryptography, it helps to separate the **threat**, the **theory** that modelled it, and the **implementation** that eventually shipped — because here too, every one of these was modelled long before anything defeated it, and two of them have not been defeated yet.
 
@@ -71,7 +70,7 @@ So it is worth asking where the adversary sits before describing what stops them
 
 **Theory.** Greshake and co-authors gave it a name in 2023, indirect prompt injection, and the literature since has been enormous. But the shape is Hardy's, thirty-five years on. The injected text supplies a designator — a path, a URL, a repository. The agent's ambient authority supplies the rest. It is a confused deputy whose confusion is now the normal operating mode rather than a bug, because reading untrusted input and acting on it *is* the product.
 
-**Implementation.** Open. [Part 5](/programming/llm-sandbox.html) is an argument that the cure is the old one — take away the ambient authority, so that the injected designator names nothing worth having — and an account of how far you can actually get.
+**Implementation.** Open. The cure is probably the old one: take away the ambient authority, so that the injected designator names nothing worth having. How far that gets you in practice is still being worked out.
 
 ## Aside — three rungs and two side doors
 
@@ -95,11 +94,11 @@ The practical difference is in what you end up enumerating. Inventory data and y
 
 This prologue is a lens, not a checklist. It says where the adversary sits and why the series is organized the way it is. It does not enumerate threat categories, score mechanisms, or give you a coverage matrix, and for real deployment work you want all three. Three documents do that job well:
 
-- **[The Agent Sandbox Taxonomy][agent-sandbox-taxonomy]** decomposes agent sandboxing into seven defense layers and seven threat categories, scores each mechanism on strength, granularity and portability, and publishes fingerprints for a couple of dozen products. Its strength ladder — cooperative, software-enforced, kernel-enforced, structural — is the same distinction [Part 5](/programming/llm-sandbox.html) arrives at independently, which is some evidence that the distinction is real.
+- **[The Agent Sandbox Taxonomy][agent-sandbox-taxonomy]** decomposes agent sandboxing into seven defense layers and seven threat categories, scores each mechanism on strength, granularity and portability, and publishes fingerprints for a couple of dozen products. Its strength ladder — cooperative, software-enforced, kernel-enforced, structural — is close to the one [Part 2](/programming/authority-enforcement.html#non-bypassability-is-a-property-of-reach) draws, from a cooperative `HTTP_PROXY` setting up to a route that does not exist, which is some evidence that the distinction is real.
 - **[OWASP's Top 10 for LLM Applications][owasp-top-10-llm]** and the **[Agentic AI Threats and Mitigations][agentic-ai-threats-mitigations]** work from the Agentic Security Initiative are the standards-body enumeration, and the right thing to audit a deployment against.
 - **[MITRE ATLAS][mitre-atlas]** supplies tactics, techniques and real case studies in the ATT&CK idiom, for anyone who already thinks in that vocabulary.
 
-One place I read the taxonomy differently, since it bears on the whole series. AST rules prompt injection, hallucination and misalignment out of scope as *vectors* rather than threats, on the grounds that a sandbox governs what an agent can do rather than what it chooses to do, and that choosing is an alignment problem. The first half is right and the framing is useful. But the conclusion I draw is the opposite one: injection is a confused deputy, which is an authorization failure with a fifty-year-old structural cure, and treating it as somebody else's department is how it keeps getting answered with better judgment instead of less authority. Position three in this article is the argument, and [Part 5](/programming/llm-sandbox.html) is the case.
+One place I read the taxonomy differently, since it bears on the whole series. AST rules prompt injection, hallucination and misalignment out of scope as *vectors* rather than threats, on the grounds that a sandbox governs what an agent can do rather than what it chooses to do, and that choosing is an alignment problem. The first half is right and the framing is useful. But the conclusion I draw is the opposite one: injection is a confused deputy, which is an authorization failure with a fifty-year-old structural cure, and treating it as somebody else's department is how it keeps getting answered with better judgment instead of less authority. Position three in this article is the argument, and [Part 4](/programming/capabilities.html) explains the cure.
 
 ## References
 

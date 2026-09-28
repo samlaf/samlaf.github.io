@@ -6,14 +6,13 @@ category: programming
 date:   2026-09-01
 ---
 
-> This is Part 1 of a six-part [series on authorization](/programming/authorization-series-intro.html).
+> This is Part 1 of a five-part [series on authorization](/programming/authorization-series-intro.html).
 >
 > - **[Prologue: Who is the adversary](/programming/who-is-the-adversary.html)** — five positions the attacker has occupied, and why identity stopped being the useful thing to key on.
 > - **Part 1: Authorization models** — what every system computes, and who may change it.
 > - **[Part 2: How authority is enforced](/programming/authority-enforcement.html)** — what makes any of it binding.
 > - **[Part 3: Carriers](/programming/carriers.html)** — decisions that travel with the request.
 > - **[Part 4: Capabilities](/programming/capabilities.html)** — authority you hold, not authority you are.
-> - **[Part 5: LLM sandboxing](/programming/llm-sandbox.html)** — the gateway, correct and unavoidable.
 
 - [One function, one relation](#one-function-one-relation)
 - [The write path](#the-write-path)
@@ -245,7 +244,11 @@ The owner may still edit the discretionary half freely. They simply cannot relax
 
 Once you look for it, composition is everywhere and rarely specified. XACML names its combining algorithms explicitly — deny-overrides, permit-overrides, first-applicable — which is more than most systems do. Real deployments stack an organizational policy, a team policy, a resource owner's settings and a per-request grant, and the rule for combining them is usually whatever the code happens to do.
 
-Part 5 runs into this directly. An agent's effective authority is the conjunction of an org policy, the user's grant, the repository's branch protection and the tool's own rules — four policies, four owners, and no agreed account of how they combine.
+Combining needs more than two answers, and an XACML PDP has four. *Permit* and *Deny* are the obvious two. *NotApplicable* means no policy's target matched the request: the policy abstains, and that is what lets a combining algorithm tell "not my business" apart from "no." *Indeterminate* means evaluation failed, because an attribute was missing or a source was down. XACML 3.0 even records which way it might have gone, as Indeterminate{P}, {D} or {DP}.
+
+The PEP still has to turn all four into allow or deny, and XACML calls its rule for that *PEP bias*. A deny-biased PEP treats everything except Permit as deny. AuthZEN's evaluation response is a boolean, so it builds that collapse into the protocol. NotApplicable is a decision's version of a lookup that comes back empty, and [Part 2](/programming/authority-enforcement.html#absence-is-a-lookup-that-comes-back-empty) turns that empty lookup into an enforcement strategy of its own.
+
+AI agents make this concrete. An agent's effective authority is the conjunction of an org policy, the user's grant, the repository's branch protection and the tool's own rules — four policies, four owners, and no agreed account of how they combine.
 
 ## Materialization: where the boundary falls
 
@@ -284,7 +287,7 @@ Zanzibar's paper calls the result the *new enemy problem*. Alice removes Bob fro
 
 Freshness is a guarantee you ask for, not a property of looking things up. It also qualifies [Part 3](/programming/carriers.html#fresh-or-frozen)'s trade between a fresh lookup and a frozen copy: the lookup is only as fresh as the replica it reads.
 
-Where the evaluator runs — inside the application, as a library, or as a service — is the last choice on the read path. It mostly decides latency and what fails when the evaluator is down. [Part 5](/programming/llm-sandbox.html) deals with it for a PDP in the path of every effect.
+Where the evaluator runs — inside the application, as a library, or as a service — is the last choice on the read path. It mostly decides latency and what fails when the evaluator is down.
 
 ## Real-world examples
 
