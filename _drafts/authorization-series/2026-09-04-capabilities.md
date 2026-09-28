@@ -21,6 +21,7 @@ date:   2026-09-04
 - [Capabilities on the grid](#capabilities-on-the-grid)
   - [The properties, read on the grid](#the-properties-read-on-the-grid)
   - [Two bindings collapse the stages](#two-bindings-collapse-the-stages)
+  - [Where the authority lives](#where-the-authority-lives)
 - [Designation and authority](#designation-and-authority)
   - [The confused deputy is structural](#the-confused-deputy-is-structural)
   - [Cannot, not do not](#cannot-not-do-not)
@@ -159,7 +160,7 @@ Read this way, a capability is not a kind of token. It is what you get when one 
 
 That collapse is not one thing. Two separate bindings produce it.
 
-- **Name to route.** A *local* name — an FD index, a C-list slot, a heap pointer — means something only as an entry in a table the enforcer owns. The entry is the route, so designate and reach become one. A *global* name — a path, a URL, an IP address — can be uttered by anyone, and whether it gets anywhere is a separate question.
+- **Name to route.** A *local* name — an FD index, a C-list slot, a heap pointer — means something only as an entry in a table the enforcer owns. The entry is the route, so designate and reach become one. A *global* name — a path, a URL, an IP address — can be uttered by anyone, and whether it gets anywhere is a separate question. What makes a name local is who resolves it, not what it looks like: an opaque string is local if only one enforcer's table resolves it and the holder can reach no other resolver.
 - **Name to permission.** The rights sit in the table entry, or a secret or signature sits in the string. Either way, designate and decide become one.
 
 The two are independent, so all four combinations exist:
@@ -172,9 +173,12 @@ authority checked       pathname + ACL              Java reference +
 separately              OAuth (URL + token)         SecurityManager
                         SPKI
 
-authority in the name   share link                  FD under Capsicum,
-                        presigned S3 URL            WASI handle, CHERI,
+name bound to           share link                  FD under Capsicum,
+authority               presigned S3 URL            WASI handle, CHERI,
                         Waterken                    object capability
+
+                        bound in the string         bound in the entry
+                                                    the name indexes
 ```
 
 Models 1 and 3 both sit top left: the name is global and the authority travels apart from it. Property D splits them. Model 1's authority is ambient; Model 3's is a key you must select. Model 4 is bottom right.
@@ -183,7 +187,30 @@ The other two corners are the instructive ones. The bottom left satisfies A and 
 
 The column decides acquire. A global name can be guessed, listed or leaked, so it can arrive from anywhere. A local name can arrive only through a channel already held — provided no channel is global. Property F needs the right-hand column, and it needs the column clean: Java's mutable statics are a channel every object can reach, which is the second thing Joe-E removes.
 
+[Part 2](/programming/authority-enforcement.html#one-enforcer-several-stages) draws the same split from the enforcer's side, as separate enforcers against one enforcer that spans the stages. The two views agree because a local name is one that a single enforcer resolves, routes and checks. The right-hand column here is the right-hand column there.
+
 The worked examples above fall out directly. Unix descriptors sit bottom right, and fail F only because the socket that carries one is reached by pathname, a global name, and guarded by an ACL. SPKI sits top left.
+
+### Where the authority lives
+
+The table's two columns answer one question: where does the authority live? A global name with the authority inside it is a carrier from [Part 3](/programming/carriers.html): the authority travels in the artifact. A local name is an index into a table the reference monitor owns, and the authority never leaves that table. On the grid, the first is the Carried row. The second is the Written row, a per-subject namespace, judged by one monitor that spans the stages.
+
+| | authority lives in the artifact | authority lives in a table the enforcer owns |
+|---|---|---|
+| on the grid | Carried | Written: a per-subject namespace |
+| the holder presents | the authority itself | an index into the table |
+| model | 3: keys | 4: object capabilities |
+| Property F | fails: a copy can travel over any channel | holds: passing one goes through the enforcer |
+| revocation | reach every copy | the table's owner revokes |
+| examples | presigned URL, share link, macaroon, SPKI certificate | FD, seL4 capability, a reference in a memory-safe heap |
+
+The placement predicts the table of properties. Put the authority in a carrier, and F fails and revocation turns into debt: the two famous failures of Model 3. Put it in a table the enforcer owns, and both come back. Passing a descriptor is not copying a token. The kernel writes a new entry into the recipient's table, which is why it can refuse the pass, and why seL4 can revoke along the derivation tree.
+
+Binding a carrier to a key does not move it across. A key-bound token stops a stranger from using a stolen copy, but the holder can still pass the authority on, by handing over the token and signing for the recipient, or by acting as a proxy. That is why SPKI is Model 3, although every SPKI certificate is bound to a key.
+
+Across machines, the line falls where the connection ends. Over a live Cap'n Proto connection, each side keeps a table of imported and exported references, and a reference on the wire is an index into the peer's table: Model 4, with the connection as the channel F needs. A reference that must outlive the connection, or reach a party you are not connected to, has to be written out as a string. Cap'n Proto calls that a SturdyRef, E calls its secret a Swiss number, and Waterken makes it an HTTPS URL. The string carries the authority, so it is a carrier, and the capability has dropped to Model 3.
+
+> **A carried token is what a capability becomes when it has to leave the enforcer's table.**
 
 ## Designation and authority
 
@@ -392,6 +419,8 @@ Every one of them fails F. Most are Model 3 outright: the token travels apart fr
 The obstacle is not that you fail to own both endpoints — HTTP and TLS do not require that either. It is that the internet's product *is* universal connectivity. Any host may address any other host, so nothing can deny communication, so F is unavailable in principle rather than in practice. You can approximate it with unguessable designators and confidentiality — Waterken did exactly this, with object capabilities as HTTPS URLs — but that is F-by-obscurity rather than F-by-construction. Anyone who learns the string may use it, and nothing prevents the holder from publishing it.
 
 So: use Model 4 inside your boundaries, expect Model 3 across them, and know which one you are in. Where you control the substrate — a kernel, a runtime, a sandbox, an RPC fabric you designed — the property is nearly free and you should take it. Where you do not, macaroons and their relatives are Model 3 done about as well as Model 3 can be done: attenuable without a round trip, caveats travelling with the artifact, verifiable by a server that has never heard of you.
+
+A service mesh shows what "an RPC fabric you designed" takes. Its sidecar already spans reach, authenticate and decide, but the workload still calls services by DNS name, and the sidecar decides by the pod's identity. To reach Model 4, the workload holds references its sidecar handed it, over Cap'n Proto or as opaque handles only that sidecar resolves, and no route bypasses the sidecar. workerd is built this way: a Worker reaches other services only through the bindings it was given.
 
 The gap in between is a missing standard rather than a law of nature, and Karp has been asking for it since 2009:
 

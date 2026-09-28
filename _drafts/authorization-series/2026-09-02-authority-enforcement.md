@@ -186,7 +186,7 @@ Anderson's three properties therefore apply per stage. A PEP that is always invo
 
 The table above counts enforcers per stage. One component can also enforce several stages. A service-mesh sidecar is the pod's only route out, because iptables sends every connection through it, so it enforces reach. It checks the peer's mTLS certificate, which is authenticate. And it evaluates an authorization policy, which is decide.
 
-That gives a second axis beside the one [Part 4](/programming/capabilities.html#two-bindings-collapse-the-stages) draws for artifacts. An artifact can carry one binding or several, and an enforcer can hold one stage or several:
+That gives a second axis. An artifact can carry one binding or several, and an enforcer can hold one stage or several:
 
 | | separate enforcers | one enforcer, several stages |
 |---|---|---|
@@ -194,6 +194,8 @@ That gives a second axis beside the one [Part 4](/programming/capabilities.html#
 | **one artifact, several bindings** | share link; presigned URL | Capsicum FD; seL4; object capabilities |
 
 The two corners off the diagonal show why both halves matter. A share link joins name and authority in one string, but DNS, the network and the server still enforce apart. Nothing enforces reach, so the link works for anyone who learns it. A sidecar closes the gaps between enforcers, but the workload still speaks global names and presents an ambient identity, so a confused deputy is still possible inside the policy the sidecar enforces. A collapsed artifact needs a collapsed enforcer behind it: a descriptor index means something only because one kernel owns the table it indexes. A gateway that starts from the sidecar's shape, but hands the workload handles instead of global names, moves to the bottom-right corner.
+
+[Part 4](/programming/capabilities.html#two-bindings-collapse-the-stages) draws the same split from the artifact's side, as global names against local ones. The two views agree because a local name is one that a single enforcer resolves, routes and checks: the right-hand column there is the right-hand column here.
 
 Collapse has a price. One enforcer across every stage leaves no gaps, and it leaves one thing to verify. That is the seL4 argument below. But one failure then opens every stage at once, and the enforcer's own authority is large. Separate enforcers in separate trust domains fail independently. The Lambda example at the end of this article relies on that: the IAM check at the resource holds even after a total escape from the guest.
 

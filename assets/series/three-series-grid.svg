@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1560 984" width="1560" height="984" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1560 1060" width="1560" height="1060" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
 <defs><marker id="aS" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#334155"/></marker><marker id="aT" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/></marker><clipPath id="c1"><rect x="210" y="216" width="300" height="132" rx="8"/></clipPath><clipPath id="c2"><rect x="522" y="540" width="300" height="132" rx="8"/></clipPath></defs>
-<rect width="1560" height="984" fill="#fdfdfc"/>
+<rect width="1560" height="1060" fill="#fdfdfc"/>
 <text x="36" y="40" font-size="21" font-weight="700" fill="#0f172a" text-anchor="start">One grid, three series</text>
 <text x="36" y="64" font-size="12.5" font-weight="400" fill="#64748b" text-anchor="start">Columns are the stages one request passes through, from subject to object. Rows run in time order: what is written, what the request carries, the reference monitor it meets, and what that monitor looks up.</text>
 <rect x="60" y="91" width="90" height="34" rx="6" fill="#fff" stroke="#334155" stroke-width="1.4"/>
@@ -24,16 +24,17 @@
 <text x="1296" y="152" font-size="17" font-weight="700" fill="#0f172a" text-anchor="middle">Decide</text>
 <text x="1296" y="173" font-size="12.5" font-weight="400" fill="#64748b" text-anchor="middle">May it do this?</text>
 <text x="1296" y="194" font-size="12" font-weight="500" fill="#0f7d8c" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">f(s, a, r, ctx) → allow | deny</text>
-<line x1="18" y1="220" x2="18" y2="812" stroke="#94a3b8" stroke-width="1.2" marker-end="url(#aT)"/>
-<text x="14" y="516" font-size="11" font-weight="500" fill="#94a3b8" text-anchor="middle" transform="rotate(-90 14 516)">time</text>
+<line x1="18" y1="220" x2="18" y2="888" stroke="#94a3b8" stroke-width="1.2" marker-end="url(#aT)"/>
+<text x="14" y="554" font-size="11" font-weight="500" fill="#94a3b8" text-anchor="middle" transform="rotate(-90 14 554)">time</text>
 <text x="36" y="244" font-size="16" font-weight="700" fill="#0f172a" text-anchor="start">Written</text>
 <text x="36" y="264" font-size="12" font-weight="400" fill="#64748b" text-anchor="start">set before the request,</text>
 <text x="36" y="280" font-size="12" font-weight="400" fill="#64748b" text-anchor="start">and who may write it</text>
 <g clip-path="url(#c1)"><rect x="210" y="216" width="300" height="132" fill="#ececfb"/><path d="M510,216 L510,348 L210,348 z" fill="#e3f1f3"/></g>
 <rect x="210" y="216" width="300" height="132" rx="8" fill="none" stroke="#94a3b8" stroke-width="1.2"/>
-<text x="226" y="244" font-size="14.5" font-weight="700" fill="#0f172a" text-anchor="start">Where names come from</text>
-<text x="226" y="264" font-size="12.5" font-weight="400" fill="#334155" text-anchor="start">acquire, delegation, introduction</text>
-<text x="226" y="282" font-size="12.5" font-weight="400" fill="#334155" text-anchor="start">service → node bindings</text>
+<text x="226" y="244" font-size="14.5" font-weight="700" fill="#0f172a" text-anchor="start">Namespace bindings</text>
+<text x="226" y="264" font-size="12.5" font-weight="400" fill="#334155" text-anchor="start">name → object; per subject, or shared</text>
+<text x="226" y="282" font-size="12.5" font-weight="400" fill="#334155" text-anchor="start">service → node bindings; granting a</text>
+<text x="226" y="300" font-size="12.5" font-weight="400" fill="#334155" text-anchor="start">name writes to a per-subject table</text>
 <text x="496" y="334" font-size="10" font-weight="600" fill="#0f7d8c" text-anchor="end" letter-spacing="0.8" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">AUTHORIZATION</text>
 <text x="496" y="318" font-size="10" font-weight="600" fill="#5b5bd6" text-anchor="end" letter-spacing="0.8" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">IDENTITY</text>
 <rect x="522" y="216" width="300" height="132" rx="8" fill="#ececfb" stroke="#5b5bd6" stroke-width="1.2"/>
@@ -65,8 +66,8 @@
 <text x="1162" y="408" font-size="12.5" font-weight="400" fill="#334155" text-anchor="start">scoped tokens, logon tokens</text>
 <text x="1432" y="438" font-size="10" font-weight="600" fill="#0f7d8c" text-anchor="end" letter-spacing="0.8" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">AUTHORIZATION</text>
 <rect x="210" y="464" width="1236" height="64" rx="8" fill="#e3f1f3" stroke="#0f7d8c" stroke-width="1.2"/>
-<text x="226" y="492" font-size="14.5" font-weight="700" fill="#0f172a" text-anchor="start">Several stages at once</text>
-<text x="226" y="512" font-size="12.5" font-weight="400" fill="#334155" text-anchor="start">a capability designates, reaches and decides, and is judged by one reference monitor</text>
+<text x="226" y="492" font-size="14.5" font-weight="700" fill="#0f172a" text-anchor="start">One carrier, several stages</text>
+<text x="226" y="512" font-size="12.5" font-weight="400" fill="#334155" text-anchor="start">a presigned URL, share link or macaroon designates and decides; the authority lives in the artifact</text>
 <text x="1432" y="514" font-size="10" font-weight="600" fill="#0f7d8c" text-anchor="end" letter-spacing="0.8" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">AUTHORIZATION</text>
 <text x="36" y="568" font-size="16" font-weight="700" fill="#0f172a" text-anchor="start">Reference</text>
 <text x="36" y="588" font-size="16" font-weight="700" fill="#0f172a" text-anchor="start">monitors</text>
@@ -96,41 +97,45 @@
 <text x="1162" y="606" font-size="12.5" font-weight="400" fill="#334155" text-anchor="start">NIST's Access Control Enforcement;</text>
 <text x="1162" y="624" font-size="12.5" font-weight="400" fill="#334155" text-anchor="start">LSMs, gateways</text>
 <text x="1432" y="658" font-size="10" font-weight="600" fill="#0f7d8c" text-anchor="end" letter-spacing="0.8" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">AUTHORIZATION</text>
-<text x="36" y="712" font-size="16" font-weight="700" fill="#0f172a" text-anchor="start">Looked up</text>
-<text x="36" y="732" font-size="12" font-weight="400" fill="#64748b" text-anchor="start">the read path,</text>
-<text x="36" y="748" font-size="12" font-weight="400" fill="#64748b" text-anchor="start">only when needed</text>
-<rect x="210" y="684" width="300" height="132" rx="8" fill="#ececfb" stroke="#5b5bd6" stroke-width="1.2"/>
-<text x="226" y="712" font-size="14.5" font-weight="700" fill="#0f172a" text-anchor="start">Resolution</text>
-<text x="226" y="732" font-size="12.5" font-weight="400" fill="#334155" text-anchor="start">path walk, DNS</text>
-<text x="496" y="802" font-size="10" font-weight="600" fill="#5b5bd6" text-anchor="end" letter-spacing="0.8" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">IDENTITY</text>
-<rect x="522" y="684" width="300" height="132" rx="8" fill="#fdfdfc" stroke="#cbd5e1" stroke-width="1.2" stroke-dasharray="5 4"/>
-<text x="538" y="712" font-size="14.5" font-weight="700" fill="#64748b" text-anchor="start">Routing</text>
-<text x="538" y="732" font-size="12.5" font-weight="400" fill="#94a3b8" text-anchor="start">route lookup; syscall boundary, IPC</text>
-<text x="808" y="802" font-size="11" font-weight="500" fill="#94a3b8" text-anchor="end" font-style="italic">no series dwells here</text>
-<rect x="834" y="684" width="300" height="132" rx="8" fill="#f9eee2" stroke="#c2793a" stroke-width="1.2"/>
-<text x="850" y="712" font-size="14.5" font-weight="700" fill="#0f172a" text-anchor="start">Proof of possession</text>
-<text x="850" y="732" font-size="12.5" font-weight="400" fill="#334155" text-anchor="start">look up the key, then check</text>
-<text x="850" y="750" font-size="12.5" font-weight="400" fill="#334155" text-anchor="start">the handshake signature or passkey</text>
-<text x="850" y="802" font-size="10.5" font-weight="400" fill="#64748b" text-anchor="start" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">Karp: authentication</text>
-<text x="1120" y="802" font-size="10" font-weight="600" fill="#a55f22" text-anchor="end" letter-spacing="0.8" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">CRYPTO</text>
-<rect x="1146" y="684" width="300" height="132" rx="8" fill="#e3f1f3" stroke="#0f7d8c" stroke-width="1.2"/>
-<text x="1162" y="712" font-size="14.5" font-weight="700" fill="#0f172a" text-anchor="start">Access decision</text>
-<text x="1162" y="732" font-size="12.5" font-weight="400" fill="#334155" text-anchor="start">the PDP and PIP:</text>
-<text x="1162" y="750" font-size="12.5" font-weight="400" fill="#334155" text-anchor="start">a query against the view</text>
-<text x="1162" y="802" font-size="10.5" font-weight="400" fill="#64748b" text-anchor="start" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">Karp: access decision</text>
-<text x="1432" y="802" font-size="10" font-weight="600" fill="#0f7d8c" text-anchor="end" letter-spacing="0.8" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">AUTHORIZATION</text>
-<line x1="36" y1="836" x2="1446" y2="836" stroke="#cbd5e1" stroke-dasharray="3 4"/>
-<text x="36" y="878" font-size="16" font-weight="700" fill="#0f172a" text-anchor="start">Below the grid</text>
-<text x="36" y="898" font-size="12" font-weight="400" fill="#64748b" text-anchor="start">what every cell is built from</text>
-<rect x="210" y="850" width="1236" height="64" rx="8" fill="#f9eee2" stroke="#c2793a" stroke-width="1.2"/>
-<text x="226" y="878" font-size="14.5" font-weight="700" fill="#0f172a" text-anchor="start">Cryptographic machinery</text>
-<text x="226" y="898" font-size="12.5" font-weight="400" fill="#334155" text-anchor="start">primitives, AEAD, entropy, key wrapping</text>
-<text x="1432" y="900" font-size="10" font-weight="600" fill="#a55f22" text-anchor="end" letter-spacing="0.8" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">CRYPTO</text>
-<rect x="210" y="936" width="16" height="16" rx="3" fill="#e3f1f3" stroke="#0f7d8c" stroke-width="1.2"/>
-<text x="234" y="949" font-size="12.5" font-weight="400" fill="#334155" text-anchor="start">Authorization series</text>
-<rect x="380" y="936" width="16" height="16" rx="3" fill="#ececfb" stroke="#5b5bd6" stroke-width="1.2"/>
-<text x="404" y="949" font-size="12.5" font-weight="400" fill="#334155" text-anchor="start">Identity series</text>
-<rect x="550" y="936" width="16" height="16" rx="3" fill="#f9eee2" stroke="#c2793a" stroke-width="1.2"/>
-<text x="574" y="949" font-size="12.5" font-weight="400" fill="#334155" text-anchor="start">Applied crypto series</text>
-<text x="1446" y="949" font-size="12" font-weight="400" fill="#64748b" text-anchor="end">Karp's four steps are labelled in the cells they occupy.</text>
+<rect x="210" y="684" width="1236" height="64" rx="8" fill="#e3f1f3" stroke="#0f7d8c" stroke-width="1.2"/>
+<text x="226" y="712" font-size="14.5" font-weight="700" fill="#0f172a" text-anchor="start">One monitor, several stages</text>
+<text x="226" y="732" font-size="12.5" font-weight="400" fill="#334155" text-anchor="start">a sidecar, or the kernel behind an FD table. Give it a per-subject table and it is an object capability.</text>
+<text x="1432" y="734" font-size="10" font-weight="600" fill="#0f7d8c" text-anchor="end" letter-spacing="0.8" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">AUTHORIZATION</text>
+<text x="36" y="788" font-size="16" font-weight="700" fill="#0f172a" text-anchor="start">Looked up</text>
+<text x="36" y="808" font-size="12" font-weight="400" fill="#64748b" text-anchor="start">the read path,</text>
+<text x="36" y="824" font-size="12" font-weight="400" fill="#64748b" text-anchor="start">only when needed</text>
+<rect x="210" y="760" width="300" height="132" rx="8" fill="#ececfb" stroke="#5b5bd6" stroke-width="1.2"/>
+<text x="226" y="788" font-size="14.5" font-weight="700" fill="#0f172a" text-anchor="start">Resolution</text>
+<text x="226" y="808" font-size="12.5" font-weight="400" fill="#334155" text-anchor="start">path walk, DNS</text>
+<text x="496" y="878" font-size="10" font-weight="600" fill="#5b5bd6" text-anchor="end" letter-spacing="0.8" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">IDENTITY</text>
+<rect x="522" y="760" width="300" height="132" rx="8" fill="#fdfdfc" stroke="#cbd5e1" stroke-width="1.2" stroke-dasharray="5 4"/>
+<text x="538" y="788" font-size="14.5" font-weight="700" fill="#64748b" text-anchor="start">Routing</text>
+<text x="538" y="808" font-size="12.5" font-weight="400" fill="#94a3b8" text-anchor="start">route lookup; syscall boundary, IPC</text>
+<text x="808" y="878" font-size="11" font-weight="500" fill="#94a3b8" text-anchor="end" font-style="italic">no series dwells here</text>
+<rect x="834" y="760" width="300" height="132" rx="8" fill="#f9eee2" stroke="#c2793a" stroke-width="1.2"/>
+<text x="850" y="788" font-size="14.5" font-weight="700" fill="#0f172a" text-anchor="start">Proof of possession</text>
+<text x="850" y="808" font-size="12.5" font-weight="400" fill="#334155" text-anchor="start">look up the key, then check</text>
+<text x="850" y="826" font-size="12.5" font-weight="400" fill="#334155" text-anchor="start">the handshake signature or passkey</text>
+<text x="850" y="878" font-size="10.5" font-weight="400" fill="#64748b" text-anchor="start" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">Karp: authentication</text>
+<text x="1120" y="878" font-size="10" font-weight="600" fill="#a55f22" text-anchor="end" letter-spacing="0.8" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">CRYPTO</text>
+<rect x="1146" y="760" width="300" height="132" rx="8" fill="#e3f1f3" stroke="#0f7d8c" stroke-width="1.2"/>
+<text x="1162" y="788" font-size="14.5" font-weight="700" fill="#0f172a" text-anchor="start">Access decision</text>
+<text x="1162" y="808" font-size="12.5" font-weight="400" fill="#334155" text-anchor="start">the PDP and PIP:</text>
+<text x="1162" y="826" font-size="12.5" font-weight="400" fill="#334155" text-anchor="start">a query against the view</text>
+<text x="1162" y="878" font-size="10.5" font-weight="400" fill="#64748b" text-anchor="start" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">Karp: access decision</text>
+<text x="1432" y="878" font-size="10" font-weight="600" fill="#0f7d8c" text-anchor="end" letter-spacing="0.8" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">AUTHORIZATION</text>
+<line x1="36" y1="912" x2="1446" y2="912" stroke="#cbd5e1" stroke-dasharray="3 4"/>
+<text x="36" y="954" font-size="16" font-weight="700" fill="#0f172a" text-anchor="start">Below the grid</text>
+<text x="36" y="974" font-size="12" font-weight="400" fill="#64748b" text-anchor="start">what every cell is built from</text>
+<rect x="210" y="926" width="1236" height="64" rx="8" fill="#f9eee2" stroke="#c2793a" stroke-width="1.2"/>
+<text x="226" y="954" font-size="14.5" font-weight="700" fill="#0f172a" text-anchor="start">Cryptographic machinery</text>
+<text x="226" y="974" font-size="12.5" font-weight="400" fill="#334155" text-anchor="start">primitives, AEAD, entropy, key wrapping</text>
+<text x="1432" y="976" font-size="10" font-weight="600" fill="#a55f22" text-anchor="end" letter-spacing="0.8" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">CRYPTO</text>
+<rect x="210" y="1012" width="16" height="16" rx="3" fill="#e3f1f3" stroke="#0f7d8c" stroke-width="1.2"/>
+<text x="234" y="1025" font-size="12.5" font-weight="400" fill="#334155" text-anchor="start">Authorization series</text>
+<rect x="380" y="1012" width="16" height="16" rx="3" fill="#ececfb" stroke="#5b5bd6" stroke-width="1.2"/>
+<text x="404" y="1025" font-size="12.5" font-weight="400" fill="#334155" text-anchor="start">Identity series</text>
+<rect x="550" y="1012" width="16" height="16" rx="3" fill="#f9eee2" stroke="#c2793a" stroke-width="1.2"/>
+<text x="574" y="1025" font-size="12.5" font-weight="400" fill="#334155" text-anchor="start">Applied crypto series</text>
+<text x="1446" y="1025" font-size="12" font-weight="400" fill="#64748b" text-anchor="end">Karp's four steps are labelled in the cells they occupy.</text>
 </svg>
