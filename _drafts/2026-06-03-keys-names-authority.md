@@ -36,9 +36,13 @@ Only two cells are shared. Designate · Written is where names come from: identi
 
 ## The adversary
 
-Every cell on the grid exists to stop someone, so [the prologue](/programming/threat-model.html) asks where that someone lives. Over sixty years the answer moved inward seven times: the wire, the identity binding, the gate, a hostile party inside the boundary, code running as you, a delegate you authorized, and the data that delegate reads. Each move happened because the previous position got closed.
+Every cell on the grid exists to stop someone, so [the prologue](/programming/threat-model.html) asks where that someone lives. It names seven places, ordered by distance: the wire, the identity binding, the gate, a hostile party inside the boundary, code running as you, a delegate you authorized, and the data that delegate reads. Each one is where attacks go once the positions before it are closed. History ran the other way at first. The earliest work sat at the inside end of the list, networking pulled attention outward, and once the outer positions became infrastructure, the open problems came back inside.
 
 The positions split across the series. Crypto covers the wire, identity covers the binding, and the two share the gate. Authorization covers the next three. The last position belongs to the [LLM sandboxing article](/programming/llm-sandbox.html), which applies all three series to AI agents.
+
+## The guarantee
+
+[The epilogue](/programming/hyperproperties.html) asks what kind of guarantee each cell can give. Almost every check on the grid judges one run: this request, this signature, this token. The last adversary position needs something else. "No untrusted text chose this call" compares runs, which makes it a hyperproperty, and a monitor watching one run cannot check it.
 
 ## Seams to resolve
 

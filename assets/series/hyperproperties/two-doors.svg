@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1560 560" width="1560" height="560" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+<defs>
+<marker id="aP" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#0f7d8c"/></marker>
+<marker id="aS" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#c2410c"/></marker>
+<marker id="aL" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#334155"/></marker>
+</defs>
+<rect width="1560" height="560" fill="#fdfdfc"/>
+<text x="40" y="40" font-size="21" font-weight="700" fill="#0f172a" text-anchor="start">Access control judges each door. Information flow control judges the path between them.</text>
+<text x="40" y="64" font-size="13" font-weight="400" fill="#64748b" text-anchor="start">A process reads a secret file and a public forecast, then sends two messages on a public network. Its report is built from the secret; the forecast message is not.</text>
+<rect x="40" y="104" width="470" height="400" rx="10" fill="#fff" stroke="#e2e8f0" stroke-width="1.2"/>
+<text x="58" y="134" font-size="15" font-weight="700" fill="#0f172a" text-anchor="start">1 · Access control only</text>
+<text x="58" y="154" font-size="12.5" font-weight="400" fill="#64748b" text-anchor="start">each door asks: who is asking?</text>
+<rect x="56" y="236" width="106" height="36" rx="7" fill="#fff4ec" stroke="#c2410c" stroke-width="1.3"/>
+<text x="66" y="252" font-size="12.5" font-weight="700" fill="#c2410c" text-anchor="start">secret.txt</text>
+<text x="66" y="266" font-size="11" font-weight="400" fill="#c2410c" text-anchor="start">label: secret</text>
+<rect x="56" y="316" width="106" height="36" rx="7" fill="#e7f3f4" stroke="#0f7d8c" stroke-width="1.3"/>
+<text x="66" y="332" font-size="12.5" font-weight="700" fill="#0f7d8c" text-anchor="start">forecast</text>
+<text x="66" y="346" font-size="11" font-weight="400" fill="#0f7d8c" text-anchor="start">label: public</text>
+<rect x="198" y="200" width="150" height="190" rx="10" fill="#fff" stroke="#334155" stroke-width="1.5"/>
+<text x="273.0" y="222" font-size="13" font-weight="700" fill="#0f172a" text-anchor="middle">process</text>
+<line x1="198" y1="244" x2="198" y2="360" stroke="#ffffff" stroke-width="4"/>
+<line x1="198" y1="244" x2="198" y2="360" stroke="#334155" stroke-width="1.5" stroke-dasharray="3 4"/>
+<line x1="348" y1="244" x2="348" y2="360" stroke="#ffffff" stroke-width="4"/>
+<line x1="348" y1="244" x2="348" y2="360" stroke="#334155" stroke-width="1.5" stroke-dasharray="3 4"/>
+<text x="194" y="190" font-size="12" font-weight="600" fill="#0f7d8c" text-anchor="end">may read?  ✓</text>
+<text x="352" y="190" font-size="12" font-weight="600" fill="#334155" text-anchor="start">may send?  ✓</text>
+<path d="M162,254 H218 C273,254 273,254 344,254" fill="none" stroke="#c2410c" stroke-width="2.2"/>
+<path d="M162,334 H198" fill="none" stroke="#0f7d8c" stroke-width="2.2"/>
+<path d="M198,334 H344" fill="none" stroke="#0f7d8c" stroke-width="2.2"/>
+<text x="273.0" y="246" font-size="11" font-weight="400" fill="#c2410c" text-anchor="middle" font-family="Menlo, ui-monospace, SFMono-Regular, Consolas, monospace">report = f(secret)</text>
+<text x="273.0" y="326" font-size="11" font-weight="400" fill="#0f7d8c" text-anchor="middle" font-family="Menlo, ui-monospace, SFMono-Regular, Consolas, monospace">msg = forecast</text>
+<path d="M348,254 H392" fill="none" stroke="#c2410c" stroke-width="2.2" marker-end="url(#aS)"/>
+<text x="400" y="259" font-size="16" font-weight="700" fill="#0f7d8c" text-anchor="start">✓</text>
+<text x="418" y="259" font-size="12" font-weight="700" fill="#b91c1c" text-anchor="start">leaks</text>
+<path d="M348,334 H392" fill="none" stroke="#0f7d8c" stroke-width="2.2" marker-end="url(#aP)"/>
+<text x="400" y="339" font-size="16" font-weight="700" fill="#0f7d8c" text-anchor="start">✓</text>
+<text x="418" y="339" font-size="12" font-weight="400" fill="#0f172a" text-anchor="start">sent</text>
+<text x="58" y="434" font-size="13" font-weight="600" fill="#0f172a" text-anchor="start">Both doors said yes. No one checked what the report held.</text>
+<text x="58" y="470" font-size="12" font-weight="400" fill="#64748b" text-anchor="start">ACLs, RBAC, capabilities: every mechanism on the grid</text>
+<rect x="535" y="104" width="470" height="400" rx="10" fill="#fff" stroke="#e2e8f0" stroke-width="1.2"/>
+<text x="553" y="134" font-size="15" font-weight="700" fill="#0f172a" text-anchor="start">2 · Coarse IFC: the process takes the label</text>
+<text x="553" y="154" font-size="12.5" font-weight="400" fill="#64748b" text-anchor="start">the exit asks: what has this process read?</text>
+<rect x="551" y="236" width="106" height="36" rx="7" fill="#fff4ec" stroke="#c2410c" stroke-width="1.3"/>
+<text x="561" y="252" font-size="12.5" font-weight="700" fill="#c2410c" text-anchor="start">secret.txt</text>
+<text x="561" y="266" font-size="11" font-weight="400" fill="#c2410c" text-anchor="start">label: secret</text>
+<rect x="551" y="316" width="106" height="36" rx="7" fill="#e7f3f4" stroke="#0f7d8c" stroke-width="1.3"/>
+<text x="561" y="332" font-size="12.5" font-weight="700" fill="#0f7d8c" text-anchor="start">forecast</text>
+<text x="561" y="346" font-size="11" font-weight="400" fill="#0f7d8c" text-anchor="start">label: public</text>
+<rect x="693" y="200" width="150" height="190" rx="10" fill="#fff4ec" stroke="#334155" stroke-width="1.5"/>
+<text x="768.0" y="222" font-size="13" font-weight="700" fill="#0f172a" text-anchor="middle">process</text>
+<text x="768.0" y="376" font-size="11.5" font-weight="700" fill="#c2410c" text-anchor="middle">label: secret</text>
+<line x1="693" y1="244" x2="693" y2="360" stroke="#fff4ec" stroke-width="4"/>
+<line x1="693" y1="244" x2="693" y2="360" stroke="#334155" stroke-width="1.5" stroke-dasharray="3 4"/>
+<line x1="843" y1="244" x2="843" y2="360" stroke="#fff4ec" stroke-width="4"/>
+<line x1="843" y1="244" x2="843" y2="360" stroke="#334155" stroke-width="1.5" stroke-dasharray="3 4"/>
+<text x="689" y="190" font-size="12" font-weight="600" fill="#0f7d8c" text-anchor="end">may read?  ✓</text>
+<text x="847" y="190" font-size="12" font-weight="600" fill="#334155" text-anchor="start">process label public?</text>
+<path d="M657,254 H713 C768,254 768,254 839,254" fill="none" stroke="#c2410c" stroke-width="2.2"/>
+<path d="M657,334 H693" fill="none" stroke="#0f7d8c" stroke-width="2.2"/>
+<path d="M693,334 H839" fill="none" stroke="#c2410c" stroke-width="2.2"/>
+<text x="768.0" y="246" font-size="11" font-weight="400" fill="#c2410c" text-anchor="middle" font-family="Menlo, ui-monospace, SFMono-Regular, Consolas, monospace">report = f(secret)</text>
+<text x="768.0" y="326" font-size="11" font-weight="400" fill="#c2410c" text-anchor="middle" font-family="Menlo, ui-monospace, SFMono-Regular, Consolas, monospace">msg = forecast</text>
+<line x1="849" y1="244" x2="849" y2="264" stroke="#b91c1c" stroke-width="3"/>
+<text x="861" y="259" font-size="16" font-weight="700" fill="#b91c1c" text-anchor="start">✗</text>
+<text x="879" y="259" font-size="12" font-weight="400" fill="#0f172a" text-anchor="start">blocked</text>
+<line x1="849" y1="324" x2="849" y2="344" stroke="#b91c1c" stroke-width="3"/>
+<text x="861" y="339" font-size="16" font-weight="700" fill="#b91c1c" text-anchor="start">✗</text>
+<text x="879" y="339" font-size="12" font-weight="400" fill="#0f172a" text-anchor="start">blocked too</text>
+<text x="553" y="434" font-size="13" font-weight="600" fill="#0f172a" text-anchor="start">No leak, but the innocent forecast is stuck inside with it.</text>
+<text x="553" y="470" font-size="12" font-weight="400" fill="#64748b" text-anchor="start">ADEPT-50's high-water mark, Bell–LaPadula, Biba's low-water mark,</text>
+<text x="553" y="486" font-size="12" font-weight="400" fill="#64748b" text-anchor="start">a sandbox with no network</text>
+<rect x="1030" y="104" width="470" height="400" rx="10" fill="#fff" stroke="#e2e8f0" stroke-width="1.2"/>
+<text x="1048" y="134" font-size="15" font-weight="700" fill="#0f172a" text-anchor="start">3 · Fine IFC: each value carries its label</text>
+<text x="1048" y="154" font-size="12.5" font-weight="400" fill="#64748b" text-anchor="start">the exit asks: what is this value made of?</text>
+<rect x="1046" y="236" width="106" height="36" rx="7" fill="#fff4ec" stroke="#c2410c" stroke-width="1.3"/>
+<text x="1056" y="252" font-size="12.5" font-weight="700" fill="#c2410c" text-anchor="start">secret.txt</text>
+<text x="1056" y="266" font-size="11" font-weight="400" fill="#c2410c" text-anchor="start">label: secret</text>
+<rect x="1046" y="316" width="106" height="36" rx="7" fill="#e7f3f4" stroke="#0f7d8c" stroke-width="1.3"/>
+<text x="1056" y="332" font-size="12.5" font-weight="700" fill="#0f7d8c" text-anchor="start">forecast</text>
+<text x="1056" y="346" font-size="11" font-weight="400" fill="#0f7d8c" text-anchor="start">label: public</text>
+<rect x="1188" y="200" width="150" height="190" rx="10" fill="#fff" stroke="#334155" stroke-width="1.5"/>
+<text x="1263.0" y="222" font-size="13" font-weight="700" fill="#0f172a" text-anchor="middle">process</text>
+<line x1="1188" y1="244" x2="1188" y2="360" stroke="#ffffff" stroke-width="4"/>
+<line x1="1188" y1="244" x2="1188" y2="360" stroke="#334155" stroke-width="1.5" stroke-dasharray="3 4"/>
+<line x1="1338" y1="244" x2="1338" y2="360" stroke="#ffffff" stroke-width="4"/>
+<line x1="1338" y1="244" x2="1338" y2="360" stroke="#334155" stroke-width="1.5" stroke-dasharray="3 4"/>
+<text x="1184" y="190" font-size="12" font-weight="600" fill="#0f7d8c" text-anchor="end">may read?  ✓</text>
+<text x="1342" y="190" font-size="12" font-weight="600" fill="#334155" text-anchor="start">value label public?</text>
+<path d="M1152,254 H1208 C1263,254 1263,254 1334,254" fill="none" stroke="#c2410c" stroke-width="2.2"/>
+<path d="M1152,334 H1188" fill="none" stroke="#0f7d8c" stroke-width="2.2"/>
+<path d="M1188,334 H1334" fill="none" stroke="#0f7d8c" stroke-width="2.2"/>
+<text x="1263.0" y="246" font-size="11" font-weight="400" fill="#c2410c" text-anchor="middle" font-family="Menlo, ui-monospace, SFMono-Regular, Consolas, monospace">report = f(secret)</text>
+<text x="1263.0" y="326" font-size="11" font-weight="400" fill="#0f7d8c" text-anchor="middle" font-family="Menlo, ui-monospace, SFMono-Regular, Consolas, monospace">msg = forecast</text>
+<line x1="1344" y1="244" x2="1344" y2="264" stroke="#b91c1c" stroke-width="3"/>
+<text x="1356" y="259" font-size="16" font-weight="700" fill="#b91c1c" text-anchor="start">✗</text>
+<text x="1374" y="259" font-size="12" font-weight="400" fill="#0f172a" text-anchor="start">blocked</text>
+<path d="M1338,334 H1382" fill="none" stroke="#0f7d8c" stroke-width="2.2" marker-end="url(#aP)"/>
+<text x="1390" y="339" font-size="16" font-weight="700" fill="#0f7d8c" text-anchor="start">✓</text>
+<text x="1408" y="339" font-size="12" font-weight="400" fill="#0f172a" text-anchor="start">sent</text>
+<text x="1048" y="434" font-size="13" font-weight="600" fill="#0f172a" text-anchor="start">Only what the secret shaped is stopped.</text>
+<text x="1048" y="470" font-size="12" font-weight="400" fill="#64748b" text-anchor="start">Denning's certification, Jif, SCIF, CaMeL</text>
+<text x="40" y="540" font-size="13" font-weight="400" fill="#64748b" text-anchor="start">Swap “secret” for “untrusted” and the network for a tool call, and the same three panels show integrity: a prompt injection enters by the door and is judged at the call.</text>
+</svg>

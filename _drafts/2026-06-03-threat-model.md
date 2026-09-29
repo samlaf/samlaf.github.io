@@ -20,7 +20,7 @@ date: 2026-06-03
 
 Every mechanism in these three series exists to stop someone. A key, a certificate, a list at a resource, a monitor in the path: each one is a claim about *someone*. Secret from whom, bound by whom, non-bypassable by whom. Change the adversary, and the same mechanism goes from sufficient to decorative without a line of it changing.
 
-So it is worth asking where the adversary lives before describing what stops them. Over sixty years the answer has moved seven times. It always moved inward, and always because the previous position got closed:
+So it is worth asking where the adversary lives before describing what stops them. There are seven places. The list orders them by distance, from the network between two machines to the text inside your own agent. Each one is where attacks go once the positions above it are closed:
 
 1. **On the wire** — the network between two endpoints. *(Now largely solved.)*
 2. **In the identity binding** — *is this key really Bob's?* *(Now infrastructure.)*
@@ -29,6 +29,8 @@ So it is worth asking where the adversary lives before describing what stops the
 5. **Code running as you** — a program holding everything you can do. *(Never closed.)*
 6. **A delegate you authorized** — software acting for you, with authority you handed it. *(Live.)*
 7. **The data the delegate reads** — an agent whose intent is assembled from what it reads. *(The open frontier.)*
+
+History did not follow this order. The earliest work sat near the bottom of the list. Time-sharing systems in the 1960s and 1970s already worried about hostile users, programs running as you, and information leaking out. Networking pulled attention up to the wire, the binding and the gate. Once those became infrastructure, the open problems were back at the bottom.
 
 For each, it helps to separate three things that often happened *decades apart*: the **threat**, the **theory** that modelled it, and the **implementation** that finally shipped — plus the attacks that broke those implementations in between. The recurring pattern: a threat is *modelled* long before it's *defeated*, and the deployed system gets broken many times along the way.
 
@@ -131,7 +133,7 @@ TODO: related with content of this thread: https://x.com/ittaia/status/202096384
 
 ## Where the frontier is now
 
-The story isn't that the threat *moved* on its own. We kept *solving* the outer positions, so the adversary kept relocating to whatever was still open. The wire took thirty-five years to genuinely secure (Dolev–Yao's 1983 model to TLS 1.3 in 2018). Identity binding and the gate became infrastructure. What is left is inside: the authenticated party who is hostile, the code that runs as you, the delegate you trusted, and the data that delegate reads. Position five never closed, and six and seven are built on top of it.
+The threat did not move on its own, and it did not move in list order. What moved was the cheapest route in. We kept *solving* the outer positions, and each time the cheapest attack moved to one further in. The wire took thirty-five years to genuinely secure (Dolev–Yao's 1983 model to TLS 1.3 in 2018). Identity binding and the gate became infrastructure. What is left is inside, where the story started in the time-sharing era: the authenticated party who is hostile, the code that runs as you, the delegate you trusted, and the data that delegate reads. Position five never closed, and six and seven are built on top of it.
 
 The seven positions are also the three series:
 

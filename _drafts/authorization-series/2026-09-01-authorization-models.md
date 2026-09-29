@@ -329,6 +329,8 @@ The lifetimes nest. A request sits inside a task, and a task inside a session. T
 
 Schneider's theory also marks where this stops. A trace monitor sees which calls happened. It does not see which value flowed into which argument. That is information flow, and it is not a property of a single trace. [Clarkson and Schneider][hyperproperties] call it a *hyperproperty*: a property of sets of traces, which no monitor watching one execution can check. A prompt injection can be a sequence of perfectly legal calls. [Part 4](/programming/capabilities.html#prompt-injection-is-a-confused-deputy) takes that case.
 
+Distributed databases hit the same wall. In Kleppmann's example, Alice reads a final score from one replica and tells Bob, whose replica has not caught up yet. The database broke none of its rules. The dependency ran through a channel it never saw: Alice talking to Bob. Both fields answer in the same two ways. Linearizability assumes every later operation may depend on every earlier one. Its security twin is [Biba][biba]'s *low-water mark*: once an agent reads untrusted text, everything it does next counts as untrusted. Causal tokens like the [zookie](#freshness) track only the real dependencies, and so do fine-grained labels. They cost less, but they see only what flows through the system. An LLM is exactly such a hidden channel, inside your own system. Nothing records which input shaped which output.
+
 ## Real-world examples
 
 A system is not one model. It makes a choice on each axis of the figure:
@@ -374,10 +376,12 @@ Everything in this article decides at the resource. The PDP looks up what was wr
 18. [TRBAC: A Temporal Role-Based Access Control Model][trbac] — Bertino, Bonatti, Ferrari, 2000; roles enabled and disabled on a schedule
 19. [Monitoring Metric First-Order Temporal Properties][mfotl] — Basin, Klaedtke, Müller, Zălinescu, JACM 2015; the logic under Dogwood's operators
 20. [Hyperproperties][hyperproperties] — Clarkson and Schneider, 2010; why information flow is not a property of one trace
+21. [Biba Model][biba] — Biba, 1977; integrity labels, and the low-water mark for subjects that read less-trusted data
 
 [authorization-terminology-mess]: https://idpro.org/authorization-terminology-is-a-mess-lets-fix-it/ "Authorization Terminology Is a Mess. Let's Fix It."
 [authzen-spec]: https://openid.net/specs/authorization-api-1_0.html#name-information-model "Authorization API 1.0: information model - OpenID Foundation"
 [authzen]: https://openid.net/wg/authzen/ "AuthZEN - OpenID Foundation working group"
+[biba]: https://en.wikipedia.org/wiki/Biba_Model "Biba Model"
 [brewer-nash]: https://en.wikipedia.org/wiki/Brewer_and_Nash_model "Brewer and Nash model"
 [conseca]: https://arxiv.org/abs/2501.17070 "Contextual Agent Security: A Policy for Every Purpose"
 [ddia]: https://dataintensive.net/ "Designing Data-Intensive Applications"
