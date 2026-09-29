@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1560 640" width="1560" height="640" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+<defs><marker id="aT" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#0f7d8c"/></marker></defs>
+<rect width="1560" height="640" fill="#fdfdfc"/>
+<text x="40" y="40" font-size="21" font-weight="700" fill="#0f172a" text-anchor="start">What moves when a check becomes contextual</text>
+<text x="40" y="64" font-size="13" font-weight="400" fill="#64748b" text-anchor="start">The same check, with the facts and the clock written out as arguments. Each arrow names the systems that make one argument move.</text>
+<text x="87.70000000000005" y="330" font-size="46" font-family="Menlo, ui-monospace, SFMono-Regular, Consolas, monospace" xml:space="preserve"><tspan fill="#0f7d8c" font-weight="700">f</tspan><tspan fill="#64748b" font-weight="400">(</tspan><tspan fill="#0f7d8c" font-weight="700">facts</tspan><tspan fill="#64748b" font-weight="400">, </tspan><tspan fill="#0f172a" font-weight="400">subject, action, resource</tspan><tspan fill="#64748b" font-weight="400">, </tspan><tspan fill="#0f7d8c" font-weight="700">context</tspan><tspan fill="#64748b" font-weight="400">, </tspan><tspan fill="#0f7d8c" font-weight="700">time</tspan><tspan fill="#64748b" font-weight="400">)</tspan></text>
+<path d="M340.92800000000005,286 q0,-10 10,-10 H673.0780000000001 q10,0 10,-10 q0,10 10,10 H1015.2280000000001 q10,0 10,10" fill="none" stroke="#0f7d8c" stroke-width="1.5"/>
+<rect x="60" y="118" width="330" height="104" rx="8" fill="#fff" stroke="#0f7d8c" stroke-width="1.3"/>
+<text x="76" y="145" font-size="15" font-weight="700" fill="#0f7d8c" text-anchor="start">Per-task policy</text>
+<text x="76" y="168" font-size="12.5" font-weight="400" fill="#0f172a" text-anchor="start">the rules are written when a task starts,</text>
+<text x="76" y="187" font-size="12.5" font-weight="400" fill="#0f172a" text-anchor="start">from trusted input only</text>
+<text x="76" y="206" font-size="12" font-weight="600" fill="#64748b" text-anchor="start">Conseca · org policy ∧ task policy</text>
+<polyline points="101.5,288.0 101.5,255.0 101.5,255.0 101.5,226.0" fill="none" stroke="#0f7d8c" stroke-width="1.5" marker-end="url(#aT)"/>
+<rect x="150" y="432" width="330" height="104" rx="8" fill="#fff" stroke="#0f7d8c" stroke-width="1.3"/>
+<text x="166" y="459" font-size="15" font-weight="700" fill="#0f7d8c" text-anchor="start">History-based access control</text>
+<text x="166" y="482" font-size="12.5" font-weight="400" fill="#0f172a" text-anchor="start">the check appends each request;</text>
+<text x="166" y="501" font-size="12.5" font-weight="400" fill="#0f172a" text-anchor="start">later checks read the log</text>
+<text x="166" y="520" font-size="12" font-weight="600" fill="#64748b" text-anchor="start">Chinese Wall · Dogwood · Omnigent</text>
+<polyline points="212.3,344.0 212.3,388.0 212.3,388.0 212.3,428.0" fill="none" stroke="#0f7d8c" stroke-width="1.5" marker-end="url(#aT)"/>
+<rect x="600" y="118" width="330" height="104" rx="8" fill="#fff" stroke="#0f7d8c" stroke-width="1.3"/>
+<text x="616" y="145" font-size="15" font-weight="700" fill="#0f7d8c" text-anchor="start">Information flow control</text>
+<text x="616" y="168" font-size="12.5" font-weight="400" fill="#0f172a" text-anchor="start">each value carries where it came from,</text>
+<text x="616" y="187" font-size="12.5" font-weight="400" fill="#0f172a" text-anchor="start">so policy can judge an argument&#x27;s origin</text>
+<text x="616" y="206" font-size="12" font-weight="600" fill="#64748b" text-anchor="start">CaMeL · the prompt-injection case, Part 4</text>
+<polyline points="683.1,266.0 683.1,244.0 683.1,244.0 683.1,226.0" fill="none" stroke="#0f7d8c" stroke-width="1.5" marker-end="url(#aT)"/>
+<rect x="880" y="432" width="330" height="104" rx="8" fill="#fff" stroke="#0f7d8c" stroke-width="1.3"/>
+<text x="896" y="459" font-size="15" font-weight="700" fill="#0f7d8c" text-anchor="start">Attribute-based access control</text>
+<text x="896" y="482" font-size="12.5" font-weight="400" fill="#0f172a" text-anchor="start">more travels with each request:</text>
+<text x="896" y="501" font-size="12.5" font-weight="400" fill="#0f172a" text-anchor="start">device, network, risk score</text>
+<text x="896" y="520" font-size="12" font-weight="600" fill="#64748b" text-anchor="start">ABAC · AuthZEN context · risk-adaptive</text>
+<polyline points="1181.5,344.0 1181.5,388.0 1181.5,388.0 1181.5,428.0" fill="none" stroke="#0f7d8c" stroke-width="1.5" marker-end="url(#aT)"/>
+<rect x="1180" y="118" width="330" height="104" rx="8" fill="#fff" stroke="#0f7d8c" stroke-width="1.3"/>
+<text x="1196" y="145" font-size="15" font-weight="700" fill="#0f7d8c" text-anchor="start">Temporal access control</text>
+<text x="1196" y="168" font-size="12.5" font-weight="400" fill="#0f172a" text-anchor="start">the enforcer&#x27;s clock moves the answer</text>
+<text x="1196" y="187" font-size="12.5" font-weight="400" fill="#0f172a" text-anchor="start">with no write: expiry, windows</text>
+<text x="1196" y="206" font-size="12" font-weight="600" fill="#64748b" text-anchor="start">TRBAC · expiring tokens · Dogwood&#x27;s within 1h</text>
+<polyline points="1389.2,288.0 1389.2,255.0 1389.2,255.0 1389.2,226.0" fill="none" stroke="#0f7d8c" stroke-width="1.5" marker-end="url(#aT)"/>
+<text x="780.0" y="612" font-size="12.5" font-weight="400" fill="#64748b" text-anchor="middle">Agent systems move several of these at once, and one check reads them all.</text>
+</svg>

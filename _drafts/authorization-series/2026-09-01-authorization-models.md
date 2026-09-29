@@ -28,6 +28,7 @@ date:   2026-09-01
 - [The read path](#the-read-path)
   - [Queries](#queries)
   - [Freshness](#freshness)
+- [When the check writes](#when-the-check-writes)
 - [Real-world examples](#real-world-examples)
 - [References](#references)
 
@@ -288,6 +289,46 @@ Freshness is a guarantee you ask for, not a property of looking things up. It al
 
 Where the evaluator runs — inside the application, as a library, or as a service — is the last choice on the read path. It mostly decides latency and what fails when the evaluator is down.
 
+## When the check writes
+
+Everything so far keeps the two paths apart. Writers change facts and rules, and a check only reads them. Asking `f` never changes the next answer.
+
+Some policies need it to. The oldest is the [Chinese Wall][brewer-nash] of Brewer and Nash, from 1989, written for consultants who serve competing clients. Files are grouped by company, and companies by conflict of interest. Alice may read any bank's files until she reads one. From then on, every other bank's files are denied. The matrix changed, and no administrator wrote the change. The check did. The family has a name, *history-based access control*, from [Edjlali, Acharya and Chaudhary][history-based-access-control]'s 1998 work on mobile code. [Usage control][ucon-abc] made it a property of the model in 2004 and called it *mutability*: using an object can update the attributes the next decision reads.
+
+So the check takes the facts as an argument, and returns new ones with each answer:
+
+```text
+f(subject, action, resource, context)               → decision
+f(facts, subject, action, resource, context, time)  → (decision, facts')
+```
+
+The first line is the special case: the facts never change, and nothing reads the clock. [Schneider][enforceable-security-policies] gave the general case its theory in 2000. A monitor that watches each step of a program and can stop it is a *security automaton*, and the facts it carries are the automaton's state. The policies it can enforce are *safety properties* of the execution: a bad thing never happens. An ACL is an automaton with one state.
+
+AI agents made this mainstream, because one tool call rarely says what an agent is doing. The attacker who [splits one intent across several requests](/programming/authority-enforcement.html#who-is-the-attacker) defeats any check that judges one request at a time. Two recent engines take the stateful path, and they land at opposite ends of the [materialization](#materialization-where-the-boundary-falls) line:
+
+- **[Dogwood][dogwood]** keeps the raw log of tool calls and their responses, and adds temporal operators to Cedar: `formerly within 1h`, `count_within`, `sum_within`. "Sell shares only if an approval for these shares came back in the last hour" is a query over the log, run at check time. The operators come from [metric first-order temporal logic][mfotl], the specification language of runtime monitoring.
+- **[Omnigent][omnigent]** folds the log into the facts as it goes. A policy is a handler that takes "the old state and the new event" and returns a new state and a decision. That is Schneider's automaton, written as code.
+
+The trade is the one from the Materialization section, in the vocabulary of event sourcing. A log lets you add a rule next week and apply it to everything already recorded. Folded state is cheap to check, but you have to decide in advance what to remember.
+
+The check that writes is also a new writer, and the most trustworthy one in the system. It records what the enforcer saw happen, not what anyone claims. The agent cannot forge that record, as long as the enforcer runs outside the agent's reach. A log kept in the agent's own harness falls with the harness: [Part 2](/programming/authority-enforcement.html#who-is-the-attacker)'s rung 2.
+
+Agents put pressure on the other arguments as well:
+
+- **`f` itself.** The rules can be written per task. [Conseca][conseca] has a model draft a policy for each task from trusted input only, and that policy becomes one more term in the [conjunction](#policies-compose-and-the-rule-is-not-the-same-as-the-edit-right).
+- **`context`.** More can travel with each call, as AuthZEN's `context` field already allows: device, network, a risk score.
+- **`time`.** The clock can move the answer with no write at all. A grant expires, or a `within 1h` window slides past an old approval. Same facts, same request, a new answer. This is the enforcer's own clock, not an hour the caller reports in `context`. [TRBAC][trbac] added it to RBAC in 2000, with roles that turn on and off on a schedule.
+
+![The check written as f(facts, subject, action, resource, context, time), with an arrow from each argument to the systems that make it move: per-task policy for f, history-based access control for facts, information flow control for the request, attribute-based access control for context, and temporal access control for time](/assets/authorization/contextual-policies.svg)
+
+The lifetimes nest. A request sits inside a task, and a task inside a session. The rules change per task, the facts grow with each request, and the clock runs under all of them. One check reads a slice of each:
+
+![A timeline with four lanes: the session's facts grow by one entry per request, the policy changes when a new task starts, requests arrive as ticks, and the clock runs underneath. One check reads the facts so far, the current task's policy, its own request, and a one-hour window of the clock.](/assets/authorization/check-lifetimes.svg)
+
+"Intent-based policy" is a name for what all of these try to approximate. Intent itself is not an input. No check can read it, and every system here guesses at it from what it can read.
+
+Schneider's theory also marks where this stops. A trace monitor sees which calls happened. It does not see which value flowed into which argument. That is information flow, and it is not a property of a single trace. [Clarkson and Schneider][hyperproperties] call it a *hyperproperty*: a property of sets of traces, which no monitor watching one execution can check. A prompt injection can be a sequence of perfectly legal calls. [Part 4](/programming/capabilities.html#prompt-injection-is-a-confused-deputy) takes that case.
+
 ## Real-world examples
 
 A system is not one model. It makes a choice on each axis of the figure:
@@ -304,6 +345,7 @@ A system is not one model. It makes a choice on each axis of the figure:
 | Zanzibar, Ory Keto | relation tuples | recursive rewrites | per check; Leopard precomputes nested groups | client services, through writes |
 | SpiceDB, OpenFGA | tuples with caveats or conditions | rewrites, plus predicates on edges | per check, with caches | client services, through writes |
 | Cedar / AWS Verified Permissions, Oso, Aserto Topaz | entities, relationships and attributes | one language for ReBAC and ABAC | computed per request | policy authors |
+| Dogwood, Omnigent | a history of the session's requests | predicates over the history | Dogwood keeps the log and queries it per check; Omnigent folds it into state per request | the enforcer, on every request |
 | KeyKOS, EROS, seL4, Fuchsia, Cap'n Proto, WASI Preview 2 | references held by each process | none | stored as the references themselves | the holder |
 
 The last row is a different matrix, and [Part 4](/programming/capabilities.html) is about it.
@@ -322,18 +364,38 @@ Everything in this article decides at the resource. The PDP looks up what was wr
 8. [Designing Data-Intensive Applications][ddia] — Kleppmann; facts and derived views, and the boundary between the write path and the read path
 9. [OPA policy language][opa-policy-language] — Rego and its Datalog lineage
 10. [Postgres row security policies][postgres-row-security] — `CREATE POLICY`, a view the database applies to every query
+11. [The Chinese Wall Security Policy][brewer-nash] — Brewer and Nash, 1989; access that depends on what you accessed before
+12. [Enforceable Security Policies][enforceable-security-policies] — Schneider, 2000; security automata, and why a monitor enforces only safety properties
+13. [Introducing Dogwood][dogwood] — Cedar with temporal operators over the log of tool calls
+14. [Contextual policies in Omnigent][omnigent] — policies as handlers over session state
+15. [Contextual Agent Security: A Policy for Every Purpose][conseca] — Tsai and Bagdasarian, HotOS 2025; a policy written per task
+16. [History-based Access Control for Mobile Code][history-based-access-control] — Edjlali, Acharya, Chaudhary, CCS 1998; the name for the family
+17. [The UCON<sub>ABC</sub> Usage Control Model][ucon-abc] — Park and Sandhu, 2004; mutable attributes, updated by use
+18. [TRBAC: A Temporal Role-Based Access Control Model][trbac] — Bertino, Bonatti, Ferrari, 2000; roles enabled and disabled on a schedule
+19. [Monitoring Metric First-Order Temporal Properties][mfotl] — Basin, Klaedtke, Müller, Zălinescu, JACM 2015; the logic under Dogwood's operators
+20. [Hyperproperties][hyperproperties] — Clarkson and Schneider, 2010; why information flow is not a property of one trace
 
 [authorization-terminology-mess]: https://idpro.org/authorization-terminology-is-a-mess-lets-fix-it/ "Authorization Terminology Is a Mess. Let's Fix It."
-[authzen]: https://openid.net/wg/authzen/ "AuthZEN - OpenID Foundation working group"
 [authzen-spec]: https://openid.net/specs/authorization-api-1_0.html#name-information-model "Authorization API 1.0: information model - OpenID Foundation"
+[authzen]: https://openid.net/wg/authzen/ "AuthZEN - OpenID Foundation working group"
+[brewer-nash]: https://en.wikipedia.org/wiki/Brewer_and_Nash_model "Brewer and Nash model"
+[conseca]: https://arxiv.org/abs/2501.17070 "Contextual Agent Security: A Policy for Every Purpose"
 [ddia]: https://dataintensive.net/ "Designing Data-Intensive Applications"
+[dogwood]: https://aws.amazon.com/blogs/opensource/introducing-dogwood-runtime-verification-for-ai-agents/ "Introducing Dogwood: runtime verification for AI agents"
+[enforceable-security-policies]: https://dl.acm.org/doi/10.1145/353323.353382 "Enforceable Security Policies"
 [from-abac-zbac-evolution]: https://shiftleft.com/mirrors/www.hpl.hp.com/techreports/2009/HPL-2009-30.pdf "From ABAC to ZBAC: The Evolution of Access Control Models"
+[history-based-access-control]: https://www.cse.buffalo.edu/cadi/papers/1998/1998_3.pdf "History-based Access Control for Mobile Code"
+[hyperproperties]: https://content.iospress.com/articles/journal-of-computer-security/jcs393 "Hyperproperties"
+[mfotl]: https://doi.org/10.1145/2699444 "Monitoring Metric First-Order Temporal Properties"
+[omnigent]: https://www.databricks.com/blog/contextual-policies-omnigent-using-session-state-better-govern-ai-agents "Contextual policies in Omnigent: using session state to better govern AI agents"
 [opa-policy-language]: https://www.openpolicyagent.org/docs/latest/policy-language/ "Policy Language - Open Policy Agent"
 [postgres-row-security]: https://www.postgresql.org/docs/current/ddl-rowsecurity.html "PostgreSQL: Row Security Policies"
 [protection]: https://www.microsoft.com/en-us/research/publication/protection/ "Protection"
 [rfc4949]: https://datatracker.ietf.org/doc/html/rfc4949 "RFC 4949: Internet Security Glossary, Version 2"
 [state-union-authorization]: https://idpro.org/the-state-of-the-union-of-authorization/ "The State of the Union of Authorization"
+[trbac]: https://www.cerias.purdue.edu/apps/reports_and_papers/view/3971 "TRBAC: A Temporal Role-Based Access Control Model"
 [type-enforcement]: https://en.wikipedia.org/wiki/Type_enforcement "Type Enforcement"
+[ucon-abc]: https://www.profsandhu.com/journals/tissec/ucon-abc.pdf "The UCON ABC Usage Control Model"
 [ultimate-guide-choosing-right]: https://axiomatics.com/wp-content/uploads/2024/10/the-ultimate-guide-to-choosing-the-right-authorization-language-whitepaper-axiomatics-10-16-2024.pdf "The Ultimate Guide to Choosing the Right Authorization Language"
 [zanzibar-google-s-consistent]: https://research.google/pubs/pub48190/ "Zanzibar: Google's Consistent, Global Authorization System"
 

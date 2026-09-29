@@ -61,7 +61,7 @@ Where a check runs sets the rung it survives. A check in the application falls a
 
 Two more attackers sit off the ladder, and either one joins any rung of it:
 
-- **Split the action.** The attacker spreads one intent across several requests, each allowed on its own. This defeats any monitor that judges one effect at a time, without defeating any single check.
+- **Split the action.** The attacker spreads one intent across several requests, each allowed on its own. This defeats any monitor that judges one effect at a time, without defeating any single check. Only a monitor that remembers earlier requests can see it, and [Part 1](/programming/authorization-models.html#when-the-check-writes) covers those.
 - **Edit the policy.** The attacker targets the policy itself: the matchers, the callbacks, the configuration. Policy arrives through the same supply chain as everything else.
 
 So attacker strength is a partial order, not a line. A threat table with a single column mixes two questions. Rate each mechanism against the ladder, and you get the argument for stacking several: whatever falls at one rung needs something behind it that holds there.
@@ -344,6 +344,8 @@ Check and use named the same string and reached different objects: designate ran
 
 **Environment.** Device posture, time of day, risk score. Same shape as the others, least often modelled, and the usual reason a "zero trust" deployment is less continuous than its diagram.
 
+**Approval.** A human approval is authorization state written for one request, and it has the tightest binding of all. It has to bind to exactly what the human saw: the action, the target, the arguments and the version of the object. If any of them changes before the effect, the [approval no longer applies][ai-engineer-security]. An approval bound only to the tool name is a check on one request and a use on another.
+
 Re-evaluate on every operation and the inputs stay fresh, but every operation pays the resolution cost and re-opens all four races. Materialize the decision into a token, a descriptor or a capability, and the bindings freeze — that is the point of it — but a frozen binding is indistinguishable from a stale one once the source of truth moves.
 
 ```text
@@ -357,7 +359,7 @@ Neither end is safe on its own. A file descriptor eliminates the object-binding 
 
 The mechanisms above are not alternatives. A Wasm component runs inside a Linux guest constrained by an LSM. The guest presents an attenuated handle to a host broker. The broker uses a scoped OAuth token against a service whose own policy protects the resource.
 
-At every boundary, ask the same questions, one per stage plus two more:
+At every boundary, ask the same questions, one per stage plus three more:
 
 1. What computation is inside the boundary?
 2. **Acquire.** Which names can it obtain, and from whom?
@@ -365,8 +367,9 @@ At every boundary, ask the same questions, one per stage plus two more:
 4. **Reach.** Which paths leave the boundary, and does every one pass an enforcer?
 5. **Decide.** Who decides, in what vocabulary?
 6. What is the enforcer's own maximum authority if its policy is wrong?
+7. Which inputs does this enforcer share with the others?
 
-Question four is Anderson's first property. Question six is the one people skip, and it is the one that decides how bad your worst day is.
+Question four is Anderson's first property. Question six is the one people skip, and it is the one that decides how bad your worst day is. Question seven decides whether stacking monitors buys anything. Monitors that trust the same claim fail together: a gateway, a sandbox and an audit system can [all trust the same wrong tenant ID][ai-engineer-security].
 
 ## Practice
 
@@ -612,8 +615,12 @@ Between those monitors, decisions have to travel. A token issued in one domain i
 20. [Firecracker design][firecracker-design] and [the jailer][firecracker-jailer] — the microVM threat model, the device model, and confining the VMM itself
 21. [Lambda environment variables][lambda-envvars] — the execution role's keys, handed to the function
 22. [AuthZEN Interop][authzen-interop] — the Todo scenario, with PEPs at the gateway and in the backend
+23. [AI Engineer: AI security][ai-engineer-security] — trust boundaries for agents, approvals bound to exact actions, and controls that share failure modes
+24. [AI Engineer: sandboxes and execution isolation][ai-engineer-sandboxes] — talks and historic papers, from namespaces and microVMs to agent sandbox fleets
 
 [10-years-sel4]: https://microkerneldude.org/2019/08/06/10-years-sel4-still-the-best-still-getting-better "10 years seL4"
+[ai-engineer-sandboxes]: https://ai.engineer/topics/sandboxes-and-execution-isolation "AI Engineer: sandboxes and execution isolation"
+[ai-engineer-security]: https://ai.engineer/topics/ai-security "AI Engineer: AI security"
 [apparmor-where-do-lsms]: https://apparmor.net/about/lsm_introduction/ "AppArmor — Where Do LSMs Fit?"
 [bpf-lsm-programs]: https://docs.kernel.org/bpf/prog_lsm.html "BPF LSM programs"
 [bsrs-safe-proxies]: https://google.github.io/building-secure-and-reliable-systems/raw/ch03.html "Building Secure and Reliable Systems, Chapter 3: Safe Proxies"
