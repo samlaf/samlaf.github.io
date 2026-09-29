@@ -1,157 +1,227 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 628" font-family="-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">
-<rect x="0" y="0" width="980" height="628" fill="#ffffff"/>
-<text x="20" y="30" font-size="18" font-weight="700" fill="#0f172a">The adversary moved inward: seven positions, 1966–today</text>
-<text x="20" y="48" font-size="12" fill="#475569">Band colour is the series that covers it: <tspan fill="#2563eb" font-weight="700">applied crypto</tspan>, <tspan fill="#15803d" font-weight="700">identity</tspan>, <tspan fill="#b45309" font-weight="700">authorization</tspan>.</text>
-<rect x="20" y="66" width="940" height="64" rx="8" fill="#eff4ff"/>
-<text x="32" y="104" font-size="12.5" font-weight="700" fill="#2563eb">On the wire</text>
-<line x1="235" y1="100" x2="950" y2="100" stroke="#2563eb" stroke-opacity="0.35" stroke-width="2"/>
-<rect x="20" y="142" width="940" height="64" rx="8" fill="#eefcf1"/>
-<text x="32" y="180" font-size="12.5" font-weight="700" fill="#15803d">Identity binding</text>
-<line x1="235" y1="176" x2="950" y2="176" stroke="#15803d" stroke-opacity="0.35" stroke-width="2"/>
-<rect x="20" y="218" width="940" height="64" rx="8" fill="#eff4ff"/>
-<text x="32" y="256" font-size="12.5" font-weight="700" fill="#2563eb">At the gate</text>
-<line x1="235" y1="252" x2="950" y2="252" stroke="#2563eb" stroke-opacity="0.35" stroke-width="2"/>
-<rect x="20" y="294" width="940" height="64" rx="8" fill="#fdf4e7"/>
-<text x="32" y="332" font-size="12.5" font-weight="700" fill="#b45309">Inside the boundary</text>
-<line x1="235" y1="328" x2="950" y2="328" stroke="#b45309" stroke-opacity="0.35" stroke-width="2"/>
-<rect x="20" y="370" width="940" height="64" rx="8" fill="#fdf4e7"/>
-<text x="32" y="408" font-size="12.5" font-weight="700" fill="#b45309">Code running as you</text>
-<line x1="235" y1="404" x2="950" y2="404" stroke="#b45309" stroke-opacity="0.35" stroke-width="2"/>
-<rect x="20" y="446" width="940" height="64" rx="8" fill="#fdf4e7"/>
-<text x="32" y="484" font-size="12.5" font-weight="700" fill="#b45309">A delegate you authorized</text>
-<line x1="235" y1="480" x2="950" y2="480" stroke="#b45309" stroke-opacity="0.35" stroke-width="2"/>
-<rect x="20" y="522" width="940" height="64" rx="8" fill="#fdf4e7"/>
-<text x="32" y="560" font-size="12.5" font-weight="700" fill="#b45309">The data the delegate reads</text>
-<line x1="235" y1="556" x2="950" y2="556" stroke="#b45309" stroke-opacity="0.35" stroke-width="2"/>
-<line x1="293.5" y1="66" x2="293.5" y2="590" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="2,4"/>
-<text x="293.5" y="610" font-size="12" fill="#475569" text-anchor="middle">1970</text>
-<line x1="410.5" y1="66" x2="410.5" y2="590" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="2,4"/>
-<text x="410.5" y="610" font-size="12" fill="#475569" text-anchor="middle">1980</text>
-<line x1="527.5" y1="66" x2="527.5" y2="590" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="2,4"/>
-<text x="527.5" y="610" font-size="12" fill="#475569" text-anchor="middle">1990</text>
-<line x1="644.5" y1="66" x2="644.5" y2="590" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="2,4"/>
-<text x="644.5" y="610" font-size="12" fill="#475569" text-anchor="middle">2000</text>
-<line x1="761.5" y1="66" x2="761.5" y2="590" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="2,4"/>
-<text x="761.5" y="610" font-size="12" fill="#475569" text-anchor="middle">2010</text>
-<line x1="878.5" y1="66" x2="878.5" y2="590" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="2,4"/>
-<text x="878.5" y="610" font-size="12" fill="#475569" text-anchor="middle">2020</text>
-<line x1="375.4" y1="106" x2="375.4" y2="114" stroke="#cbd5e1" stroke-width="1"/>
-<circle cx="375.4" cy="100" r="6" fill="#2563eb" stroke="#2563eb" stroke-width="2"/>
-<text x="375.4" y="126" font-size="12" fill="#0f172a" text-anchor="middle">DES</text>
-<line x1="445.6" y1="94" x2="445.6" y2="86" stroke="#cbd5e1" stroke-width="1"/>
-<circle cx="445.6" cy="100" r="6" fill="#ffffff" stroke="#64748b" stroke-width="2"/>
-<text x="445.6" y="83" font-size="12" fill="#0f172a" text-anchor="middle">Dolev–Yao model</text>
-<line x1="632.8" y1="94" x2="632.8" y2="86" stroke="#cbd5e1" stroke-width="1"/>
-<circle cx="632.8" cy="100" r="6" fill="#2563eb" stroke="#2563eb" stroke-width="2"/>
-<text x="638.8" y="83" font-size="12" fill="#0f172a" text-anchor="end">SSL → TLS 1.0</text>
-<line x1="656.2" y1="106" x2="656.2" y2="114" stroke="#cbd5e1" stroke-width="1"/>
-<circle cx="656.2" cy="100" r="6" fill="#16a34a" stroke="#16a34a" stroke-width="2"/>
-<text x="656.2" y="126" font-size="12" fill="#0f172a" text-anchor="middle">AES</text>
-<line x1="679.6" y1="94" x2="679.6" y2="86" stroke="#cbd5e1" stroke-width="1"/>
-<circle cx="679.6" cy="100" r="6" fill="#ffffff" stroke="#64748b" stroke-width="2"/>
-<text x="673.6" y="83" font-size="12" fill="#0f172a" text-anchor="start">RFC 3552</text>
-<line x1="796.6" y1="94" x2="796.6" y2="86" stroke="#cbd5e1" stroke-width="1"/>
-<circle cx="796.6" cy="100" r="6" fill="#dc2626" stroke="#dc2626" stroke-width="2"/>
-<text x="796.6" y="83" font-size="12" fill="#0f172a" text-anchor="middle">BEAST…Logjam</text>
-<line x1="855.1" y1="106" x2="855.1" y2="114" stroke="#cbd5e1" stroke-width="1"/>
-<circle cx="855.1" cy="100" r="6" fill="#16a34a" stroke="#16a34a" stroke-width="2"/>
-<text x="855.1" y="126" font-size="12" fill="#0f172a" text-anchor="middle">TLS 1.3</text>
-<line x1="363.7" y1="170" x2="363.7" y2="162" stroke="#cbd5e1" stroke-width="1"/>
-<circle cx="363.7" cy="176" r="6" fill="#ffffff" stroke="#64748b" stroke-width="2"/>
-<text x="357.7" y="159" font-size="12" fill="#0f172a" text-anchor="start">Diffie–Hellman</text>
-<line x1="621.1" y1="170" x2="621.1" y2="162" stroke="#cbd5e1" stroke-width="1"/>
-<circle cx="621.1" cy="176" r="6" fill="#2563eb" stroke="#2563eb" stroke-width="2"/>
-<text x="621.1" y="159" font-size="12" fill="#0f172a" text-anchor="middle">PKI / X.509</text>
-<line x1="773.2" y1="170" x2="773.2" y2="162" stroke="#cbd5e1" stroke-width="1"/>
-<circle cx="773.2" cy="176" r="6" fill="#dc2626" stroke="#dc2626" stroke-width="2"/>
-<text x="773.2" y="159" font-size="12" fill="#0f172a" text-anchor="middle">CA breaches</text>
-<line x1="796.6" y1="182" x2="796.6" y2="190" stroke="#cbd5e1" stroke-width="1"/>
-<circle cx="796.6" cy="176" r="6" fill="#16a34a" stroke="#16a34a" stroke-width="2"/>
-<text x="796.6" y="202" font-size="12" fill="#0f172a" text-anchor="middle">Cert Transparency</text>
-<line x1="398.8" y1="246" x2="398.8" y2="238" stroke="#cbd5e1" stroke-width="1"/>
-<circle cx="398.8" cy="252" r="6" fill="#2563eb" stroke="#2563eb" stroke-width="2"/>
-<text x="398.8" y="235" font-size="12" fill="#0f172a" text-anchor="middle">salted password hashes</text>
-<line x1="504.1" y1="258" x2="504.1" y2="266" stroke="#cbd5e1" stroke-width="1"/>
-<circle cx="504.1" cy="252" r="6" fill="#2563eb" stroke="#2563eb" stroke-width="2"/>
-<text x="504.1" y="278" font-size="12" fill="#0f172a" text-anchor="middle">Kerberos</text>
-<line x1="749.8" y1="246" x2="749.8" y2="238" stroke="#cbd5e1" stroke-width="1"/>
-<circle cx="749.8" cy="252" r="6" fill="#dc2626" stroke="#dc2626" stroke-width="2"/>
-<text x="749.8" y="235" font-size="12" fill="#0f172a" text-anchor="middle">RockYou leak</text>
-<line x1="901.9" y1="246" x2="901.9" y2="238" stroke="#cbd5e1" stroke-width="1"/>
-<circle cx="901.9" cy="252" r="6" fill="#16a34a" stroke="#16a34a" stroke-width="2"/>
-<text x="901.9" y="235" font-size="12" fill="#0f172a" text-anchor="middle">passkeys</text>
-<line x1="305.2" y1="322" x2="305.2" y2="314" stroke="#cbd5e1" stroke-width="1"/>
-<circle cx="305.2" cy="328" r="6" fill="#ffffff" stroke="#64748b" stroke-width="2"/>
-<text x="311.2" y="311" font-size="12" fill="#0f172a" text-anchor="end">access matrix</text>
-<line x1="328.6" y1="334" x2="328.6" y2="342" stroke="#cbd5e1" stroke-width="1"/>
-<circle cx="328.6" cy="328" r="6" fill="#ffffff" stroke="#64748b" stroke-width="2"/>
-<text x="328.6" y="354" font-size="12" fill="#0f172a" text-anchor="middle">Bell–LaPadula</text>
-<line x1="363.7" y1="322" x2="363.7" y2="314" stroke="#cbd5e1" stroke-width="1"/>
-<circle cx="363.7" cy="328" r="6" fill="#ffffff" stroke="#64748b" stroke-width="2"/>
-<text x="363.7" y="311" font-size="12" fill="#0f172a" text-anchor="middle">HRU</text>
-<line x1="504.1" y1="322" x2="504.1" y2="314" stroke="#cbd5e1" stroke-width="1"/>
-<circle cx="504.1" cy="328" r="6" fill="#dc2626" stroke="#dc2626" stroke-width="2"/>
-<text x="504.1" y="311" font-size="12" fill="#0f172a" text-anchor="middle">Morris worm</text>
-<line x1="586.0" y1="322" x2="586.0" y2="314" stroke="#cbd5e1" stroke-width="1"/>
-<circle cx="586.0" cy="328" r="6" fill="#ffffff" stroke="#64748b" stroke-width="2"/>
-<text x="586.0" y="311" font-size="12" fill="#0f172a" text-anchor="middle">Lowe's attack</text>
-<line x1="644.5" y1="334" x2="644.5" y2="342" stroke="#cbd5e1" stroke-width="1"/>
-<circle cx="644.5" cy="328" r="6" fill="#2563eb" stroke="#2563eb" stroke-width="2"/>
-<text x="644.5" y="354" font-size="12" fill="#0f172a" text-anchor="middle">SELinux</text>
-<line x1="866.8" y1="322" x2="866.8" y2="314" stroke="#cbd5e1" stroke-width="1"/>
-<circle cx="866.8" cy="328" r="6" fill="#ffffff" stroke="#64748b" stroke-width="2"/>
-<text x="866.8" y="311" font-size="12" fill="#0f172a" text-anchor="middle">Arkko draft</text>
-<line x1="246.7" y1="398" x2="246.7" y2="390" stroke="#cbd5e1" stroke-width="1"/>
-<circle cx="246.7" cy="404" r="6" fill="#ffffff" stroke="#64748b" stroke-width="2"/>
-<text x="240.7" y="387" font-size="12" fill="#0f172a" text-anchor="start">Dennis &amp; Van Horn</text>
-<line x1="352.0" y1="410" x2="352.0" y2="418" stroke="#cbd5e1" stroke-width="1"/>
-<circle cx="352.0" cy="404" r="6" fill="#ffffff" stroke="#64748b" stroke-width="2"/>
-<text x="352.0" y="430" font-size="12" fill="#0f172a" text-anchor="middle">Saltzer &amp; Schroeder</text>
-<line x1="469.0" y1="398" x2="469.0" y2="390" stroke="#cbd5e1" stroke-width="1"/>
-<circle cx="469.0" cy="404" r="6" fill="#2563eb" stroke="#2563eb" stroke-width="2"/>
-<text x="469.0" y="387" font-size="12" fill="#0f172a" text-anchor="middle">KeyKOS</text>
-<line x1="504.1" y1="410" x2="504.1" y2="418" stroke="#cbd5e1" stroke-width="1"/>
-<circle cx="504.1" cy="404" r="6" fill="#ffffff" stroke="#64748b" stroke-width="2"/>
-<text x="498.1" y="430" font-size="12" fill="#0f172a" text-anchor="start">confused deputy</text>
-<line x1="738.1" y1="398" x2="738.1" y2="390" stroke="#cbd5e1" stroke-width="1"/>
-<circle cx="738.1" cy="404" r="6" fill="#2563eb" stroke="#2563eb" stroke-width="2"/>
-<text x="738.1" y="387" font-size="12" fill="#0f172a" text-anchor="middle">mobile app permissions</text>
-<line x1="925.3" y1="398" x2="925.3" y2="390" stroke="#cbd5e1" stroke-width="1"/>
-<circle cx="925.3" cy="404" r="6" fill="#dc2626" stroke="#dc2626" stroke-width="2"/>
-<text x="931.3" y="387" font-size="12" fill="#0f172a" text-anchor="end">xz backdoor</text>
-<line x1="948.7" y1="410" x2="948.7" y2="418" stroke="#cbd5e1" stroke-width="1"/>
-<circle cx="948.7" cy="404" r="6" fill="#b45309" stroke="#b45309" stroke-width="2"/>
-<text x="954.7" y="430" font-size="12" fill="#0f172a" text-anchor="end">open</text>
-<line x1="726.4" y1="486" x2="726.4" y2="494" stroke="#cbd5e1" stroke-width="1"/>
-<circle cx="726.4" cy="480" r="6" fill="#2563eb" stroke="#2563eb" stroke-width="2"/>
-<text x="732.4" y="506" font-size="12" fill="#0f172a" text-anchor="end">OAuth 1.0</text>
-<line x1="784.9" y1="474" x2="784.9" y2="466" stroke="#cbd5e1" stroke-width="1"/>
-<circle cx="784.9" cy="480" r="6" fill="#2563eb" stroke="#2563eb" stroke-width="2"/>
-<text x="790.9" y="463" font-size="12" fill="#0f172a" text-anchor="end">OAuth 2.0</text>
-<line x1="808.3" y1="486" x2="808.3" y2="494" stroke="#cbd5e1" stroke-width="1"/>
-<circle cx="808.3" cy="480" r="6" fill="#ffffff" stroke="#64748b" stroke-width="2"/>
-<text x="808.3" y="506" font-size="12" fill="#0f172a" text-anchor="middle">macaroons</text>
-<line x1="820.0" y1="474" x2="820.0" y2="466" stroke="#cbd5e1" stroke-width="1"/>
-<circle cx="820.0" cy="480" r="6" fill="#16a34a" stroke="#16a34a" stroke-width="2"/>
-<text x="814.0" y="463" font-size="12" fill="#0f172a" text-anchor="start">PKCE</text>
-<line x1="948.7" y1="486" x2="948.7" y2="494" stroke="#cbd5e1" stroke-width="1"/>
-<circle cx="948.7" cy="480" r="6" fill="#b45309" stroke="#b45309" stroke-width="2"/>
-<text x="954.7" y="506" font-size="12" fill="#0f172a" text-anchor="end">open</text>
-<line x1="913.6" y1="550" x2="913.6" y2="542" stroke="#cbd5e1" stroke-width="1"/>
-<circle cx="913.6" cy="556" r="6" fill="#ffffff" stroke="#64748b" stroke-width="2"/>
-<text x="919.6" y="539" font-size="12" fill="#0f172a" text-anchor="end">indirect prompt injection</text>
-<line x1="948.7" y1="562" x2="948.7" y2="570" stroke="#cbd5e1" stroke-width="1"/>
-<circle cx="948.7" cy="556" r="6" fill="#b45309" stroke="#b45309" stroke-width="2"/>
-<text x="954.7" y="582" font-size="12" fill="#0f172a" text-anchor="end">open</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 646" font-family="-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">
+<rect x="0" y="0" width="980" height="646" fill="#ffffff"/>
+<text x="20" y="30" font-size="18" font-weight="700" fill="#0f172a">Where the adversary lives: seven positions, 1966–today</text>
+<text x="20" y="50" font-size="12" fill="#475569">Rows run from farthest from you (top) to your own process (bottom). Work began in the bottom rows, moved up with the network, and what is still open is back at the bottom.</text>
+<text x="20" y="68" font-size="12" fill="#475569">Band colour is the series that covers it: <tspan fill="#2563eb" font-weight="700">applied crypto</tspan>, <tspan fill="#15803d" font-weight="700">identity</tspan>, <tspan fill="#b45309" font-weight="700">authorization</tspan>.</text>
+<rect x="20" y="84" width="940" height="64" rx="8" fill="#eff4ff"/>
+<text x="32" y="115" font-size="12.5" font-weight="700" fill="#2563eb">On the wire</text>
+<text x="32" y="131" font-size="11" fill="#475569">holds nothing but the network</text>
+<line x1="235" y1="118" x2="950" y2="118" stroke="#2563eb" stroke-opacity="0.35" stroke-width="2"/>
+<rect x="20" y="160" width="940" height="64" rx="8" fill="#eefcf1"/>
+<text x="32" y="191" font-size="12.5" font-weight="700" fill="#15803d">Identity binding</text>
+<text x="32" y="207" font-size="11" fill="#475569">holds a real key, just not Bob's</text>
+<line x1="235" y1="194" x2="950" y2="194" stroke="#15803d" stroke-opacity="0.35" stroke-width="2"/>
+<rect x="20" y="236" width="940" height="64" rx="8" fill="#eff4ff"/>
+<text x="32" y="267" font-size="12.5" font-weight="700" fill="#2563eb">At the gate</text>
+<text x="32" y="283" font-size="11" fill="#475569">holds a stolen credential</text>
+<line x1="235" y1="270" x2="950" y2="270" stroke="#2563eb" stroke-opacity="0.35" stroke-width="2"/>
+<rect x="20" y="312" width="940" height="64" rx="8" fill="#fdf4e7"/>
+<text x="32" y="343" font-size="12.5" font-weight="700" fill="#b45309">Inside the boundary</text>
+<text x="32" y="359" font-size="11" fill="#475569">holds authority of their own</text>
+<line x1="235" y1="346" x2="950" y2="346" stroke="#b45309" stroke-opacity="0.35" stroke-width="2"/>
+<rect x="20" y="388" width="940" height="64" rx="8" fill="#fdf4e7"/>
+<text x="32" y="419" font-size="12.5" font-weight="700" fill="#b45309">Code running as you</text>
+<text x="32" y="435" font-size="11" fill="#475569">holds all of your authority</text>
+<line x1="235" y1="422" x2="950" y2="422" stroke="#b45309" stroke-opacity="0.35" stroke-width="2"/>
+<rect x="20" y="464" width="940" height="64" rx="8" fill="#fdf4e7"/>
+<text x="32" y="495" font-size="12.5" font-weight="700" fill="#b45309">A delegate you authorized</text>
+<text x="32" y="511" font-size="11" fill="#475569">holds a slice of your authority</text>
+<line x1="235" y1="498" x2="950" y2="498" stroke="#b45309" stroke-opacity="0.35" stroke-width="2"/>
+<rect x="20" y="540" width="940" height="64" rx="8" fill="#fdf4e7"/>
+<text x="32" y="571" font-size="12.5" font-weight="700" fill="#b45309">The data the delegate reads</text>
+<text x="32" y="587" font-size="11" fill="#475569">holds no authority, only input</text>
+<line x1="235" y1="574" x2="950" y2="574" stroke="#b45309" stroke-opacity="0.35" stroke-width="2"/>
+<line x1="293.5" y1="84" x2="293.5" y2="608" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="2,4"/>
+<text x="293.5" y="628" font-size="12" fill="#475569" text-anchor="middle">1970</text>
+<line x1="410.5" y1="84" x2="410.5" y2="608" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="2,4"/>
+<text x="410.5" y="628" font-size="12" fill="#475569" text-anchor="middle">1980</text>
+<line x1="527.5" y1="84" x2="527.5" y2="608" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="2,4"/>
+<text x="527.5" y="628" font-size="12" fill="#475569" text-anchor="middle">1990</text>
+<line x1="644.5" y1="84" x2="644.5" y2="608" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="2,4"/>
+<text x="644.5" y="628" font-size="12" fill="#475569" text-anchor="middle">2000</text>
+<line x1="761.5" y1="84" x2="761.5" y2="608" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="2,4"/>
+<text x="761.5" y="628" font-size="12" fill="#475569" text-anchor="middle">2010</text>
+<line x1="878.5" y1="84" x2="878.5" y2="608" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="2,4"/>
+<text x="878.5" y="628" font-size="12" fill="#475569" text-anchor="middle">2020</text>
+<line x1="375.4" y1="124" x2="375.4" y2="132" stroke="#cbd5e1" stroke-width="1"/>
+<circle cx="375.4" cy="118" r="6" fill="#475569" stroke="#475569" stroke-width="2"/>
+<text x="375.4" y="144" font-size="12" fill="#0f172a" text-anchor="middle">DES</text>
+<line x1="445.6" y1="112" x2="445.6" y2="104" stroke="#cbd5e1" stroke-width="1"/>
+<circle cx="445.6" cy="118" r="6" fill="#ffffff" stroke="#64748b" stroke-width="2"/>
+<text x="445.6" y="101" font-size="12" fill="#0f172a" text-anchor="middle">Dolev–Yao model</text>
+<line x1="621.1" y1="124" x2="621.1" y2="132" stroke="#cbd5e1" stroke-width="1"/>
+<circle cx="621.1" cy="118" r="6" fill="#dc2626" stroke="#dc2626" stroke-width="2"/>
+<text x="627.1" y="144" font-size="12" fill="#0f172a" text-anchor="end">DES cracked</text>
+<line x1="632.8" y1="112" x2="632.8" y2="104" stroke="#cbd5e1" stroke-width="1"/>
+<circle cx="632.8" cy="118" r="6" fill="#475569" stroke="#475569" stroke-width="2"/>
+<text x="638.8" y="101" font-size="12" fill="#0f172a" text-anchor="end">SSL → TLS 1.0</text>
+<line x1="656.2" y1="124" x2="656.2" y2="132" stroke="#cbd5e1" stroke-width="1"/>
+<circle cx="656.2" cy="118" r="6" fill="#16a34a" stroke="#16a34a" stroke-width="2"/>
+<text x="656.2" y="144" font-size="12" fill="#0f172a" text-anchor="middle">AES</text>
+<line x1="679.6" y1="112" x2="679.6" y2="104" stroke="#cbd5e1" stroke-width="1"/>
+<circle cx="679.6" cy="118" r="6" fill="#ffffff" stroke="#64748b" stroke-width="2"/>
+<text x="673.6" y="101" font-size="12" fill="#0f172a" text-anchor="start">RFC 3552</text>
+<line x1="796.6" y1="112" x2="796.6" y2="104" stroke="#cbd5e1" stroke-width="1"/>
+<circle cx="796.6" cy="118" r="6" fill="#dc2626" stroke="#dc2626" stroke-width="2"/>
+<text x="796.6" y="101" font-size="12" fill="#0f172a" text-anchor="middle">BEAST…Logjam</text>
+<line x1="855.1" y1="124" x2="855.1" y2="132" stroke="#cbd5e1" stroke-width="1"/>
+<circle cx="855.1" cy="118" r="6" fill="#16a34a" stroke="#16a34a" stroke-width="2"/>
+<text x="855.1" y="144" font-size="12" fill="#0f172a" text-anchor="middle">TLS 1.3</text>
+<line x1="363.7" y1="188" x2="363.7" y2="180" stroke="#cbd5e1" stroke-width="1"/>
+<circle cx="363.7" cy="194" r="6" fill="#ffffff" stroke="#64748b" stroke-width="2"/>
+<text x="357.7" y="177" font-size="12" fill="#0f172a" text-anchor="start">Diffie–Hellman</text>
+<line x1="387.1" y1="200" x2="387.1" y2="208" stroke="#cbd5e1" stroke-width="1"/>
+<circle cx="387.1" cy="194" r="6" fill="#ffffff" stroke="#64748b" stroke-width="2"/>
+<text x="387.1" y="220" font-size="12" fill="#0f172a" text-anchor="middle">Kohnfelder</text>
+<line x1="504.1" y1="188" x2="504.1" y2="180" stroke="#cbd5e1" stroke-width="1"/>
+<circle cx="504.1" cy="194" r="6" fill="#475569" stroke="#475569" stroke-width="2"/>
+<text x="504.1" y="177" font-size="12" fill="#0f172a" text-anchor="middle">X.509</text>
+<line x1="586.0" y1="200" x2="586.0" y2="208" stroke="#cbd5e1" stroke-width="1"/>
+<circle cx="586.0" cy="194" r="6" fill="#475569" stroke="#475569" stroke-width="2"/>
+<text x="586.0" y="220" font-size="12" fill="#0f172a" text-anchor="middle">Web PKI</text>
+<line x1="773.2" y1="188" x2="773.2" y2="180" stroke="#cbd5e1" stroke-width="1"/>
+<circle cx="773.2" cy="194" r="6" fill="#dc2626" stroke="#dc2626" stroke-width="2"/>
+<text x="773.2" y="177" font-size="12" fill="#0f172a" text-anchor="middle">CA breaches</text>
+<line x1="796.6" y1="200" x2="796.6" y2="208" stroke="#cbd5e1" stroke-width="1"/>
+<circle cx="796.6" cy="194" r="6" fill="#16a34a" stroke="#16a34a" stroke-width="2"/>
+<text x="796.6" y="220" font-size="12" fill="#0f172a" text-anchor="middle">Cert Transparency</text>
+<line x1="398.8" y1="276" x2="398.8" y2="284" stroke="#cbd5e1" stroke-width="1"/>
+<circle cx="398.8" cy="270" r="6" fill="#475569" stroke="#475569" stroke-width="2"/>
+<text x="398.8" y="296" font-size="12" fill="#0f172a" text-anchor="middle">salted password hashes</text>
+<line x1="504.1" y1="264" x2="504.1" y2="256" stroke="#cbd5e1" stroke-width="1"/>
+<circle cx="504.1" cy="270" r="6" fill="#475569" stroke="#475569" stroke-width="2"/>
+<text x="504.1" y="253" font-size="12" fill="#0f172a" text-anchor="middle">Kerberos</text>
+<line x1="749.8" y1="264" x2="749.8" y2="256" stroke="#cbd5e1" stroke-width="1"/>
+<circle cx="749.8" cy="270" r="6" fill="#dc2626" stroke="#dc2626" stroke-width="2"/>
+<text x="749.8" y="253" font-size="12" fill="#0f172a" text-anchor="middle">RockYou (plaintext)</text>
+<line x1="901.9" y1="264" x2="901.9" y2="256" stroke="#cbd5e1" stroke-width="1"/>
+<circle cx="901.9" cy="270" r="6" fill="#16a34a" stroke="#16a34a" stroke-width="2"/>
+<text x="901.9" y="253" font-size="12" fill="#0f172a" text-anchor="middle">passkeys</text>
+<line x1="305.2" y1="340" x2="305.2" y2="332" stroke="#cbd5e1" stroke-width="1"/>
+<circle cx="305.2" cy="346" r="6" fill="#ffffff" stroke="#64748b" stroke-width="2"/>
+<text x="311.2" y="329" font-size="12" fill="#0f172a" text-anchor="end">access matrix</text>
+<line x1="328.6" y1="352" x2="328.6" y2="360" stroke="#cbd5e1" stroke-width="1"/>
+<circle cx="328.6" cy="346" r="6" fill="#ffffff" stroke="#64748b" stroke-width="2"/>
+<text x="328.6" y="372" font-size="12" fill="#0f172a" text-anchor="middle">Bell–LaPadula</text>
+<line x1="363.7" y1="340" x2="363.7" y2="332" stroke="#cbd5e1" stroke-width="1"/>
+<circle cx="363.7" cy="346" r="6" fill="#ffffff" stroke="#64748b" stroke-width="2"/>
+<text x="363.7" y="329" font-size="12" fill="#0f172a" text-anchor="middle">HRU</text>
+<line x1="445.6" y1="352" x2="445.6" y2="360" stroke="#cbd5e1" stroke-width="1"/>
+<circle cx="445.6" cy="346" r="6" fill="#475569" stroke="#475569" stroke-width="2"/>
+<text x="445.6" y="372" font-size="12" fill="#0f172a" text-anchor="middle">Orange Book</text>
+<line x1="504.1" y1="340" x2="504.1" y2="332" stroke="#cbd5e1" stroke-width="1"/>
+<circle cx="504.1" cy="346" r="6" fill="#dc2626" stroke="#dc2626" stroke-width="2"/>
+<text x="504.1" y="329" font-size="12" fill="#0f172a" text-anchor="middle">Morris worm</text>
+<line x1="586.0" y1="340" x2="586.0" y2="332" stroke="#cbd5e1" stroke-width="1"/>
+<circle cx="586.0" cy="346" r="6" fill="#dc2626" stroke="#dc2626" stroke-width="2"/>
+<text x="586.0" y="329" font-size="12" fill="#0f172a" text-anchor="middle">Lowe's attack</text>
+<line x1="644.5" y1="352" x2="644.5" y2="360" stroke="#cbd5e1" stroke-width="1"/>
+<circle cx="644.5" cy="346" r="6" fill="#475569" stroke="#475569" stroke-width="2"/>
+<text x="644.5" y="372" font-size="12" fill="#0f172a" text-anchor="middle">SELinux</text>
+<line x1="796.6" y1="340" x2="796.6" y2="332" stroke="#cbd5e1" stroke-width="1"/>
+<circle cx="796.6" cy="346" r="6" fill="#dc2626" stroke="#dc2626" stroke-width="2"/>
+<text x="796.6" y="329" font-size="12" fill="#0f172a" text-anchor="middle">Snowden</text>
+<line x1="866.8" y1="340" x2="866.8" y2="332" stroke="#cbd5e1" stroke-width="1"/>
+<circle cx="866.8" cy="346" r="6" fill="#ffffff" stroke="#64748b" stroke-width="2"/>
+<text x="866.8" y="329" font-size="12" fill="#0f172a" text-anchor="middle">Arkko draft</text>
+<line x1="246.7" y1="416" x2="246.7" y2="408" stroke="#cbd5e1" stroke-width="1"/>
+<circle cx="246.7" cy="422" r="6" fill="#ffffff" stroke="#64748b" stroke-width="2"/>
+<text x="240.7" y="405" font-size="12" fill="#0f172a" text-anchor="start">capabilities</text>
+<line x1="316.9" y1="428" x2="316.9" y2="436" stroke="#cbd5e1" stroke-width="1"/>
+<circle cx="316.9" cy="422" r="6" fill="#ffffff" stroke="#64748b" stroke-width="2"/>
+<text x="322.9" y="448" font-size="12" fill="#0f172a" text-anchor="end">Trojan horse</text>
+<line x1="352.0" y1="428" x2="352.0" y2="436" stroke="#cbd5e1" stroke-width="1"/>
+<circle cx="352.0" cy="422" r="6" fill="#ffffff" stroke="#64748b" stroke-width="2"/>
+<text x="346.0" y="448" font-size="12" fill="#0f172a" text-anchor="start">least privilege</text>
+<line x1="469.0" y1="416" x2="469.0" y2="408" stroke="#cbd5e1" stroke-width="1"/>
+<circle cx="469.0" cy="422" r="6" fill="#475569" stroke="#475569" stroke-width="2"/>
+<text x="469.0" y="405" font-size="12" fill="#0f172a" text-anchor="middle">KeyKOS</text>
+<line x1="504.1" y1="428" x2="504.1" y2="436" stroke="#cbd5e1" stroke-width="1"/>
+<circle cx="504.1" cy="422" r="6" fill="#ffffff" stroke="#64748b" stroke-width="2"/>
+<text x="498.1" y="448" font-size="12" fill="#0f172a" text-anchor="start">confused deputy</text>
+<line x1="738.1" y1="416" x2="738.1" y2="408" stroke="#cbd5e1" stroke-width="1"/>
+<circle cx="738.1" cy="422" r="6" fill="#475569" stroke="#475569" stroke-width="2"/>
+<text x="738.1" y="405" font-size="12" fill="#0f172a" text-anchor="middle">mobile app permissions</text>
+<line x1="878.5" y1="416" x2="878.5" y2="408" stroke="#cbd5e1" stroke-width="1"/>
+<circle cx="878.5" cy="422" r="6" fill="#dc2626" stroke="#dc2626" stroke-width="2"/>
+<text x="878.5" y="405" font-size="12" fill="#0f172a" text-anchor="middle">SolarWinds</text>
+<line x1="925.3" y1="428" x2="925.3" y2="436" stroke="#cbd5e1" stroke-width="1"/>
+<circle cx="925.3" cy="422" r="6" fill="#dc2626" stroke="#dc2626" stroke-width="2"/>
+<text x="931.3" y="448" font-size="12" fill="#0f172a" text-anchor="end">xz backdoor</text>
+<line x1="948.7" y1="416" x2="948.7" y2="408" stroke="#cbd5e1" stroke-width="1"/>
+<circle cx="948.7" cy="422" r="6" fill="#b45309" stroke="#b45309" stroke-width="2"/>
+<text x="954.7" y="405" font-size="12" fill="#0f172a" text-anchor="end">open</text>
+<line x1="550.9" y1="492" x2="550.9" y2="484" stroke="#cbd5e1" stroke-width="1"/>
+<circle cx="550.9" cy="498" r="6" fill="#ffffff" stroke="#64748b" stroke-width="2"/>
+<text x="550.9" y="481" font-size="12" fill="#0f172a" text-anchor="middle">speaks-for</text>
+<line x1="562.6" y1="504" x2="562.6" y2="512" stroke="#cbd5e1" stroke-width="1"/>
+<circle cx="562.6" cy="498" r="6" fill="#475569" stroke="#475569" stroke-width="2"/>
+<text x="562.6" y="524" font-size="12" fill="#0f172a" text-anchor="middle">Kerberos V5</text>
+<line x1="726.4" y1="504" x2="726.4" y2="512" stroke="#cbd5e1" stroke-width="1"/>
+<circle cx="726.4" cy="498" r="6" fill="#475569" stroke="#475569" stroke-width="2"/>
+<text x="732.4" y="524" font-size="12" fill="#0f172a" text-anchor="end">OAuth 1.0</text>
+<line x1="784.9" y1="492" x2="784.9" y2="484" stroke="#cbd5e1" stroke-width="1"/>
+<circle cx="784.9" cy="498" r="6" fill="#475569" stroke="#475569" stroke-width="2"/>
+<text x="790.9" y="481" font-size="12" fill="#0f172a" text-anchor="end">OAuth 2.0</text>
+<line x1="808.3" y1="504" x2="808.3" y2="512" stroke="#cbd5e1" stroke-width="1"/>
+<circle cx="808.3" cy="498" r="6" fill="#ffffff" stroke="#64748b" stroke-width="2"/>
+<text x="814.3" y="524" font-size="12" fill="#0f172a" text-anchor="end">macaroons</text>
+<line x1="820.0" y1="492" x2="820.0" y2="484" stroke="#cbd5e1" stroke-width="1"/>
+<circle cx="820.0" cy="498" r="6" fill="#16a34a" stroke="#16a34a" stroke-width="2"/>
+<text x="814.0" y="481" font-size="12" fill="#0f172a" text-anchor="start">PKCE</text>
+<line x1="843.4" y1="504" x2="843.4" y2="512" stroke="#cbd5e1" stroke-width="1"/>
+<circle cx="843.4" cy="498" r="6" fill="#dc2626" stroke="#dc2626" stroke-width="2"/>
+<text x="837.4" y="524" font-size="12" fill="#0f172a" text-anchor="start">OAuth worm</text>
+<line x1="901.9" y1="492" x2="901.9" y2="484" stroke="#cbd5e1" stroke-width="1"/>
+<circle cx="901.9" cy="498" r="6" fill="#dc2626" stroke="#dc2626" stroke-width="2"/>
+<text x="901.9" y="481" font-size="12" fill="#0f172a" text-anchor="middle">Heroku/Travis</text>
+<line x1="948.7" y1="504" x2="948.7" y2="512" stroke="#cbd5e1" stroke-width="1"/>
+<circle cx="948.7" cy="498" r="6" fill="#b45309" stroke="#b45309" stroke-width="2"/>
+<text x="954.7" y="524" font-size="12" fill="#0f172a" text-anchor="end">open</text>
+<line x1="305.2" y1="568" x2="305.2" y2="560" stroke="#cbd5e1" stroke-width="1"/>
+<circle cx="305.2" cy="574" r="6" fill="#dc2626" stroke="#dc2626" stroke-width="2"/>
+<text x="311.2" y="557" font-size="12" fill="#0f172a" text-anchor="end">blue boxes</text>
+<line x1="328.6" y1="580" x2="328.6" y2="588" stroke="#cbd5e1" stroke-width="1"/>
+<circle cx="328.6" cy="574" r="6" fill="#ffffff" stroke="#64748b" stroke-width="2"/>
+<text x="334.6" y="600" font-size="12" fill="#0f172a" text-anchor="end">confinement</text>
+<line x1="363.7" y1="580" x2="363.7" y2="588" stroke="#cbd5e1" stroke-width="1"/>
+<circle cx="363.7" cy="574" r="6" fill="#16a34a" stroke="#16a34a" stroke-width="2"/>
+<text x="357.7" y="600" font-size="12" fill="#0f172a" text-anchor="start">out-of-band signalling</text>
+<line x1="375.4" y1="568" x2="375.4" y2="560" stroke="#cbd5e1" stroke-width="1"/>
+<circle cx="375.4" cy="574" r="6" fill="#ffffff" stroke="#64748b" stroke-width="2"/>
+<text x="375.4" y="557" font-size="12" fill="#0f172a" text-anchor="middle">Biba</text>
+<line x1="515.8" y1="568" x2="515.8" y2="560" stroke="#cbd5e1" stroke-width="1"/>
+<circle cx="515.8" cy="574" r="6" fill="#475569" stroke="#475569" stroke-width="2"/>
+<text x="515.8" y="557" font-size="12" fill="#0f172a" text-anchor="middle">Perl taint checks</text>
+<line x1="586.0" y1="580" x2="586.0" y2="588" stroke="#cbd5e1" stroke-width="1"/>
+<circle cx="586.0" cy="574" r="6" fill="#475569" stroke="#475569" stroke-width="2"/>
+<text x="586.0" y="600" font-size="12" fill="#0f172a" text-anchor="middle">same-origin policy</text>
+<line x1="621.1" y1="568" x2="621.1" y2="560" stroke="#cbd5e1" stroke-width="1"/>
+<circle cx="621.1" cy="574" r="6" fill="#dc2626" stroke="#dc2626" stroke-width="2"/>
+<text x="621.1" y="557" font-size="12" fill="#0f172a" text-anchor="middle">SQL injection</text>
+<line x1="667.9" y1="580" x2="667.9" y2="588" stroke="#cbd5e1" stroke-width="1"/>
+<circle cx="667.9" cy="574" r="6" fill="#16a34a" stroke="#16a34a" stroke-width="2"/>
+<text x="661.9" y="600" font-size="12" fill="#0f172a" text-anchor="start">parameterized queries</text>
+<line x1="913.6" y1="568" x2="913.6" y2="560" stroke="#cbd5e1" stroke-width="1"/>
+<polygon points="913.6,566.5 921.1,574 913.6,581.5 906.1,574" fill="#ffffff" stroke="#64748b" stroke-width="2" stroke-linejoin="round"/>
+<text x="919.6" y="557" font-size="12" fill="#0f172a" text-anchor="end">indirect prompt injection</text>
+<line x1="937.0" y1="580" x2="937.0" y2="588" stroke="#cbd5e1" stroke-width="1"/>
+<polygon points="937.0,566.5 944.5,574 937.0,581.5 929.5,574" fill="#dc2626" stroke="#dc2626" stroke-width="2" stroke-linejoin="round"/>
+<text x="943.0" y="600" font-size="12" fill="#0f172a" text-anchor="end">EchoLeak</text>
+<line x1="948.7" y1="568" x2="948.7" y2="560" stroke="#cbd5e1" stroke-width="1"/>
+<circle cx="948.7" cy="574" r="6" fill="#b45309" stroke="#b45309" stroke-width="2"/>
+<text x="954.7" y="557" font-size="12" fill="#0f172a" text-anchor="end">open</text>
 <g font-size="11" fill="#334155">
-<circle cx="470" cy="44" r="5" fill="#ffffff" stroke="#64748b" stroke-width="2"/>
-<text x="480" y="48">modelled</text>
-<circle cx="568" cy="44" r="5" fill="#2563eb" stroke="#2563eb" stroke-width="2"/>
-<text x="578" y="48">shipped</text>
-<circle cx="666" cy="44" r="5" fill="#dc2626" stroke="#dc2626" stroke-width="2"/>
-<text x="676" y="48">broken</text>
-<circle cx="764" cy="44" r="5" fill="#16a34a" stroke="#16a34a" stroke-width="2"/>
-<text x="774" y="48">fixed</text>
-<circle cx="862" cy="44" r="5" fill="#b45309" stroke="#b45309" stroke-width="2"/>
-<text x="872" y="48">open</text>
+<circle cx="520" cy="64" r="5" fill="#ffffff" stroke="#64748b" stroke-width="2"/>
+<text x="530" y="68">modelled</text>
+<circle cx="590" cy="64" r="5" fill="#475569" stroke="#475569" stroke-width="2"/>
+<text x="600" y="68">shipped</text>
+<circle cx="660" cy="64" r="5" fill="#dc2626" stroke="#dc2626" stroke-width="2"/>
+<text x="670" y="68">broken</text>
+<circle cx="730" cy="64" r="5" fill="#16a34a" stroke="#16a34a" stroke-width="2"/>
+<text x="740" y="68">fixed</text>
+<circle cx="800" cy="64" r="5" fill="#b45309" stroke="#b45309" stroke-width="2"/>
+<text x="810" y="68">open</text>
+<polygon points="870.0,57.5 876.5,64 870.0,70.5 863.5,64" fill="#ffffff" stroke="#64748b" stroke-width="2" stroke-linejoin="round"/>
+<text x="880" y="68">LLM-specific</text>
 </g></svg>

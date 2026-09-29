@@ -51,9 +51,9 @@ So the wire is the *solved* part: modern AEAD usage is airtight, and TLS 1.3 har
 
 **Threat.** A perfectly secure channel to the *wrong party*. The attacker breaks no crypto at all — he hands you his own public key, and you faithfully encrypt everything to him.
 
-**Theory.** [Diffie–Hellman][dh] (1976) gave us public keys, but a key is not a name. *Binding* a given key to the right identity — proving this key really is `example.com`'s — is a separate, unglamorous problem, and exactly the one [PKI exists to solve](/programming/identity-of-hosts.html). It is not a cryptographic problem at all, which is why it gets its own [series on identity](/programming/identity-series-intro.html). (That's distinct from *naming*: whether a human-meaningful name can simultaneously be unforgeable and decentralized is a further trilemma — [Zooko's triangle](/programming/keys-are-not-names.html#zookos-triangle) — which shows up a layer up again.)
+**Theory.** [Diffie–Hellman][dh] (1976) gave us public keys, but a key is not a name. Diffie and Hellman proposed a public directory to look keys up. [Kohnfelder's][kohnfelder] 1978 thesis replaced it with the *certificate*: a signed statement binding a name to a key, which anyone can check offline. *Binding* a given key to the right identity — proving this key really is `example.com`'s — is a separate, unglamorous problem, and exactly the one [PKI exists to solve](/programming/identity-of-hosts.html). It is not a cryptographic problem at all, which is why it gets its own [series on identity](/programming/identity-series-intro.html). (That's distinct from *naming*: whether a human-meaningful name can simultaneously be unforgeable and decentralized is a further trilemma — [Zooko's triangle](/programming/keys-are-not-names.html#zookos-triangle) — which shows up a layer up again.)
 
-**Implementation (and its breaks).** [PKI][web-pki] — X.509, certificate authorities, the Web PKI (1990s–2000s) — turned identity binding into infrastructure, so each protocol stopped solving "who am I talking to" from scratch. Its failures are about trusting the wrong *issuer*: the Comodo and DigiNotar CA compromises (2011) minted valid certificates for domains they had no business signing, which is what drove [Certificate Transparency][ct] (2013+). Crucially, PKI solved impersonation by a stranger's *key* — and *only* that. It says nothing about who else holds Bob's credentials, or whether Bob is honest. Those are the next two positions.
+**Implementation (and its breaks).** [PKI][web-pki] — X.509 (1988), certificate authorities, and the Web PKI that arrived with SSL (1995) — turned identity binding into infrastructure, so each protocol stopped solving "who am I talking to" from scratch. Its failures are about trusting the wrong *issuer*: the Comodo and DigiNotar CA compromises (2011) minted valid certificates for domains they had no business signing, which is what drove [Certificate Transparency][ct] (2013+). Crucially, PKI solved impersonation by a stranger's *key* — and *only* that. It says nothing about who else holds Bob's credentials, or whether Bob is honest. Those are the next two positions.
 
 ## 3 · At the gate: someone without credentials
 
@@ -69,13 +69,13 @@ So the wire is the *solved* part: modern AEAD usage is airtight, and TLS 1.3 har
 
 **Theory.** Two fields reached this adversary from opposite ends.
 
-Operating systems got there first, and fast. The foundational theory took about six years. Lampson's [access matrix][access-matrix] (1971) gave the field the object it still reasons with. Graham and Denning (1972) worked out its protection rules. [Bell and LaPadula][blp] (1973) formalized what a military confinement policy even means. [Harrison, Ruzzo and Ullman][hru] (1976) proved that in the general case you cannot decide whether a given permission will ever leak to a given subject. The safety problem is undecidable, which is why every tractable model since is a deliberate restriction of the general one. And Lampson's confinement problem (1973) asked the question the authorization series keeps returning to: can a program you run on someone else's behalf be stopped from leaking what it sees?
+Operating systems got there first, and fast. The foundational theory took about six years. Lampson's [access matrix][access-matrix] (1971) gave the field the object it still reasons with. Graham and Denning (1972) worked out its protection rules. [Bell and LaPadula][blp] (1973) formalized what a military confinement policy even means. [Harrison, Ruzzo and Ullman][hru] (1976) proved that in the general case you cannot decide whether a given permission will ever leak to a given subject. The safety problem is undecidable, which is why every tractable model since is a deliberate restriction of the general one.
 
 Protocols got there later. [Lowe's attack][ns-lowe] on the Needham–Schroeder authentication protocol (1995) showed that with *perfect* crypto and *perfect* key binding, a legitimate participant — Mallory, holding his own real key pair — can still subvert a protocol by exploiting its *role structure*, relaying messages to impersonate Alice to a third party. The lesson: the channel and the keys can be flawless and the protocol still broken. The field had this threat in hand in 1995, and then shelved it for twenty years, because a secure channel plus PKI *felt* like enough. [Arkko's draft][arkko] (2019) re-opened it formally: the new baseline should be "the *implementing* end-system isn't compromised, but the other parties may be."
 
-**Implementation.** Unix file permissions, then decades later the mandatory-access-control systems that actually implemented Bell and LaPadula, such as [SELinux][selinux] (2000). [Part 1 of the authorization series](/programming/authorization-models.html) is largely an account of this machinery.
+**Implementation.** Unix file permissions came first. Mandatory access control, which implements Bell and LaPadula, followed within a decade. The [Orange Book][orange-book] (1983) made it a requirement for its higher ratings, and Multics earned one in 1985. [SELinux][selinux] (2000) brought it to a mainstream operating system. [Part 1 of the authorization series](/programming/authorization-models.html) is largely an account of this machinery.
 
-And it was never only theoretical. A hostile endpoint has been part of the internet since its infancy: the [Morris worm][morris] (1988) turned thousands of legitimate hosts into attackers overnight by exploiting buffer overflows and weak passwords — the first worm to hit the early internet at scale, though the self-replicating idea traces back to the benign Creeper program on the ARPANET in 1971. By the time RFC 3552 wrote down "endpoints are not compromised" in 2003, that had been a convenient fiction for fifteen years. Today the hostile party can be the infrastructure itself: [confidential computing and attestation](/programming/identity-of-workloads.html) try to defend a workload against the cloud host it runs on.
+And it was never only theoretical. A hostile endpoint has been part of the internet since its infancy: the [Morris worm][morris] (1988) turned thousands of legitimate hosts into attackers overnight by exploiting buffer overflows and weak passwords, then spreading along the trust hosts placed in each other (`.rhosts`), so each infected machine attacked its peers as a trusted one — the first worm to hit the early internet at scale, though the self-replicating idea traces back to the benign Creeper program on the ARPANET in 1971. By the time RFC 3552 wrote down "endpoints are not compromised" in 2003, that had been a convenient fiction for fifteen years. The canonical human case is [Snowden][snowden] (2013): a systems administrator with legitimate access, who copied what that access reached. Today the hostile party can be the infrastructure itself: [confidential computing and attestation](/programming/identity-of-workloads.html) try to defend a workload against the cloud host it runs on.
 
 **Why it moved.** It didn't get solved so much as outgrown. Keying on identity works here. The subject is a person, the person has intent, and holding them to a policy is coherent. The trouble starts when the thing taking the action is not the person.
 
@@ -83,11 +83,11 @@ And it was never only theoretical. A hostile endpoint has been part of the inter
 
 **Threat.** A program, carrying your full authority because it inherited it by running as you. It need not be malicious. It only needs to be talked into using a power it holds for a purpose it was not asked for.
 
-**Theory.** [Saltzer and Schroeder][saltzer-schroeder] named the cure in 1975: every program should run with the least authority its job requires. [Hardy][confused-deputy] named the disease in 1988, after watching a compiler be persuaded to overwrite a billing file it was merely *able* to reach — the confused deputy. Note the thirteen-year gap, and note which came first. The [capability][capabilities] tradition had the structural answer even earlier: Dennis and Van Horn (1966), then KeyKOS and the systems [Part 4 of the authorization series](/programming/capabilities.html) is about. All of them make designating a thing and holding authority over it the same act, so there is no name an attacker can utter to borrow a power they were never given.
+**Theory.** This position was modelled before any network one. The US Air Force's [Anderson report][anderson] (1972) assumed it outright: a cleared user may be trusted, but the program they run may be a *Trojan horse*. That assumption is why Bell and LaPadula's rules bind programs rather than people. [Saltzer and Schroeder][saltzer-schroeder] named the cure in 1975: every program should run with the least authority its job requires. [Hardy][confused-deputy] named the disease in 1988, after watching a compiler be persuaded to overwrite a billing file it was merely *able* to reach — the confused deputy. Note the thirteen-year gap, and note which came first. The [capability][capabilities] tradition had the structural answer even earlier: Dennis and Van Horn (1966), then KeyKOS and the systems [Part 4 of the authorization series](/programming/capabilities.html) is about. All of them make designating a thing and holding authority over it the same act, so there is no name an attacker can utter to borrow a power they were never given.
 
 **Implementation.** Essentially none, on the platform where it mattered most. The desktop operating system shipped position-four controls into a position-five world and still does: every program you launch holds everything you can do. Mobile platforms bought some of it back with per-app permissions and per-app storage, twenty years late and only for one class of software.
 
-The software supply chain turned this position into the routine one. The [xz backdoor][xz-backdoor] (2024) was a trusted maintainer who spent two years earning commit rights and then shipped a backdoor. Malware on [npm, PyPI, and the AUR][aur-malware] is now routine. Every one of these runs with the whole authority of whoever installed it. Even a primitive can be subverted: [Dual_EC_DRBG][dual-ec] was a standard random number generator with a suspected backdoor.
+The software supply chain turned this position into the routine one. [SolarWinds][solarwinds] (2020) shipped a backdoor inside a signed update to network-monitoring software that ran with administrator rights at about 18,000 customers. The [xz backdoor][xz-backdoor] (2024) was a trusted maintainer who spent two years earning commit rights and then shipped a backdoor. Malware on [npm, PyPI, and the AUR][aur-malware] is now routine. Every one of these runs with the whole authority of whoever installed it. Even a primitive can be subverted: [Dual_EC_DRBG][dual-ec] was a standard random number generator with a suspected backdoor.
 
 **Why it didn't move.** This one never closed. It accumulated. Positions six and seven are both built on top of an unfixed position five, which is why the confused deputy keeps reappearing in each of them wearing new clothes.
 
@@ -95,7 +95,9 @@ The software supply chain turned this position into the routine one. The [xz bac
 
 **Threat.** Software acting for you, on purpose, with authority you deliberately handed it — and exercising that authority for something you did not intend. An OAuth client, a service account, a CI job, an integration. Nothing is stolen and nobody is impersonated.
 
-**Theory and implementation.** This is the position where the industry did real work, because delegation became the normal way software is composed and the bill arrived quickly. OAuth 1.0 (2007) and [2.0][oauth2] (2012) made third-party delegation routine. Scopes, audiences and short expiry made it survivable. [Macaroons][macaroons] (2014) showed that a credential can carry its own attenuation, so a delegate can hand on strictly less than it holds. [Part 3 of the authorization series](/programming/carriers.html) is mostly about how well that worked and where it stopped short.
+**Theory and implementation.** This is the position where the industry did real work, because delegation became the normal way software is composed and the bill arrived quickly. The theory came first. [Lampson, Abadi, Burrows and Wobber][speaks-for] (1992) gave delegation a logic, in which a delegate *speaks for* its principal within limits, and Kerberos V5 (1993) shipped tickets that could be forwarded to a delegate. OAuth 1.0 (2007) and [2.0][oauth2] (2012) made third-party delegation routine. Scopes, audiences and short expiry made it survivable. [Macaroons][macaroons] (2014) showed that a credential can carry its own attenuation, so a delegate can hand on strictly less than it holds. [Part 3 of the authorization series](/programming/carriers.html) is mostly about how well that worked and where it stopped short.
+
+The breaks came at both ends of the grant. In 2017 a fake ["Google Docs" app][oauth-worm] asked for access to Gmail, and every victim who clicked *Allow* sent it on to their contacts. Nothing was stolen: the users granted it. In 2022 attackers stole the GitHub OAuth tokens that users had granted [Heroku and Travis CI][heroku-travis], and used them to clone private repositories from dozens of organizations, npm among them.
 
 Arkko's sharper point lives here: the cryptographic endpoints often aren't the *real* ends at all. A CDN terminates your TLS, so the "server" you share a key with isn't the origin. And a delegated-authorization flow like OAuth is a triangle, not a line. It deliberately splits a trusted server-to-server *back channel* from a browser-mediated *front channel*, because those legs face different attackers. Front-channel interception of the authorization code is exactly why [PKCE][pkce] (2015) exists. Every delegate and intermediary is one more authenticated party you're trusting, so the two-party "secure channel" is, at internet scale, a convenient fiction.
 
@@ -105,9 +107,15 @@ Arkko's sharper point lives here: the cryptographic endpoints often aren't the *
 
 **Threat.** The delegate's intent is assembled at runtime out of documents, pages, issues, and tool output — any of which an attacker may have written. There is no subject to blame, no credential was stolen, and the agent is behaving exactly as designed. It read something and did what it said.
 
-**Theory.** [Greshake and co-authors][greshake] gave it a name in 2023, indirect prompt injection, and the literature since has been enormous. But the shape is Hardy's, thirty-five years on. The injected text supplies a designator — a path, a URL, a repository. The agent's ambient authority supplies the rest. It is a confused deputy whose confusion is now the normal operating mode rather than a bug, because reading untrusted input and acting on it *is* the product. LLMs also change the economics on the attacker's side: they cheapen the attacks whose rarity used to bound the model.
+**Theory.** [Greshake and co-authors][greshake] gave it a name in 2023, indirect prompt injection, and the literature since has been enormous. The problem is much older than the name.
 
-**Implementation.** Open. The cure is probably the old one: take away the ambient authority, so that the injected designator names nothing worth having. How far that gets you in practice is still being worked out. The [LLM sandboxing article](/programming/llm-sandbox.html) works through it for coding agents.
+The first version was the phone network. Its switches took commands on the same channel as your voice, so a tone from a [blue box][blue-box] could take control of a long-distance line; *Esquire* made the trick famous in 1971. AT&T's fix was to move signalling [out of band][ccis] (1976), onto a network callers cannot reach. The same flaw came back in software wherever a program built code out of data. [SQL injection][sqli] (1998), cross-site scripting and macro viruses all feed instructions to a program through its input. The fix each time was to keep code and data apart. For SQL that is the parameterized query: database drivers already had it, and by the early 2000s it was the standard defense. SQL injection still happens, but only where someone builds a query from strings. The browser is the original delegate that reads hostile data, and its [same-origin policy][sop] (1995) is a rule for exactly this position.
+
+The theory is from the 1970s too. [Lampson's confinement problem][confinement] (1973) asked whether a program you run on someone else's behalf can be stopped from leaking what it sees. [Denning's lattice model][denning] (1976) tracked where information flows. [Biba][biba] (1977) turned it around for integrity: a trusted subject must not read less-trusted data, because that data can corrupt what it does. That is this position's rule, forty-six years before it had a name. Perl's [taint checks][taint] (1989) applied the same idea inside a single program.
+
+What is new is that an LLM has no second channel. Instructions and data arrive as the same text, and there is no parameterized query for English. So the shape is Hardy's, thirty-five years on. The injected text supplies a designator — a path, a URL, a repository. The agent's ambient authority supplies the rest. It is a confused deputy whose confusion is now the normal operating mode rather than a bug, because reading untrusted input and acting on it *is* the product. LLMs also change the economics on the attacker's side: they cheapen the attacks whose rarity used to bound the model.
+
+**Implementation.** Open, and the breaks are already real. [EchoLeak][echoleak] (2025) made Microsoft 365 Copilot send internal data to an attacker after it read one crafted email, with no click from the user. The cure is probably the old one: take away the ambient authority, so that the injected designator names nothing worth having. How far that gets you in practice is still being worked out. The [LLM sandboxing article](/programming/llm-sandbox.html) works through it for coding agents.
 
 ## Aside - Adversary Model
 
@@ -167,6 +175,23 @@ The seven positions are also the three series:
 30. [RFC 7636: Proof Key for Code Exchange (PKCE) - IETF][pkce]
 31. [Macaroons: Cookies with Contextual Caveats][macaroons]
 32. [Not What You've Signed Up For: Indirect Prompt Injection - Greshake et al.][greshake]
+33. [Loren Kohnfelder - Wikipedia][kohnfelder]
+34. [Trusted Computer System Evaluation Criteria (the Orange Book) - Wikipedia][orange-book]
+35. [Edward Snowden - Wikipedia][snowden]
+36. [Computer Security Technology Planning Study (the Anderson report) - James P. Anderson][anderson]
+37. [2020 United States federal government data breach (SolarWinds) - Wikipedia][solarwinds]
+38. [Authentication in Distributed Systems: Theory and Practice - Lampson, Abadi, Burrows and Wobber][speaks-for]
+39. [OAuth phishing against Google Docs - SANS ISC][oauth-worm]
+40. [Security alert: stolen OAuth user tokens issued to Heroku and Travis CI - GitHub][heroku-travis]
+41. [Blue box - Wikipedia][blue-box]
+42. [Common-channel signaling - Wikipedia][ccis]
+43. [SQL injection - Wikipedia][sqli]
+44. [Same-origin policy - Wikipedia][sop]
+45. [A Note on the Confinement Problem - Lampson][confinement]
+46. [A Lattice Model of Secure Information Flow - Denning][denning]
+47. [Biba Model - Wikipedia][biba]
+48. [Taint checking - Wikipedia][taint]
+49. [EchoLeak: The First Real-World Zero-Click Prompt Injection Exploit in a Production LLM System][echoleak]
 
 [dh]: https://en.wikipedia.org/wiki/Diffie%E2%80%93Hellman_key_exchange "Diffie–Hellman key exchange - Wikipedia"
 [dolev-yao]: https://en.wikipedia.org/wiki/Dolev%E2%80%93Yao_model "Dolev–Yao model - Wikipedia"
@@ -201,3 +226,20 @@ The seven positions are also the three series:
 [pkce]: https://datatracker.ietf.org/doc/html/rfc7636 "RFC 7636: Proof Key for Code Exchange by OAuth Public Clients - IETF"
 [macaroons]: https://static.googleusercontent.com/media/research.google.com/en/us/pubs/archive/41892.pdf "Macaroons: Cookies with Contextual Caveats"
 [greshake]: https://arxiv.org/abs/2302.12173 "Not What You've Signed Up For: Compromising Real-World LLM-Integrated Applications with Indirect Prompt Injection - Greshake et al."
+[kohnfelder]: https://en.wikipedia.org/wiki/Loren_Kohnfelder "Loren Kohnfelder - Wikipedia"
+[orange-book]: https://en.wikipedia.org/wiki/Trusted_Computer_System_Evaluation_Criteria "Trusted Computer System Evaluation Criteria - Wikipedia"
+[snowden]: https://en.wikipedia.org/wiki/Edward_Snowden "Edward Snowden - Wikipedia"
+[anderson]: https://apps.dtic.mil/sti/pdfs/AD0758206.pdf "Computer Security Technology Planning Study - James P. Anderson"
+[solarwinds]: https://en.wikipedia.org/wiki/2020_United_States_federal_government_data_breach "2020 United States federal government data breach - Wikipedia"
+[speaks-for]: https://doi.org/10.1145/138873.138874 "Authentication in Distributed Systems: Theory and Practice - Lampson, Abadi, Burrows and Wobber"
+[oauth-worm]: https://isc.sans.edu/diary/22372 "OAuth phishing against Google Docs - SANS ISC"
+[heroku-travis]: https://github.blog/news-insights/company-news/security-alert-stolen-oauth-user-tokens/ "Security alert: stolen OAuth user tokens - GitHub"
+[blue-box]: https://en.wikipedia.org/wiki/Blue_box "Blue box - Wikipedia"
+[ccis]: https://en.wikipedia.org/wiki/Common-channel_signaling "Common-channel signaling - Wikipedia"
+[sqli]: https://en.wikipedia.org/wiki/SQL_injection "SQL injection - Wikipedia"
+[sop]: https://en.wikipedia.org/wiki/Same-origin_policy "Same-origin policy - Wikipedia"
+[confinement]: https://doi.org/10.1145/362375.362389 "A Note on the Confinement Problem - Lampson"
+[denning]: https://doi.org/10.1145/360051.360056 "A Lattice Model of Secure Information Flow - Denning"
+[biba]: https://en.wikipedia.org/wiki/Biba_Model "Biba Model - Wikipedia"
+[taint]: https://en.wikipedia.org/wiki/Taint_checking "Taint checking - Wikipedia"
+[echoleak]: https://arxiv.org/abs/2509.10540 "EchoLeak: The First Real-World Zero-Click Prompt Injection Exploit in a Production LLM System"
