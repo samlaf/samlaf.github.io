@@ -14,6 +14,7 @@ date: 2026-06-03 12:00:00
 - [The context window](#the-context-window)
 - [Where type systems land](#where-type-systems-land)
 - [CIA is not a classification](#cia-is-not-a-classification)
+- [Past sets of runs](#past-sets-of-runs)
 - [Back to the three series](#back-to-the-three-series)
 
 Every check in the three series looks at one event. A signature verifies or it does not. A token is valid or it is not. A reference monitor lets this call through or stops it. Each check judges one thing that happened, in one run of one program.
@@ -24,7 +25,7 @@ Some guarantees cannot be stated that way. Take "the report does not reveal the 
 
 ## Two doors
 
-![Three panels, each a process that reads a secret file and a public forecast and sends two messages on a public network. With access control only, both doors allow the requests and the secret leaks. With coarse information flow control, the process takes the secret label and both messages are blocked. With fine information flow control, each value carries its own label, so only the report built from the secret is blocked.](/assets/series/hyperproperties/two-doors.svg)
+![Three panels, each a process that reads a secret file and a public forecast and sends two messages on a public network. With access control only, both doors allow the requests and the secret leaks. With coarse information flow control, the process takes the secret label and both messages are blocked. With fine information flow control, each value carries its own label, so only the report built from the secret is blocked.](/assets/keys-names-authority-series/hyperproperties/two-doors.svg)
 
 A process reads a secret file and sends messages on a public network. Access control asks the same question at each door: who is asking? May this process read the file? May it send on the network? Both answers can be yes, and the secret still walks out. Neither question looked at what the message was made of.
 
@@ -42,28 +43,46 @@ Swap "secret" for "untrusted" and the network for a tool call, and the same pict
 
 A *trace* is one run of a system: the sequence of states or events it goes through. A *trace property* is a rule that each run satisfies or breaks on its own. "Every file this process read was allowed by the ACL" is one. To check it, you look at one run.
 
-[Alpern and Schneider][defining-liveness] (1985) split trace properties in two. A *safety* property says a bad thing never happens. Any violation shows up in a finite part of the run, so a monitor can stop the run at that point. A *liveness* property says a good thing eventually happens. No finite part of a run can prove it broken, because the good thing may still come. [Schneider][enforceable-security-policies] later proved that a monitor watching one run can enforce only safety properties. [Part 1](/programming/authorization-models.html#when-the-check-writes) of the authorization series builds on that result.
+[Alpern and Schneider][defining-liveness] (1985) split trace properties in two. A *safety* property says a bad thing never happens. Any violation shows up in a finite part of the run, so a monitor can stop the run at that point. A *liveness* property says a good thing eventually happens. No finite part of a run can prove it broken, because the good thing may still come. They also showed that the split is complete: every trace property is the intersection of a safety property and a liveness property. [Schneider][enforceable-security-policies] later proved that a monitor watching one run can enforce only safety properties. [Part 1](/programming/authorization-models.html#when-the-check-writes) of the authorization series builds on that result.
+
+So "every request is eventually answered" cannot be enforced at run time. In practice you add a deadline. "Every request is answered within five seconds" is broken by a finite run, the one where the sixth second passes, so a bounded liveness property is a safety property again.
 
 A *hyperproperty* is a rule about sets of runs. The classic one is *noninterference*, from [Goguen and Meseguer][goguen-meseguer] (1982). In its usual form for programs, it says that any two runs that agree on public inputs also agree on public outputs. No single run can break it. A run that sends "42" is fine, unless another run with the same public inputs and a different secret sends "41". [Terauchi and Aiken][terauchi-aiken] call this *2-safety*: a violation is a pair of finite runs. That also says how to check it. Run two copies of the program side by side and feed them different secrets. Noninterference becomes an ordinary safety property of the pair, a trick [Barthe, D'Argenio and Rezk][self-composition] named *self-composition*.
 
-Put the two splits together and you get Clarkson and Schneider's grid:
+The trick needs a fixed number of runs. In *k-safety*, a violation is always a set of at most k finite runs, so k copies side by side suffice. *Hypersafety* only promises that a violation is some finite set of finite runs, with no bound on how many. Clarkson and Schneider's example is secret sharing: "for any k, a system cannot output all k shares of a secret from a k-secret sharing." Each k needs its own k runs, so no fixed number of copies catches every violation. The liveness side lifts the same way. Termination-sensitive noninterference says that whether a program halts must not depend on the secret, and a halt that never comes never shows up in a finite run. *Generalized noninterference* says that whatever an observer sees, every secret is still possible. No finite set of runs breaks it, because the run that keeps a secret possible may simply not have been observed yet. Clarkson and Schneider also lift Alpern and Schneider's split: every hyperproperty is the intersection of a hypersafety property and a *hyperliveness* property.
 
-| | Safety: a finite run shows the violation | Liveness: no finite run shows it |
-| --- | --- | --- |
-| **Trace property:** judged on one run | access control; type safety; "no token is spent twice"; the Chinese Wall | termination; "every request is eventually answered" |
-| **Hyperproperty:** judged on sets of runs | noninterference; confused-deputy freedom; reentrancy security | generalized noninterference: whatever an observer sees, every secret is still possible |
+Put the two splits together and you get a grid. The columns count how many runs a violation needs. The rows ask whether a finite part of those runs can show it. The last two columns go past sets of runs, and [a later section](#past-sets-of-runs) comes back to them.
 
-Every trace property is also a hyperproperty: "every run in the set satisfies it." So the grid is not two separate worlds. The top row is the part of the space where one run is enough to judge.
+![A grid of security policy classes. Columns: one run, k runs, any number of runs, a distribution over runs, and outside the system. Rows: a finite prefix suffices, or only the whole infinite run shows the violation. Safety (access control, type safety, rate limits, the Chinese Wall) and k-safety (noninterference, constant-time code, confused-deputy freedom, reentrancy security) are enforceable at run time. Hypersafety (secret sharing), liveness (termination), relational liveness (termination-sensitive noninterference) and hyperliveness (generalized noninterference, mean response time) need static proof. Probabilistic properties such as differential privacy span both rows and need construction or proof. Intent, "the agent did what I meant", is not a property of runs.](/assets/keys-names-authority-series/hyperproperties/observation-grid.svg)
+
+Every trace property is also a hyperproperty: "every run in the set satisfies it." So the grid is not separate worlds. The left column is the part of the space where one run is enough to judge.
+
+The grid is also a map of what you can enforce, and the answer gets worse as you move right and down. Safety is the only cell a monitor can enforce on the one run in front of it. k-safety can still be enforced, by checking k copies before running or by running k copies at run time, as the next section shows. Past that, you prove the property before the program runs, or you enforce something stronger that you can check.
 
 ## Why a monitor cannot see a flow
 
-![Two runs of an agent asked to send meeting notes to Bob. In both, every tool call is allowed. In the second, an email tells the agent to send them to Carol, and it does. Only comparing the runs shows that the recipient changed with untrusted input. Below, information flow control labels the chosen address with the email it was chosen by, and the rule at the tool call blocks it.](/assets/series/hyperproperties/trace-vs-flow.svg)
+![Two runs of an agent asked to send meeting notes to Bob. In both, every tool call is allowed. In the second, an email tells the agent to send them to Carol, and it does. Only comparing the runs shows that the recipient changed with untrusted input. Below, information flow control labels the chosen address with the email it was chosen by, and the rule at the tool call blocks it.](/assets/keys-names-authority-series/hyperproperties/trace-vs-flow.svg)
 
 A reference monitor sees one run. It sees `send_email(to=carol@corp)`, checks it against policy, and lets it through: Carol is a colleague, and her address came back from the calendar. In a second run, with a clean inbox, the agent sends to Bob. Each run passes on its own. The attack exists only between them: the recipient changed when only untrusted input changed. No monitor on one run can see that.
 
-There are two ways around it.
+This is a theorem, not a gap in today's tools. [Hamlen, Morrisett and Schneider][enforcement-classes] (2006) compared three ways to enforce a policy: check the program before it runs, watch it while it runs, or rewrite it first.
+
+![Venn diagram of security policy classes. A large ellipse, coRE, is the original class of policies an execution monitor was thought to enforce. A second ellipse, RW-enforceable, holds policies a program rewriter can enforce. Their overlap is shaded and labelled EM-enforceable. A small circle inside the overlap holds the decidable, statically enforceable policies. Example policies sit in each region.](/assets/keys-names-authority-series/hyperproperties/enforcement-classes.png)
+*Figure 2 of [Computability Classes for Enforcement Mechanisms][enforcement-classes], Hamlen, Morrisett and Schneider.*
+
+A policy here is a rule about a program, so it can be a rule about many runs.
+
+The small circle is static enforcement: a checker reads the program and always answers yes or no before it runs. Hamlen, Morrisett and Schneider show that this circle holds exactly the decidable policies. [Rice's theorem][rice] (1953) says how few those are. Every nontrivial rule about what a program computes is undecidable. "It halts" is one. "Its output does not depend on the secret" is another. "M terminates within 100 steps" escapes, because it asks only about the first 100 steps, and a checker can simulate those. So a real static analysis enforces a decidable rule that is stricter than the policy. It accepts only programs it can prove safe, and it turns away some safe programs too. Jif rejects `if (secret) x = 1; else x = 1;` followed by a public print of `x`, although `x` reveals nothing. That is the price of the static route below.
+
+The left ellipse, coRE, is Schneider's class of monitor policies with one condition added: the monitor is itself a program, so it must recognize each bad prefix in finite time. A static checker must answer for every run in advance. A monitor answers only for the run in front of it, and it only has to say no, in finite time, once that run goes bad. That is why coRE is larger than the decidable circle. Hamlen, Morrisett and Schneider showed that this is only an upper bound. A monitor must also be able to stop the bad step before it happens, with an intervention the policy allows. The shaded region is what a monitor can really enforce. P<sub>boot</sub>, "never write to the boot sector", sits there: you cannot decide it in advance, but a monitor can block each write. P<sub>I</sub> sits in the white part of coRE. It forbids every move the monitor could make to stop a run, so the monitor can detect a violation but cannot prevent it.
+
+The right ellipse holds what a program rewriter can enforce, and the paper's example from outside the monitor's reach is a hyperproperty. The *secret file policy* says a program must behave exactly as it would if a secret file were not in its directory. That is noninterference: a rule about two runs, one with the file and one without. No monitor can enforce it. A footnote adds that running both runs side by side does not help either, because two runs can end up equivalent without matching step by step, and the monitor might have to wait forever to know. A rewriter enforces it anyway, without ever deciding whether the program breaks it. It changes the program so that a directory listing leaves the file out. A program that ignored the file behaves as before. A program that would have reacted to it no longer can.
+
+That gives three ways around the problem.
 
 **Check every pair of runs before running.** A type system or static analysis can prove noninterference for all runs at once. That is what Denning and Denning's certification, Jif and SCIF do. The price is annotations, and a program the analysis can follow.
+
+**Run the copies, and do not compare them.** [Secure multi-execution][sme], from Devriese and Piessens (2010), runs one copy of the program per security level. The public copy gets a default value in place of each secret, and only the public copy may write to public outputs. Public outputs then cannot depend on secrets, because the copy that makes them never saw any. It works around the footnote's problem the same way the rewriter does: it never waits to compare the runs, it only decides which copy may speak where. For an agent, the levels are levels of trust. A trusted copy runs with the attacker's email replaced by a blank, and only that copy may choose the recipient. The price is one run per level. A program that was already secure behaves the same. One that needed the secret for a public output now gets the default.
 
 **Make the flow visible inside one run.** Carry labels at runtime, and join them whenever values combine. The monitor at the tool call can then see, in this run, that `to` carries the email's label. Labels turn the hyperproperty back into a trace property, over a richer state. The price is precision. A runtime tracker sees the branch that ran, not the one that did not. In `if secret: send(x)`, the runs that do *not* send leak the secret too. Trackers handle this with a label on the program counter: anything done inside a branch on a secret carries the secret's label.
 
@@ -71,7 +90,7 @@ Distributed databases face the same choice. [Part 1](/programming/authorization-
 
 ## The context window
 
-![Three columns. A program keeps code, data and authority in separate places, so input can fill a hole in a query but never become an instruction. An LLM agent reads its system prompt, the user's request, tool output and an attacker's email as one token stream, and acts with ambient authority. Two fixes split it again: capabilities narrow the authority any call can use, and information flow control labels each part of the stream with its source.](/assets/series/hyperproperties/one-stream.svg)
+![Three columns. A program keeps code, data and authority in separate places, so input can fill a hole in a query but never become an instruction. An LLM agent reads its system prompt, the user's request, tool output and an attacker's email as one token stream, and acts with ambient authority. Two fixes split it again: capabilities narrow the authority any call can use, and information flow control labels each part of the stream with its source.](/assets/keys-names-authority-series/hyperproperties/one-stream.svg)
 
 A program keeps instructions and data apart. A parameterized query fixes the structure of the query first, and input can only fill its holes. Authority sits somewhere else again, in handles the process holds rather than in any text it reads.
 
@@ -123,16 +142,30 @@ Security is usually sorted into confidentiality, integrity and availability. Tha
 
 Clarkson and Schneider draw the whole space in one figure:
 
-![Clarkson and Schneider's classification of security policies: hyperproperties split into hypersafety on the left, with k-safety and lifted safety properties nested inside it, and hyperliveness on the right, with lifted liveness properties and possibilistic information flow inside it. Example policies sit in each region.](/assets/series/hyperproperties/classification.png)
+![Clarkson and Schneider's classification of security policies: hyperproperties split into hypersafety on the left, with k-safety and lifted safety properties nested inside it, and hyperliveness on the right, with lifted liveness properties and possibilistic information flow inside it. Example policies sit in each region.](/assets/keys-names-authority-series/hyperproperties/classification.png)
 *Figure 1 of [Hyperproperties][hyperproperties], Clarkson and Schneider.*
 
-HP is every hyperproperty. The left circle, SHP, is hypersafety. Inside it, KSHP(2) is 2-safety, and inside that, KSHP(1) is the ordinary safety properties, lifted. Access control (AC) and "no network write after a file read" (NRW) sit there. 2-safety holds observational determinism (OD) and two forms of noninterference (GMNI, TIRNI). The outer ring holds secret sharing (SecS), a bound on leaked bits (QL<sub>k</sub>), and perfect indistinguishability of an encryption scheme (PI). The right circle, LHP, is hyperliveness. It holds the ordinary liveness properties, such as guaranteed service (GS), and the possibilistic flow policies, such as generalized noninterference (GNI). Mean response time (RT) and channel capacity (CC<sub>k</sub>) sit there too. A few policies are in neither circle, such as probabilistic noninterference (PNI). Every hyperproperty is the intersection of one hypersafety property and one hyperliveness property, just as every trace property is the intersection of a safety property and a liveness property.
+HP is every hyperproperty. The left circle, SHP, is hypersafety. Inside it, KSHP(2) is 2-safety, and inside that, KSHP(1) is the ordinary safety properties, lifted. Access control (AC) and "no network write after a file read" (NRW) sit there. 2-safety holds observational determinism (OD) and two forms of noninterference (GMNI, TIRNI). The outer ring holds secret sharing (SecS), a bound on leaked bits (QL<sub>k</sub>), and perfect indistinguishability of an encryption scheme (PI). The right circle, LHP, is hyperliveness. It holds the ordinary liveness properties, such as guaranteed service (GS), and the possibilistic flow policies, such as generalized noninterference (GNI). Mean response time (RT) and channel capacity (CC<sub>k</sub>) sit there too. A few policies are in neither circle, such as probabilistic noninterference (PNI).
 
 Now read the labels against CIA. Confidentiality lands on both sides: OD on the left, GNI on the right. Availability lands in three regions: the five-second deadline above is plain safety, GS is plain liveness, and RT is hyperliveness. The figure has no region for any of the three letters. Clarkson and Schneider conclude:
 
 > The classification of security requirements as confidentiality, integrity, and availability therefore would seem to be orthogonal to hypersafety and hyperliveness. Hypersafety and hyperliveness have the advantages of being formalized and providing an orthogonal basis for constructing security policies. In contrast, there is no formalization that simultaneously characterizes confidentiality, integrity, and availability, nor are confidentiality, integrity, and availability orthogonal.
 
 Their footnote makes the second point concrete: "the requirement that a principal be unable to read a value could be interpreted as confidentiality or unavailability of that value."
+
+## Past sets of runs
+
+A set of runs records what can happen, not how often. Some rules are about how often.
+
+- [Differential privacy][dwork-calibrating] says that adding or removing one person's record changes the probability of any output by at most a small factor.
+- A [quantitative leakage][quantitative-flow] bound says an observer learns at most so many bits about a secret.
+- Probabilistic noninterference, the PNI in the figure above, says the public outputs follow the same distribution whatever the secret.
+
+Clarkson and Schneider fit PNI into their framework by writing each step's probability into the states of the trace. It is still not hyperliveness, and it is hypersafety only when the system has finitely many states. That is why the figure leaves it in neither circle.
+
+No finite set of runs proves these rules broken. A streak of bad luck looks just like a leak. Testing can only reject them with some confidence: [Ding et al.][dp-violations] run a mechanism many times on two neighboring databases and test whether the outputs differ by more than the bound allows. So the guarantee has to come from construction or from proof. The Laplace mechanism adds noise scaled to how much one record can move the answer, and the bound holds by design. Probabilistic relational logics such as [apRHL][aprhl] prove it for a program, the way self-composition proves noninterference.
+
+Last, some rules are not about runs at all. "The agent did what I meant" has no formal statement to check. The gap is in the specification, not in what can be computed. Each concrete stand-in you write for it usually lands back in the safety corner: "send only to people already on the thread," "spend at most $50," "touch no file outside the project." That is why safety, the one class a monitor can enforce cheaply at run time, does most of the practical work.
 
 ## Back to the three series
 
@@ -169,6 +202,13 @@ The 1970s met this in position five. A Trojan horse running as a cleared user co
 19. [The lethal trifecta for AI agents - Simon Willison][lethal-trifecta]
 20. [The Confused Deputy - Norm Hardy][confused-deputy]
 21. [Dexible aggregator hacked for $2M via selfSwap function - Cointelegraph][dexible]
+22. [Computability Classes for Enforcement Mechanisms - Hamlen, Morrisett and Schneider][enforcement-classes]
+23. [Classes of Recursively Enumerable Sets and Their Decision Problems - Rice][rice]
+24. [Noninterference through Secure Multi-execution - Devriese and Piessens][sme]
+25. [Calibrating Noise to Sensitivity in Private Data Analysis - Dwork, McSherry, Nissim and Smith][dwork-calibrating]
+26. [On the Foundations of Quantitative Information Flow - Smith][quantitative-flow]
+27. [Detecting Violations of Differential Privacy - Ding, Wang, Wang, Zhang and Kifer][dp-violations]
+28. [Probabilistic Relational Reasoning for Differential Privacy - Barthe, Köpf, Olmedo and Zanella-Béguelin][aprhl]
 
 [hyperproperties]: https://www.cs.cornell.edu/fbs/publications/Hyperproperties.pdf "Hyperproperties - Clarkson and Schneider"
 [sabelfeld-myers]: https://www.cs.cornell.edu/andru/papers/jsac/sm-jsac03.pdf "Language-Based Information-Flow Security - Sabelfeld and Myers"
@@ -191,3 +231,10 @@ The 1970s met this in position five. A Trojan horse running as a cleared user co
 [lethal-trifecta]: https://simonwillison.net/2025/Jun/16/the-lethal-trifecta/ "The lethal trifecta for AI agents: private data, untrusted content, and external communication"
 [confused-deputy]: https://www.cs.utexas.edu/~witchel/S25-380L/papers/hardy88confused.pdf "The Confused Deputy - Norm Hardy"
 [dexible]: https://cointelegraph.com/news/dexibleapp-aggregator-hacked-for-2m-via-selfswap-function "Dexible aggregator hacked for $2M via selfSwap function - Cointelegraph"
+[enforcement-classes]: https://www.cs.cornell.edu/fbs/publications/EnfClasses.pdf "Computability Classes for Enforcement Mechanisms - Hamlen, Morrisett and Schneider"
+[rice]: https://doi.org/10.1090/S0002-9947-1953-0053041-6 "Classes of Recursively Enumerable Sets and Their Decision Problems - Rice"
+[sme]: https://doi.org/10.1109/SP.2010.15 "Noninterference through Secure Multi-execution - Devriese and Piessens"
+[dwork-calibrating]: https://doi.org/10.1007/11681878_14 "Calibrating Noise to Sensitivity in Private Data Analysis - Dwork, McSherry, Nissim and Smith"
+[quantitative-flow]: https://doi.org/10.1007/978-3-642-00596-1_21 "On the Foundations of Quantitative Information Flow - Smith"
+[dp-violations]: https://doi.org/10.1145/3243734.3243818 "Detecting Violations of Differential Privacy - Ding, Wang, Wang, Zhang and Kifer"
+[aprhl]: https://doi.org/10.1145/2103656.2103670 "Probabilistic Relational Reasoning for Differential Privacy - Barthe, Köpf, Olmedo and Zanella-Béguelin"

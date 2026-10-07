@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1560 540" width="1560" height="540" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+<rect width="1560" height="540" fill="#fdfdfc"/>
+<text x="40" y="40" font-size="21" font-weight="700" fill="#0f172a" text-anchor="start">How much you must watch to see a violation</text>
+<text x="40" y="64" font-size="13" font-weight="400" fill="#64748b" text-anchor="start">Columns count the runs a violation needs. Rows ask whether a finite part of them shows it. Color says what can enforce it.</text>
+<text x="214" y="112" font-size="14" font-weight="700" fill="#334155" text-anchor="start">One run</text>
+<text x="478" y="112" font-size="14" font-weight="700" fill="#334155" text-anchor="start">k runs</text>
+<text x="742" y="112" font-size="14" font-weight="700" fill="#334155" text-anchor="start">Any number of runs</text>
+<text x="1006" y="112" font-size="14" font-weight="700" fill="#334155" text-anchor="start">A distribution over runs</text>
+<text x="1270" y="112" font-size="14" font-weight="700" fill="#334155" text-anchor="start">Outside the system</text>
+<line x1="40" y1="126" x2="196" y2="126" stroke="#cbd5e1" stroke-width="1.2"/>
+<text x="40" y="154" font-size="14" font-weight="600" fill="#334155" text-anchor="start">Finite prefix</text>
+<text x="40" y="173" font-size="14" font-weight="600" fill="#334155" text-anchor="start">suffices</text>
+<line x1="40" y1="300" x2="196" y2="300" stroke="#cbd5e1" stroke-width="1.2"/>
+<text x="40" y="328" font-size="14" font-weight="600" fill="#334155" text-anchor="start">Only the whole</text>
+<text x="40" y="347" font-size="14" font-weight="600" fill="#334155" text-anchor="start">infinite run</text>
+<rect x="210" y="126" width="250" height="160" rx="10" fill="#e7f3f4" stroke="#0f7d8c" stroke-width="1.4"/>
+<text x="226" y="156" font-size="16" font-weight="700" fill="#0f7d8c" text-anchor="start">Safety</text>
+<text x="226" y="182" font-size="13" font-weight="400" fill="#0f172a" text-anchor="start">Access control, type safety,</text>
+<text x="226" y="201" font-size="13" font-weight="400" fill="#0f172a" text-anchor="start">rate limits, the Chinese Wall</text>
+<text x="226" y="253" font-size="12" font-weight="400" fill="#64748b" text-anchor="start" font-style="italic">A monitor stops the run</text>
+<text x="226" y="270" font-size="12" font-weight="400" fill="#64748b" text-anchor="start" font-style="italic">at the first bad step</text>
+<rect x="474" y="126" width="250" height="160" rx="10" fill="#e7f3f4" stroke="#0f7d8c" stroke-width="1.4"/>
+<text x="490" y="156" font-size="16" font-weight="700" fill="#0f7d8c" text-anchor="start">k-safety</text>
+<text x="490" y="182" font-size="13" font-weight="400" fill="#0f172a" text-anchor="start">Noninterference, constant-time</text>
+<text x="490" y="201" font-size="13" font-weight="400" fill="#0f172a" text-anchor="start">code, confused-deputy freedom,</text>
+<text x="490" y="220" font-size="13" font-weight="400" fill="#0f172a" text-anchor="start">reentrancy security</text>
+<text x="490" y="253" font-size="12" font-weight="400" fill="#64748b" text-anchor="start" font-style="italic">Self-composition, or</text>
+<text x="490" y="270" font-size="12" font-weight="400" fill="#64748b" text-anchor="start" font-style="italic">secure multi-execution</text>
+<rect x="738" y="126" width="250" height="160" rx="10" fill="#eef1f5" stroke="#334155" stroke-width="1.4"/>
+<text x="754" y="156" font-size="16" font-weight="700" fill="#334155" text-anchor="start">Hypersafety</text>
+<text x="754" y="182" font-size="13" font-weight="400" fill="#0f172a" text-anchor="start">Secret sharing:</text>
+<text x="754" y="201" font-size="13" font-weight="400" fill="#0f172a" text-anchor="start">no fixed k is enough</text>
+<text x="754" y="270" font-size="12" font-weight="400" fill="#64748b" text-anchor="start" font-style="italic">Static proof</text>
+<rect x="210" y="300" width="250" height="160" rx="10" fill="#eef1f5" stroke="#334155" stroke-width="1.4"/>
+<text x="226" y="330" font-size="16" font-weight="700" fill="#334155" text-anchor="start">Liveness</text>
+<text x="226" y="356" font-size="13" font-weight="400" fill="#0f172a" text-anchor="start">Termination; every request</text>
+<text x="226" y="375" font-size="13" font-weight="400" fill="#0f172a" text-anchor="start">is eventually answered</text>
+<text x="226" y="427" font-size="12" font-weight="400" fill="#64748b" text-anchor="start" font-style="italic">Add a deadline and it</text>
+<text x="226" y="444" font-size="12" font-weight="400" fill="#64748b" text-anchor="start" font-style="italic">becomes safety</text>
+<rect x="474" y="300" width="250" height="160" rx="10" fill="#eef1f5" stroke="#334155" stroke-width="1.4"/>
+<text x="490" y="330" font-size="16" font-weight="700" fill="#334155" text-anchor="start">Relational liveness</text>
+<text x="490" y="356" font-size="13" font-weight="400" fill="#0f172a" text-anchor="start">Termination-sensitive</text>
+<text x="490" y="375" font-size="13" font-weight="400" fill="#0f172a" text-anchor="start">noninterference</text>
+<text x="490" y="444" font-size="12" font-weight="400" fill="#64748b" text-anchor="start" font-style="italic">Static proof</text>
+<rect x="738" y="300" width="250" height="160" rx="10" fill="#eef1f5" stroke="#334155" stroke-width="1.4"/>
+<text x="754" y="330" font-size="16" font-weight="700" fill="#334155" text-anchor="start">Hyperliveness</text>
+<text x="754" y="356" font-size="13" font-weight="400" fill="#0f172a" text-anchor="start">Generalized noninterference,</text>
+<text x="754" y="375" font-size="13" font-weight="400" fill="#0f172a" text-anchor="start">mean response time</text>
+<text x="754" y="444" font-size="12" font-weight="400" fill="#64748b" text-anchor="start" font-style="italic">Static proof</text>
+<rect x="1002" y="126" width="250" height="334" rx="10" fill="#eef1f5" stroke="#334155" stroke-width="1.4"/>
+<text x="1018" y="156" font-size="16" font-weight="700" fill="#334155" text-anchor="start">Probabilistic</text>
+<text x="1018" y="182" font-size="13" font-weight="400" fill="#0f172a" text-anchor="start">Differential privacy,</text>
+<text x="1018" y="201" font-size="13" font-weight="400" fill="#0f172a" text-anchor="start">leakage in bits,</text>
+<text x="1018" y="220" font-size="13" font-weight="400" fill="#0f172a" text-anchor="start">probabilistic noninterference</text>
+<text x="1018" y="393" font-size="12" font-weight="400" fill="#64748b" text-anchor="start" font-style="italic">By construction, or a</text>
+<text x="1018" y="410" font-size="12" font-weight="400" fill="#64748b" text-anchor="start" font-style="italic">probabilistic relational proof.</text>
+<text x="1018" y="427" font-size="12" font-weight="400" fill="#64748b" text-anchor="start" font-style="italic">Testing can only reject it,</text>
+<text x="1018" y="444" font-size="12" font-weight="400" fill="#64748b" text-anchor="start" font-style="italic">with some confidence</text>
+<rect x="1266" y="126" width="250" height="334" rx="10" fill="#fff" stroke="#94a3b8" stroke-width="1.4" stroke-dasharray="5 4"/>
+<text x="1282" y="156" font-size="16" font-weight="700" fill="#334155" text-anchor="start">Intent</text>
+<text x="1282" y="182" font-size="13" font-weight="400" fill="#0f172a" text-anchor="start">“The agent did</text>
+<text x="1282" y="201" font-size="13" font-weight="400" fill="#0f172a" text-anchor="start">what I meant”</text>
+<text x="1282" y="393" font-size="12" font-weight="400" fill="#64748b" text-anchor="start" font-style="italic">A gap in the specification.</text>
+<text x="1282" y="410" font-size="12" font-weight="400" fill="#64748b" text-anchor="start" font-style="italic">Each rule you write down</text>
+<text x="1282" y="427" font-size="12" font-weight="400" fill="#64748b" text-anchor="start" font-style="italic">for it usually lands back</text>
+<text x="1282" y="444" font-size="12" font-weight="400" fill="#64748b" text-anchor="start" font-style="italic">in safety</text>
+<rect x="210" y="491" width="16" height="16" rx="4" fill="#e7f3f4" stroke="#0f7d8c" stroke-width="1.4"/>
+<text x="236" y="504" font-size="13" font-weight="400" fill="#334155" text-anchor="start">Enforceable at run time from finite observation</text>
+<rect x="605" y="491" width="16" height="16" rx="4" fill="#eef1f5" stroke="#334155" stroke-width="1.4"/>
+<text x="631" y="504" font-size="13" font-weight="400" fill="#334155" text-anchor="start">Static proof or a stricter approximation only</text>
+<rect x="986" y="491" width="16" height="16" rx="4" fill="#fff" stroke="#94a3b8" stroke-width="1.4" stroke-dasharray="3 2"/>
+<text x="1012" y="504" font-size="13" font-weight="400" fill="#334155" text-anchor="start">Not a property of runs</text>
+</svg>

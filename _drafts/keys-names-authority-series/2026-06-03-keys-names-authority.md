@@ -26,7 +26,7 @@ The [authorization series intro](/programming/authorization-series-intro.html#fr
 
 ## Three regions
 
-![One grid, three series: the regions each series covers](/assets/series/three-series-grid.svg)
+![One grid, three series: the regions each series covers](/assets/keys-names-authority-series/three-series-grid.svg)
 
 - **Applied crypto** covers the Authenticate column's reference monitor and lookup: proving you hold a key, and keeping it where nobody else can use it. It also covers a secure channel, which makes delivery tamperproof, and the machinery every cell is built from: primitives, AEAD, entropy and key wrapping.
 - **Identity** covers most of the Written row. Its lens is the binding: who may write it, and when it stops being true. It applies that lens to names bound to places (DNS and routes, after Saltzer) and to names bound to keys (the Web PKI, identity providers, attestation). It also covers carriers of identity: certificates, `id_token`s and session cookies.
