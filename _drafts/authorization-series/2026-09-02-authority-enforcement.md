@@ -161,7 +161,7 @@ This article asks what makes each stage hold. [Part 4](/programming/capabilities
 | reach | the name resolves, and delivery fails | `ENETUNREACH` in an empty network namespace; a timeout |
 | decide | the request arrives, and the answer is no | `EACCES`; HTTP 403 |
 
-The object a name resolves to is often a lower-level name. DNS resolves a host to an IP address, and the address is what reach routes. [RFC 1498][rfc1498] chains these bindings: service to node, node to attachment point, attachment point to path. So designate and reach are one pair that repeats at every layer. A URL is a host, resolved by DNS and reached over IP, plus a path, resolved and reached again inside the server.
+The object a name resolves to is often a lower-level name. DNS resolves a host to an IP address, and the address is what reach routes. [RFC 1498][rfc1498] chains these bindings: service to node, node to attachment point, attachment point to path. So designate and reach are one pair that repeats at every layer. A URL is a host, resolved by DNS and reached over IP, plus a path, resolved and reached again inside the server. Day's [RINA][networking-is-ipc-paper] goes further and repeats all four stages in every layer, each with its own enforcer. Each layer's reach calls designate in the layer below: to get a packet to the next hop, a layer asks the one below for a flow to that hop's name. The [series intro](/programming/authorization-series-intro.html#from-a-chain-to-a-grid) reads the grid this way.
 
 ### Every stage has its own enforcer
 
@@ -641,6 +641,7 @@ Between those monitors, decisions have to travel. A token issued in one domain i
 [linux-security-modules-general]: https://www.usenix.org/legacy/publications/library/proceedings/sec02/full_papers/wright/wright_html/ "Linux Security Modules: General Security Support for the Linux Kernel"
 [robust-composition]: http://www.erights.org/talks/thesis/markm-thesis.pdf "Robust Composition"
 [sel4-reference-manual]: https://sel4.systems/Info/Docs/seL4-manual-latest.pdf "seL4 reference manual"
+[networking-is-ipc-paper]: https://www.cs.bu.edu/fac/matta/Papers/IPC-arch-rearch08.pdf "“Networking is IPC”: A Guiding Principle to a Better Internet"
 [rfc1498]: https://www.rfc-editor.org/rfc/rfc1498.html "RFC 1498: On the Naming and Binding of Network Destinations"
 [setpriv]: https://man7.org/linux/man-pages/man1/setpriv.1.html "`setpriv`"
 [software-isolation-linux]: https://nikmav.blogspot.com/2015/06/software-isolation-in-linux_15.html "Software isolation in Linux"
