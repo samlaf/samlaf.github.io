@@ -90,9 +90,60 @@ Here is the stack the series works with, from what the application cares about d
                     physical link
 ```
 
-The top half is distributed systems: what correctness means, which histories of operations are legal, and the protocols that replicate state to deliver them. I've written about parts of it before, in [Multiprocessors are distributed systems](/programming/multiprocessors-are-distributed-systems.html) and [BFT broadcast](/blockchain/bft-broadcast.html). It deserves its own series.
+The top half is distributed systems: what correctness means, which histories of operations are legal, and the protocols that replicate state to deliver them. I've written about parts of it before, in [Multiprocessors are distributed systems](/programming/multiprocessors-are-distributed-systems.html) and [BFT broadcast](/blockchain/bft-broadcast.html). It deserves its own series. Shadaj Laddad's [*Distributed Systems Programming Has Stalled*](https://www.shadaj.me/writing/distributed-programming-stalled) is a good way into it: the systems in those boxes have moved on, and the way we program them mostly hasn't.
 
 This series covers the bottom half: from RPC down to the wire. That half has a reputation for being a pile of unrelated protocols. The point of the series is that it isn't.
+
+### The map, level by level
+
+Each box has protocols and systems that live in it. Some appear in more than one box, because they bundle several levels into one product.
+
+| Level | The question it answers | Examples |
+| --- | --- | --- |
+| application invariants | what does correctness mean here? | `balance >= 0`, one owner per item, stock never below zero; enforced by application code, database constraints or smart contracts |
+| distributed objects and state | what exists, and what can clients do to it? | objects with their own operations: CORBA, Java RMI, Cap'n Proto, gRPC services. A few operations over named objects: REST, 9P, SNMP, CMIP, CDAP. Stores: etcd, Redis, SQL databases, distributed shared memory |
+| consistency semantics | which histories of operations are legal? | linearizable (etcd, Spanner), serializable (most SQL databases), causal (COPS, Isis's `cbcast`), eventual (DNS, Dynamo), strong eventual (CRDTs), session guarantees (Bayou) |
+| replication and coordination | how do the replicas get there? | consensus: Paxos, Raft, Viewstamped Replication. Byzantine consensus: PBFT, HotStuff. Group communication: virtual synchrony (Isis, Horus, Spread, JGroups), atomic broadcast. Quorum replication (Dynamo), two-phase commit, CRDT gossip and anti-entropy |
+| RPC and messaging | how does a request find its reply? | Sun RPC, CORBA's IIOP, Java RMI, gRPC, Thrift, JSON-RPC, Cap'n Proto RPC, CDAP. Publish/subscribe: Kafka, MQTT |
+| IPC service semantics | what does a flow promise? | reliable byte stream (TCP, a QUIC stream), reliable messages (SCTP, `SOCK_SEQPACKET`), unreliable datagrams (UDP, QUIC datagrams), multicast (IP multicast, Ouroboros broadcast layers) |
+| IPC mechanisms and policies | how does a layer keep that promise? | sequencing, acknowledgement, retransmission, windows and congestion control, as TCP, QUIC, RINA's EFCP and Ouroboros's FRCP each combine them |
+| recursive IPC | over what scope? | the layers in [Part 3](/programming/internet-as-difs.html)'s rank table, from an HTTP service down to an Ethernet link; PCIe and the shared-memory rings of Parts 4 and 5 |
+| physical link | over what medium? | Ethernet PHYs, PCIe lanes, fiber, radio |
+
+### Where virtual synchrony sits
+
+Virtual synchrony fills three boxes at once. Ken Birman's Isis toolkit, which introduced it in the 1980s, offered:
+
+- **An object abstraction.** A named process group was a replicated object. Joining a group meant taking a replica, and a newcomer got the current state by state transfer.
+- **A choice of consistency.** A multicast to the group could be FIFO-ordered (`fbcast`), causally ordered (`cbcast`) or totally ordered (`abcast`). Each was delivered within an agreed *view*: the list of members at that moment.
+- **A mechanism.** A group membership service turned each member's timeouts into failure events that every member agreed on, and the multicast protocols ran inside each view.
+
+So is it a distributed object abstraction with full consensus? Partly. Agreeing on each new view is a consensus problem, and Isis solved it once per membership change rather than once per message. Inside a view, the default multicast is cheaper and weaker than consensus: a message delivered to a member that crashes right after may never reach the others. Birman's [history of the model](https://www.cs.cornell.edu/ken/history.pdf) explains the choice: most updates touched caches or other state that a restarted member rebuilds anyway. When an application needed more, a *uniform* multicast gave consensus-strength delivery, at consensus cost. Paxos-based systems later added the same reconfigurable membership, and Birman notes that the two families have largely converged.
+
+### How RINA reads the map
+
+Does RINA subsume this map? Mostly, but not by making every box a DIF. RINA has two kinds of distributed facility:
+
+- A **DAF** (distributed application facility) is a set of application processes cooperating on some task. Each member keeps a RIB, its view of the objects the members share, and the members keep their RIBs in step with CDAP.
+- A **DIF** is a DAF whose task is IPC.
+
+The two halves of the map line up with those two:
+
+- **The bottom half is DIFs.** "Recursive IPC" is the stack of DIFs at different scopes. "IPC mechanisms and policies" is what each DIF runs, and "IPC service semantics" is what it promises its users.
+- **The top half is the anatomy of one DAF.** Its boxes don't differ by scope, as DIFs do. They describe one distributed application at different levels. A replicated key-value store such as etcd fills all of them: keys and values are its objects, linearizability is its semantics, Raft is its mechanism and gRPC is its messaging.
+- **Every DIF contains a DAF.** A DIF's layer management is itself a distributed application, with the same anatomy:
+
+| Box in the map | In a DIF's layer management |
+| --- | --- |
+| objects and state | the RIB: members, addresses, routes, the directory |
+| consistency semantics | how closely the members' RIBs must agree, set by policy; routing usually settles for eventual agreement |
+| replication and coordination | enrollment, routing updates, directory updates |
+| RPC and messaging | CDAP |
+| IPC | flows from the DIF itself, or from the DIF below |
+
+So the map recurses twice. The bottom half recurses by scope, one DIF on another. The top half recurs inside every layer, as that layer's management.
+
+Ouroboros, the RINA descendant in [Part 3](/programming/internet-as-difs.html#ouroboros-a-descendant), draws the bottom of the map differently. Its layers deliver packets with no promise of reliability or order. A library at each end adds those, so the ends fill the "IPC service semantics" box, not the layer. It has no CDAP, so layer management has no single object protocol. And its broadcast layers supply the named group that atomic broadcast and virtual synchrony start from, without their ordering or agreement. Those would be a protocol on top, as Isis was on top of IP multicast.
 
 ## Three lenses
 
@@ -116,6 +167,8 @@ Three ideas do most of the work:
 
 - J. Day, *Patterns in Network Architecture: A Return to Fundamentals*, Prentice Hall, 2008.
 - J. Day, I. Matta, K. Mattar, "Networking is IPC: a guiding principle to a better Internet", CoNEXT 2008.
+- K. Birman, [A History of the Virtual Synchrony Replication Model](https://www.cs.cornell.edu/ken/history.pdf), in *Replication: Theory and Practice*, Springer, 2010.
+- Y. Wang, F. Esposito, I. Matta, J. Day, [RINA: An Architecture for Policy-Based Dynamic Service Management](http://csr.bu.edu/rina/papers/BUCS-TR-2013-014.pdf), Boston University technical report BUCS-TR-2013-014, 2013.
 - D. Staessens, S. Vrijders, [Design of the Ouroboros packet network](https://arxiv.org/abs/2001.09707), arXiv:2001.09707, 2020.
 - J. Saltzer, [RFC 1498, *On the Naming and Binding of Network Destinations*](https://www.rfc-editor.org/info/rfc1498/), 1993 (written 1982).
 - J. Saltzer, D. Reed, D. Clark, [End-to-end arguments in system design](https://web.mit.edu/Saltzer/www/publications/endtoend/endtoend.pdf), ACM TOCS, 1984.

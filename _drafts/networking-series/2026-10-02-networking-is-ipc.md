@@ -104,6 +104,8 @@ Whether a flow has a DTCP at all is a policy too. Without one, each PDU is sent 
 
 Through this lens, a dash in the table is a null policy. A row is a choice of policies at one scope. A new protocol is usually a new combination of old mechanisms.
 
+The idea is older than RINA. The [x-Kernel](https://dl.acm.org/doi/10.1109/32.67579) (1991) built protocol stacks out of small protocol objects that could be stacked in any order. [Horus](https://dl.acm.org/doi/10.1145/227210.227229) (1996) did the same for group communication: it built a virtual synchrony stack out of microprotocols, each adding one property, such as ordering, membership or flow control.
+
 ### Pick the lowest layer that reaches
 
 A RINA application asks for a flow to another application by name, with the service it needs. The system picks a DIF whose scope covers the destination. IRATI's shim DIF for hypervisors shows the payoff. An application in a VM whose peer is on the host uses the hypervisor's shared-memory channel directly, as a DIF, with nothing stacked on it. In their host-to-VM tests, that beat both an emulated e1000 and virtio-net, which make the guest pretend there is an Ethernet link where there is only shared memory.
@@ -125,5 +127,7 @@ None of this weakens the main point of the table. The same few functions appear 
 - J. Day, *Patterns in Network Architecture: A Return to Fundamentals*, Prentice Hall, 2008.
 - J. Day, I. Matta, K. Mattar, "Networking is IPC: a guiding principle to a better Internet", CoNEXT 2008.
 - E. Grasa et al., [Recursive InterNetwork Architecture, Investigating RINA as an Alternative to TCP/IP (IRATI)](https://www.riverpublishers.com/pdf/ebook/chapter/RP_9788793519114C16.pdf), River Publishers, 2017.
+- N. Hutchinson, L. Peterson, [The x-Kernel: An Architecture for Implementing Network Protocols](https://dl.acm.org/doi/10.1109/32.67579), IEEE Transactions on Software Engineering, 1991.
+- R. van Renesse, K. Birman, S. Maffeis, [Horus: A Flexible Group Communication System](https://dl.acm.org/doi/10.1145/227210.227229), Communications of the ACM, 1996.
 - [Declarative Transport: No more transport protocols to design, only policies to specify](https://www.cs.bu.edu/fac/matta/Papers/hotnets7-paper40.pdf), Boston University, HotNets-VII submission, 2008.
 - J. Saltzer, D. Reed, D. Clark, [End-to-end arguments in system design](https://web.mit.edu/Saltzer/www/publications/endtoend/endtoend.pdf), ACM TOCS, 1984. Summary: [End-to-end principle (Wikipedia)](https://en.wikipedia.org/wiki/End-to-end_principle).

@@ -42,6 +42,8 @@ RINA isn't the only recursive design. [Ouroboros](https://ouroboros.rocks/wiki/O
 - **No common management protocol.** Ouroboros dropped CDAP, RINA's single protocol for layer management, which its authors considered overengineered.
 - **Registration happens outside the application.** A management tool registers names in a layer and binds them to programs. The directory that maps names to addresses is a distributed hash table.
 
+A broadcast layer floods each packet to every member, along a tree, with no header at all. The idea has a long line behind it: the V kernel's process groups (Cheriton and Zwaenepoel, 1985), then IP multicast, where a multicast address names a group, then Ken Birman's Isis, whose named process groups added agreed membership and ordered delivery on top. An Ouroboros broadcast layer provides the named group, not those guarantees.
+
 Ouroboros runs today in user space on Linux, BSD and macOS, over Ethernet, UDP or another Ouroboros layer. Like RINA, it is a prototype, not a deployment. This series uses RINA's vocabulary, DIFs, ranks and IRATI's list of components, because most of the literature does. Where the two designs differ, the text follows RINA.
 
 ## Saltzer's levels inside one DIF
