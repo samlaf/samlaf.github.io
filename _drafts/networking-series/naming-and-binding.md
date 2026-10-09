@@ -85,6 +85,79 @@ Two things in the Internet don't sit cleanly on a Saltzer level:
 DNS looks like it fills the node gap, but it doesn't: a hostname resolves to
 attachment points (addresses), skipping the node.
 
+### One service, many nodes: DNS, VIPs and anycast
+
+![Saltzer's four levels, and how a request to payments.example.com actually reaches a backend](/assets/networking-series/saltzer-levels-on-the-internet.png)
+
+The top row is Saltzer's model with an example name at each level. The
+node-id has no Internet counterpart: that is the gap above. The bottom row is
+one common path from a service name to a backend.
+
+A replicated service needs a one-to-many service → node binding. The
+Internet has three places to put it, and each puts it at a different level:
+
+| Mechanism | The address the client gets names | Who picks the node | When | A change takes effect |
+| --- | --- | --- | --- | --- |
+| DNS | one replica's attachment point | the resolver and the client, from the record set | at each lookup | when caches expire, which can be after the TTL |
+| VIP + load balancer | the service | the load balancer, from its backend table | at each new connection | at the next connection |
+| anycast | the service, at every site that announces it | every router on the path | at each packet | as soon as BGP converges |
+
+**DNS.** The binding lives in a directory outside the network, and each
+client keeps its own copy. It is cheap and needs no new machines. But a dead
+replica stays in client caches until they expire, and the operator can't
+move a connection once it is open.
+
+**VIP.** DNS returns one address, and that address names the service, not a
+machine. This is the diagram's VIP nuance: the name has the form of an
+attachment point but is used as a service name. Saltzer warns against
+exactly this inference: a name's form doesn't tell you what kind of object
+it names. The load balancer binds the VIP to a backend for each new
+connection, usually by hashing the five-tuple (IPVS,
+[Maglev](https://www.usenix.org/conference/nsdi16/technical-sessions/presentation/eisenbud)).
+The cost is that the load balancer now sits on the path, so it must be
+replicated too, and that brings the same binding problem back one level down.
+
+**Anycast.** Many sites announce the same prefix, and routing delivers each
+packet to the nearest one. The path binding does the service binding: there
+is no directory and no load balancer, only routes.
+[Cloudflare's 2013 architecture](https://blog.cloudflare.com/cloudflares-architecture-eliminating-single-p/)
+uses anycast twice:
+
+- **Across data centers.** Every data center announces the same IPs to the
+  Internet.
+- **Inside a data center.** Every server announces those IPs to the local
+  router over BGP. Each server sets its own route weight, and the router
+  prefers the lowest. The post describes an experiment with equal weights,
+  where the router hashes source IP, destination IP and port to pick a
+  server, which keeps a flow on one server.
+
+A failure is a withdrawn route. A crashed process, server, switch or router
+takes its announcements with it, and traffic moves to the next nearest
+server or site. There is no load balancer box to fail.
+
+The catch is that routing knows nothing about connections. If a route
+changes in the middle of a TCP connection, its packets arrive at a site with
+no state for it.
+[Hendriks et al. (2025)](https://arxiv.org/html/2503.14351v1) measure a
+subtler effect. Load balancers in transit networks hash header fields, so two
+flows from the same client can reach different anycast sites. They found this
+for 4.4% of responsive IPv4 /24 prefixes, mostly residential networks, with
+an average round-trip difference of 30 ms between the two sites. Each flow
+still stays on one path, so connections survive. But the operator no longer
+decides which site serves which client.
+
+**In practice, they stack.** The diagram's bottom row uses all three, one per
+binding:
+
+1. DNS binds the human-readable name to a VIP.
+2. BGP and ECMP bind the VIP to one of several load balancers: anycast inside
+   the data center.
+3. The load balancer binds each connection to a backend.
+
+Each binding hides the one below it from the one above. The client sees one
+address for the life of the connection, while the operator changes the
+backends behind it freely.
+
 ### One layer down: the same pattern at L2
 
 | Saltzer at L3 (IP) | The same at L2 (Ethernet) |
