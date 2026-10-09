@@ -29,7 +29,7 @@ The organizing idea comes from an unlikely place — a 1993 RFC by Jerry Saltzer
 
 Identity is that framework pointed at keys. A certificate is a binding of a name to a key, with a validity window. A login session is a binding of a cookie to a principal, with a lifetime. An attestation report is a binding of a key to a piece of measured software. Certificate transparency, key transparency and web-of-trust signatures are three different answers to *who may write the binding*. Short-lived certificates and revocation lists are two different answers to *when it stops being true*.
 
-The first article sets that lens up in the domain Saltzer wrote it for, with Kubernetes and PCIe as worked examples, because the failure modes are easier to see in a network than in a PKI. Every article after it is the same lens on a different kind of principal.
+The first article recaps that lens from the domain Saltzer wrote it for, network destinations, where the [networking series](/programming/naming-and-binding.html) works through it in full. Then it turns the lens on keys. Every article after it is the same lens on a different kind of principal.
 
 ## Three kinds of principal
 
@@ -49,7 +49,7 @@ But names persist for reasons that are not cryptographic. Policy is written by h
 
 ## The articles
 
-- **[Part 1: Naming and binding](/programming/naming-and-binding.html)** — names stay put, bindings move. Saltzer's four objects and three bindings, the ARPANET's mistake, and why Kubernetes and PCIe are the cleanest modern examples of getting it right and wrong.
+- **[Part 1: Names, keys and bindings](/programming/names-keys-and-bindings.html)** — names stay put, bindings move. Saltzer's four objects and three bindings, the lessons that carry over to keys, and what changes when a key is the name.
 - **[Part 2: Keys are not names](/programming/keys-are-not-names.html)** — what cryptography can say about *who* (nothing), SPKI's split between name and authorization certificates, the three kinds of principal, and the four ways a binding ever gets written.
 - **[Part 3: Hosts](/programming/identity-of-hosts.html)** — HOSTS.TXT to DNS to DNSSEC, X.500 to X.509 to the Web PKI, the CA failures and the fixes (CT, CAA, ACME, 47-day certificates), and the roots of trust it all bottoms out in.
 - **[Part 4: Humans](/programming/identity-of-humans.html)** — accounts, recovery as the weakest binding, the trusted third party from Needham–Schroeder through Kerberos and SAML to OpenID Connect, the `id_token` / `access_token` seam, and sessions.

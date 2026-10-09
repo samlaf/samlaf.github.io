@@ -8,7 +8,7 @@ date: 2026-07-22
 
 > This is Part 2 of a six-part [series on identity](/programming/identity-series-intro.html).
 >
-> 1. **[Naming and binding](/programming/naming-and-binding.html)** — names stay put, bindings move. Saltzer's lens, from the ARPANET to Kubernetes to PCIe.
+> 1. **[Names, keys and bindings](/programming/names-keys-and-bindings.html)** — names stay put, bindings move. Saltzer's lens on network destinations, turned on keys.
 > 2. **Keys are not names** — what cryptography can say about who, and why anyone bothers with names at all.
 > 3. **[Hosts](/programming/identity-of-hosts.html)** — DNS, X.509 and the Web PKI: forty years of binding names to keys, and the anchors it bottoms out in.
 > 4. **[Humans](/programming/identity-of-humans.html)** — accounts, the trusted third party from Kerberos to OIDC, and sessions.
@@ -40,7 +40,7 @@ PAKE succeeds             the peer knows the password
 
 Not one of those statements contains a name. A TLS handshake with `example.com` proves that the far end holds the private key matching the public key in a certificate. The certificate is what says `example.com`, and the certificate is not a cryptographic object. It is a signed *assertion*, made by a third party, that a particular key belongs to a particular name. Verifying the signature tells you the assertion was made by a holder of the CA's key. It tells you nothing about whether the assertion is true.
 
-This is Saltzer's [binding table](/programming/naming-and-binding.html) again. The handshake resolves one binding — key → channel — and does it perfectly. The certificate is an entry in a different table, name → key, and cryptography's only role there is to make the entry tamper-evident. Who wrote the entry, whether they were entitled to, and whether it is still true, are not things a signature can tell you.
+This is Saltzer's [binding table](/programming/names-keys-and-bindings.html) again. The handshake resolves one binding — key → channel — and does it perfectly. The certificate is an entry in a different table, name → key, and cryptography's only role there is to make the entry tamper-evident. Who wrote the entry, whether they were entitled to, and whether it is still true, are not things a signature can tell you.
 
 The threat model prologue already said this in one line: [a key is not a name](/programming/threat-model.html). The rest of this series is what follows from taking it seriously.
 
@@ -94,6 +94,8 @@ Why this matters here: SPKI is the fault line between this series and the next. 
 The identity-less design is not a thought experiment. Some of the most reliable infrastructure on the internet never binds a key to a name at all.
 
 **WireGuard.** A peer is a public key. The configuration file lists public keys and the addresses they are allowed to use. There are no certificates, no names, no CA. "Authentication" means the far end proved it holds the private key for one of the configured public keys, and that is the entire identity model. Rotating a peer's key means editing every other peer's config, which is Saltzer's collapsed-layer cost paid knowingly.
+
+**iroh.** A peer-to-peer networking library that says it in one line: "Every iroh endpoint is identified by a cryptographic key." An endpoint's id is its Ed25519 public key, and you dial a key, not an address. The key fills the node name the Internet never had. The endpoint's addresses, a home relay and a few direct `IP:port`s, change as it moves, so iroh publishes them in a record signed by the key itself and serves it over DNS. The directory can withhold that record or serve a stale copy, but it can't forge one, so the key → address binding needs no trusted third party. What the key can't say is whose endpoint it is. iroh leaves that to the application, and in practice it travels as a *ticket*: the key and its current addresses, pasted into a chat or shown as a QR code.
 
 **SSH `authorized_keys`.** A file on the server listing public keys, each optionally restricted with `command=`, `from=`, `no-port-forwarding`. The server never learns who you are. It learns that you hold a listed key, and it grants that key whatever the line says. This is a capability list indexed by public key, with caveats — SPKI's authorization certificate rendered as a text file — and it has run the world's servers since 1995.
 
@@ -170,6 +172,7 @@ And every one of them is recursive. The issuer's key needs its own binding, whic
 5. [Names: Decentralized, Secure, Human-Meaningful: Choose Two - Zooko Wilcox-O'Hearn (2001)][zooko]
 6. [WireGuard: Next Generation Kernel Network Tunnel - Donenfeld][wireguard]
 7. [sshd AUTHORIZED_KEYS FILE FORMAT - OpenSSH][sshd-authorized]
+8. [iroh documentation: endpoints and address lookup][iroh]
 
 [rfc2693]: https://www.rfc-editor.org/rfc/rfc2693 "RFC 2693: SPKI Certificate Theory"
 [sdsi]: https://people.csail.mit.edu/rivest/sdsi11.html "SDSI: A Simple Distributed Security Infrastructure"
@@ -178,3 +181,4 @@ And every one of them is recursive. The issuer's key needs its own binding, whic
 [zooko]: https://en.wikipedia.org/wiki/Zooko%27s_triangle "Zooko's triangle"
 [wireguard]: https://www.wireguard.com/papers/wireguard.pdf "WireGuard: Next Generation Kernel Network Tunnel"
 [sshd-authorized]: https://man.openbsd.org/sshd#AUTHORIZED_KEYS_FILE_FORMAT "sshd: AUTHORIZED_KEYS FILE FORMAT"
+[iroh]: https://docs.iroh.computer/concepts/endpoints "iroh: Endpoints"

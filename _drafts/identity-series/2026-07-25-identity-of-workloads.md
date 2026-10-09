@@ -8,7 +8,7 @@ date: 2026-07-25
 
 > This is Part 5 of a six-part [series on identity](/programming/identity-series-intro.html).
 >
-> 1. **[Naming and binding](/programming/naming-and-binding.html)** — names stay put, bindings move. Saltzer's lens, from the ARPANET to Kubernetes to PCIe.
+> 1. **[Names, keys and bindings](/programming/names-keys-and-bindings.html)** — names stay put, bindings move. Saltzer's lens on network destinations, turned on keys.
 > 2. **[Keys are not names](/programming/keys-are-not-names.html)** — what cryptography can say about who, and why anyone bothers with names at all.
 > 3. **[Hosts](/programming/identity-of-hosts.html)** — DNS, X.509 and the Web PKI: forty years of binding names to keys, and the anchors it bottoms out in.
 > 4. **[Humans](/programming/identity-of-humans.html)** — accounts, the trusted third party from Kerberos to OIDC, and sessions.
@@ -49,7 +49,7 @@ The whole history below is a sequence of platforms taking on that job, each one 
 
 AWS added IAM roles for EC2 in 2012: attach a role to an instance, and any process on it can fetch temporary credentials from the **instance metadata service** at `169.254.169.254` with an unauthenticated HTTP GET. The VM is the principal, the hypervisor's knowledge of which VM is asking is the binding, and the credentials rotate automatically. The other clouds shipped the same design.
 
-Notice what identifies the workload: the ability to reach an address. That is an attachment-point name doing a principal's job, the [first article's](/programming/naming-and-binding.html#turning-the-lens-on-keys) recurring mistake, and it failed accordingly. Any code on the instance that could be made to issue an HTTP request to an attacker-chosen URL — server-side request forgery — could fetch the instance's credentials. The 2019 Capital One breach worked this way, and [IMDSv2][imdsv2] (November 2019) responded by requiring a `PUT` to obtain a session token first, with a default hop limit of one so that forwarded requests from containers or proxies fail. The identity still comes from *being the VM*; the change narrowed who on the VM could exercise it.
+Notice what identifies the workload: the ability to reach an address. That is an attachment-point name doing a principal's job, the [first article's](/programming/names-keys-and-bindings.html#turning-the-lens-on-keys) recurring mistake, and it failed accordingly. Any code on the instance that could be made to issue an HTTP request to an attacker-chosen URL — server-side request forgery — could fetch the instance's credentials. The 2019 Capital One breach worked this way, and [IMDSv2][imdsv2] (November 2019) responded by requiring a `PUT` to obtain a session token first, with a default hop limit of one so that forwarded requests from containers or proxies fail. The identity still comes from *being the VM*; the change narrowed who on the VM could exercise it.
 
 The metadata service also returns a signed **instance identity document** — instance ID, account, region, image — which is a certificate for the VM, signed by the cloud, verifiable by anyone with the cloud's public key. It is the first appearance in this article of the pattern that everything below refines: the launcher signs a statement about what it launched.
 

@@ -8,7 +8,7 @@ date: 2026-07-24
 
 > This is Part 4 of a six-part [series on identity](/programming/identity-series-intro.html).
 >
-> 1. **[Naming and binding](/programming/naming-and-binding.html)** — names stay put, bindings move. Saltzer's lens, from the ARPANET to Kubernetes to PCIe.
+> 1. **[Names, keys and bindings](/programming/names-keys-and-bindings.html)** — names stay put, bindings move. Saltzer's lens on network destinations, turned on keys.
 > 2. **[Keys are not names](/programming/keys-are-not-names.html)** — what cryptography can say about who, and why anyone bothers with names at all.
 > 3. **[Hosts](/programming/identity-of-hosts.html)** — DNS, X.509 and the Web PKI: forty years of binding names to keys, and the anchors it bottoms out in.
 > 4. **Humans** — accounts, the trusted third party from Kerberos to OIDC, and sessions.
@@ -36,7 +36,7 @@ A host has one name and a well-defined owner. A person has dozens of names, owns
 
 ## What is a person's name?
 
-Run the [Saltzer test](/programming/naming-and-binding.html) on the identifiers we actually use for people, and ask which table each one really lives in.
+Run the [Saltzer test](/programming/names-keys-and-bindings.html) on the identifiers we actually use for people, and ask which table each one really lives in.
 
 **A username** is a local name. `alice` at GitHub and `alice` at Slack are unrelated, and each service is the sole authority for its own namespace. This is SDSI's model from the [previous article](/programming/keys-are-not-names.html#spki-drew-the-line-in-1999) — names relative to a principal — and it is why "Alice" is never a global identifier for a person on the internet.
 
@@ -170,7 +170,7 @@ There are two ways to represent a session, and they are the [enforcement article
 
 A **stateful** session stores a record server-side and hands the browser an opaque key. Every request looks the record up. Revocation is trivial — delete the row — and the cost is a lookup per request and a store every server can reach.
 
-A **stateless** session puts the claims in the cookie itself, signed: a JWT. No lookup, no shared store, and *no revocation*. The binding is a copy in the browser, and there is no mechanism to reach it, so the only control is expiry. This is why stateless sessions are paired with short lifetimes and refresh tokens, and why "just use JWTs for sessions" is the [first article's](/programming/naming-and-binding.html) scope-of-a-binding lesson waiting to be relearned.
+A **stateless** session puts the claims in the cookie itself, signed: a JWT. No lookup, no shared store, and *no revocation*. The binding is a copy in the browser, and there is no mechanism to reach it, so the only control is expiry. This is why stateless sessions are paired with short lifetimes and refresh tokens, and why "just use JWTs for sessions" is the [first article's](/programming/names-keys-and-bindings.html) scope-of-a-binding lesson waiting to be relearned.
 
 ### Continuous evaluation
 

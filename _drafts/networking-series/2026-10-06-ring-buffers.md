@@ -1,4 +1,20 @@
-# Ring Buffers Design Space
+---
+title:  "Ring buffers"
+series: "Networking, Part 5"
+series_url: "/programming/networking-series-intro.html"
+category: programming
+date: 2026-10-06
+---
+
+> This is Part 5 of a seven-part [series on networking](/programming/networking-series-intro.html).
+>
+> 1. **[Networking is IPC](/programming/networking-is-ipc.html)** — one table of every way two parties exchange messages, and the same functions repeating at every boundary.
+> 2. **[Naming and binding](/programming/naming-and-binding.html)** — Saltzer's four levels, why IP:port does two jobs, and why every many-to-many case needs a translator.
+> 3. **[The Internet as DIFs](/programming/internet-as-difs.html)** — Saltzer's levels inside a RINA layer, a web service read rank by rank, and what overlays like Tailscale are missing.
+> 4. **[Interconnects are networks](/programming/interconnects-are-networks.html)** — PCIe is a packet network wearing a 1992 bus costume.
+> 5. **Ring buffers** — shared memory plus a doorbell, compared on five axes.
+> 6. **A packet's path through Linux** *(not yet written)* — from the NIC's descriptor ring to `recv()`, and the ways around it.
+> 7. **[From IPC to RPC](/programming/ipc-to-rpc.html)** — what a request/reply protocol adds on top of a flow, and where RPC ends.
 
 Comparing the various families of ring buffers in the kernel
 
@@ -23,7 +39,12 @@ The rows that arrived latest (io_uring, AF_XDP) are the ones using registered-re
 
 And packed virtqueue is the row that migrates upward — it abandons virtio's own two-ring-of-indices design to land exactly on NVMe's phase-tag shape, because the consumer stopped being software.
 
-## 5 axes comparison
+- [Five axes](#five-axes)
+- [AF_XDP](#af_xdp)
+- [io_uring](#io_uring)
+- [virtqueue](#virtqueue)
+
+## Five axes
 
 **1. Is the descriptor array a ring, or is the ring an index into it?**
 

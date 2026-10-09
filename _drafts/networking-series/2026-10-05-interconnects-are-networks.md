@@ -1,4 +1,20 @@
-# Interconnects are networks
+---
+title:  "Interconnects are networks"
+series: "Networking, Part 4"
+series_url: "/programming/networking-series-intro.html"
+category: programming
+date: 2026-10-05
+---
+
+> This is Part 4 of a seven-part [series on networking](/programming/networking-series-intro.html).
+>
+> 1. **[Networking is IPC](/programming/networking-is-ipc.html)** — one table of every way two parties exchange messages, and the same functions repeating at every boundary.
+> 2. **[Naming and binding](/programming/naming-and-binding.html)** — Saltzer's four levels, why IP:port does two jobs, and why every many-to-many case needs a translator.
+> 3. **[The Internet as DIFs](/programming/internet-as-difs.html)** — Saltzer's levels inside a RINA layer, a web service read rank by rank, and what overlays like Tailscale are missing.
+> 4. **Interconnects are networks** — PCIe is a packet network wearing a 1992 bus costume.
+> 5. **[Ring buffers](/programming/ring-buffers.html)** — shared memory plus a doorbell, compared on five axes.
+> 6. **A packet's path through Linux** *(not yet written)* — from the NIC's descriptor ring to `recv()`, and the ways around it.
+> 7. **[From IPC to RPC](/programming/ipc-to-rpc.html)** — what a request/reply protocol adds on top of a flow, and where RPC ends.
 
 Talking to a device is two problems on the same wires, and each one has its own machinery. Most writing about storage and interconnects covers only the first.
 
@@ -8,6 +24,9 @@ Talking to a device is two problems on the same wires, and each one has its own 
 A third problem, telling the OS what the buses cannot say about themselves, is solved by platform firmware off the wires entirely. It has [its own article](/programming/platform-firmware.html).
 
 This article argues that both planes are networking. The buses became packet networks, they perform the same functions as Ethernet and TCP, and they face the same question of where reliability belongs.
+
+- [The data plane: a command set over a transport](#the-data-plane-a-command-set-over-a-transport)
+- [The control plane rides the same wires](#the-control-plane-rides-the-same-wires)
 
 ## The data plane: a command set over a transport
 
@@ -293,6 +312,32 @@ The crisp summary: buses are gone from the hardware, and links are gone from the
 
 ![Diagram: PCI config space](/assets/networking-series/devices/pci-config-space.png)
 
+### What enumeration names
+
+Enumeration hands out names. Saltzer's four levels, from [Part 2](/programming/naming-and-binding.html), say what each one names:
+
+| Saltzer level | PCIe | Bound by |
+| --- | --- | --- |
+| service | what a driver wants, such as "an NVMe controller": named by class code and vendor:device ID | driver matching: each driver's `MODULE_DEVICE_TABLE` lists the IDs it serves |
+| node | **none in the fabric** | — |
+| attachment point | bus/device/function (BDF): where the card sits in the tree | physical slotting, then enumeration |
+| path | encoded in the bus number | bridge programming: each bridge's secondary–subordinate range |
+
+Like DNS, driver matching goes from service straight to attachment points. Enumeration reads the ID registers at each BDF, and the driver core binds a driver to every BDF whose IDs match.
+
+**A BDF names the slot, not the card.** Move an NVMe drive to another slot and its BDF changes, though nothing about the drive did. That is Saltzer's ARPANET case: a name that looks like a device name is really an attachment point's. Linux's persistent names show both readings. `enp5s0` and `/dev/disk/by-path/pci-0000:05:00.0-…` are attachment-point names: the path is the name. `/dev/disk/by-id/` and MAC-based interface names reach for the node instead.
+
+**PCIe has no node namespace.** Ethernet collapsed the node into the attachment point. PCIe dropped the node from its naming entirely. No fabric-level name follows a device across slots. Node identity lives out of band: the device serial number capability, VPD, a NIC's MAC, an NVMe subsystem's NQN. Software that wants "the same device as last boot" has to leave the PCIe namespace to get it. Configurations that key on a BDF, such as VFIO passthrough or monitoring, break the day the topology shifts.
+
+**The route is in the name.** A bus number isn't an arbitrary label. Because each bridge's secondary–subordinate range contains everything below it, the number fixes the path down the tree, and routing is a sequence of interval checks. The cost is stability. Names derived from the topology can't survive a change to it: hotplug a switch, and buses may renumber.
+
+**Binding time explains the rest.** A MAC is bound at manufacture. A BDF is minted fresh at every enumeration. PCIe chose late binding for its only namespace, and software has used those names as if they were early-bound ever since.
+
+Two smaller fits:
+
+- **BARs are a second attachment-point namespace.** A device answers at a BDF for config requests and at its BAR ranges for memory requests. PCIe runs two namespaces over the same paths, with two route tables: bus ranges and memory windows.
+- **SR-IOV is Ethernet's dual-attachment case, inverted.** One physical device presents many attachment points, one per virtual function, with the same confusion about how many devices there are.
+
 ## References
 
 - [Comparing virtio, NVMe, and io\_uring queue designs](https://blog.vmsplice.net/2022/06/comparing-virtio-nvme-and-iouring-queue.html)
@@ -303,6 +348,7 @@ The crisp summary: buses are gone from the hardware, and links are gone from the
 - [PCI Express primer 1: overview and physical layer (Simon Southwell)](https://www.linkedin.com/pulse/pci-express-primer-1-overview-physical-layer-simon-southwell)
 - [Video](https://www.youtube.com/watch?v=3ic61kJNEQ0)
 - [Linux kernel PCI documentation](https://docs.kernel.org/PCI/index.html)
+- J. Saltzer, [RFC 1498, *On the Naming and Binding of Network Destinations*](https://www.rfc-editor.org/info/rfc1498/), 1993 (written 1982).
 - J. Saltzer, D. Reed, D. Clark, [End-to-end arguments in system design](https://web.mit.edu/Saltzer/www/publications/endtoend/endtoend.pdf), ACM TOCS, 1984. Summary: [End-to-end principle (Wikipedia)](https://en.wikipedia.org/wiki/End-to-end_principle).
 - E. Grasa et al., [Recursive InterNetwork Architecture, Investigating RINA as an Alternative to TCP/IP (IRATI)](https://www.riverpublishers.com/pdf/ebook/chapter/RP_9788793519114C16.pdf), River Publishers, 2017.
 - J. Day, I. Matta, K. Mattar, "Networking is IPC: a guiding principle to a better Internet", CoNEXT 2008.

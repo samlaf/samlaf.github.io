@@ -8,14 +8,14 @@ date: 2026-07-23
 
 > This is Part 3 of a six-part [series on identity](/programming/identity-series-intro.html).
 >
-> 1. **[Naming and binding](/programming/naming-and-binding.html)** — names stay put, bindings move. Saltzer's lens, from the ARPANET to Kubernetes to PCIe.
+> 1. **[Names, keys and bindings](/programming/names-keys-and-bindings.html)** — names stay put, bindings move. Saltzer's lens on network destinations, turned on keys.
 > 2. **[Keys are not names](/programming/keys-are-not-names.html)** — what cryptography can say about who, and why anyone bothers with names at all.
 > 3. **Hosts** — DNS, X.509 and the Web PKI: forty years of binding names to keys, and the anchors it bottoms out in.
 > 4. **[Humans](/programming/identity-of-humans.html)** — accounts, the trusted third party from Kerberos to OIDC, and sessions.
 > 5. **[Workloads and hardware](/programming/identity-of-workloads.html)** — secret zero, SPIFFE, federated CI identity, and attestation.
 > 6. **[Binding without a CA](/programming/binding-without-a-ca.html)** — first use, webs of trust, transparency logs, and petnames.
 
-A host's identity is a DNS name, and the internet's answer to "is this key really `example.com`'s" is the Web PKI. This article is the history of both, read as two [binding tables](/programming/naming-and-binding.html) — name → address, and name → key — and of the forty years it took to notice that the second one was built on top of the first.
+A host's identity is a DNS name, and the internet's answer to "is this key really `example.com`'s" is the Web PKI. This article is the history of both, read as two [binding tables](/programming/names-keys-and-bindings.html) — name → address, and name → key — and of the forty years it took to notice that the second one was built on top of the first.
 
 - [Names before keys: HOSTS.TXT to DNS](#names-before-keys-hoststxt-to-dns)
   - [DNSSEC, and the fix that never shipped](#dnssec-and-the-fix-that-never-shipped)
@@ -138,7 +138,7 @@ A certificate is an entry copied into every client that connects. When the key l
 
 Let's Encrypt shut its OCSP responders down in 2025 and moved to CRLs only. The industry's real answer was different: stop making bindings that last long enough to need revoking. Maximum certificate lifetimes went from five years to 39 months (2015), to 825 days (2018), to 398 days (2020, after Apple forced the issue), and under the CA/Browser Forum's [2025 ballot][cabf-br] they fall to 200 days in 2026, 100 in 2027, and **47 days** in 2029.
 
-That is Saltzer's binding-time trade made deliberately. A short binding is re-resolved constantly, so a stale copy ages out on its own and revocation matters less. The cost is the one the [first article](/programming/naming-and-binding.html#turning-the-lens-on-keys) named: the binding service has to be available all the time, and issuance itself becomes the availability-critical path. A CA outage used to be an inconvenience for people renewing this month. At 47 days it is an outage for the internet.
+That is Saltzer's binding-time trade made deliberately. A short binding is re-resolved constantly, so a stale copy ages out on its own and revocation matters less. The cost is the one the [first article](/programming/names-keys-and-bindings.html#turning-the-lens-on-keys) named: the binding service has to be available all the time, and issuance itself becomes the availability-critical path. A CA outage used to be an inconvenience for people renewing this month. At 47 days it is an outage for the internet.
 
 ## What ultimately authenticates a key?
 

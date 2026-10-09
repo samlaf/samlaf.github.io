@@ -8,7 +8,7 @@ date: 2026-07-26
 
 > This is Part 6 of a six-part [series on identity](/programming/identity-series-intro.html).
 >
-> 1. **[Naming and binding](/programming/naming-and-binding.html)** — names stay put, bindings move. Saltzer's lens, from the ARPANET to Kubernetes to PCIe.
+> 1. **[Names, keys and bindings](/programming/names-keys-and-bindings.html)** — names stay put, bindings move. Saltzer's lens on network destinations, turned on keys.
 > 2. **[Keys are not names](/programming/keys-are-not-names.html)** — what cryptography can say about who, and why anyone bothers with names at all.
 > 3. **[Hosts](/programming/identity-of-hosts.html)** — DNS, X.509 and the Web PKI: forty years of binding names to keys, and the anchors it bottoms out in.
 > 4. **[Humans](/programming/identity-of-humans.html)** — accounts, the trusted third party from Kerberos to OIDC, and sessions.
@@ -32,7 +32,7 @@ Some settings have no issuer both sides will accept. Two people who want to mess
 
 SSH shipped in 1995 with no infrastructure at all. The first time you connect to a host, the client shows you a fingerprint and asks whether to trust it. Say yes and it writes the binding — hostname → key — into `known_hosts`. Every later connection checks the key against that line, and if it changes you get the famous warning that the remote host identification has changed and someone may be doing something nasty.
 
-That is a binding written at first contact with an unbounded lifetime, and its properties fall straight out of the [first article](/programming/naming-and-binding.html#turning-the-lens-on-keys). It is cheap: no issuer, no chain, one local table. It is robust against an attacker who shows up *later*, which is most attackers. It is blind on exactly the connection you could not verify — the first one — and it fails silently there, because a man in the middle on first contact produces a fingerprint that looks like any other. And the warning it does give is so common in practice, after reinstalls and rehosting, that people learned to delete the line and reconnect.
+That is a binding written at first contact with an unbounded lifetime, and its properties fall straight out of the [first article](/programming/names-keys-and-bindings.html#turning-the-lens-on-keys). It is cheap: no issuer, no chain, one local table. It is robust against an attacker who shows up *later*, which is most attackers. It is blind on exactly the connection you could not verify — the first one — and it fails silently there, because a man in the middle on first contact produces a fingerprint that looks like any other. And the warning it does give is so common in practice, after reinstalls and rehosting, that people learned to delete the line and reconnect.
 
 Signal's safety numbers are the same mechanism with an optional out-of-band step: bind on first contact, alert on change, and let two people compare a code in person if they care. Passkey registration is TOFU too, at the account level: the site trusts whatever public key shows up at sign-up. And HTTP Public Key Pinning was TOFU for the web, and the [hosts article](/programming/identity-of-hosts.html#pinning-early-binding-and-why-it-died) covers why a first-use binding that every browser caches for months could not survive key rotation at web scale.
 
