@@ -6,15 +6,16 @@ category: programming
 date: 2026-10-03
 ---
 
-> This is Part 2 of a seven-part [series on networking](/programming/networking-series-intro.html).
+> This is Part 2 of an eight-part [series on networking](/programming/networking-series-intro.html).
 >
 > 1. **[Networking is IPC](/programming/networking-is-ipc.html)** — one table of every way two parties exchange messages, and the same functions repeating at every boundary.
 > 2. **Naming and binding** — Saltzer's four levels, why IP:port does two jobs, and six ways to carry out a binding.
 > 3. **[The Internet as DIFs](/programming/internet-as-difs.html)** — Saltzer's levels inside a RINA layer, a web service read rank by rank, and what overlays like Tailscale are missing.
-> 4. **[Interconnects are networks](/programming/interconnects-are-networks.html)** — PCIe is a packet network wearing a 1992 bus costume.
-> 5. **[Ring buffers](/programming/ring-buffers.html)** — shared memory plus a doorbell, compared on five axes.
-> 6. **A packet's path through Linux** *(not yet written)* — from the NIC's descriptor ring to `recv()`, and the ways around it.
-> 7. **[From IPC to RPC](/programming/ipc-to-rpc.html)** — what a request/reply protocol adds on top of a flow, and where RPC ends.
+> 4. **[Future internets](/programming/future-internets.html)** — NDN, SCION and RINA each rewrite a different one of Saltzer's levels.
+> 5. **[Interconnects are networks](/programming/interconnects-are-networks.html)** — PCIe is a packet network wearing a 1992 bus costume.
+> 6. **[Ring buffers](/programming/ring-buffers.html)** — shared memory plus a doorbell, compared on five axes.
+> 7. **A packet's path through Linux** *(not yet written)* — from the NIC's descriptor ring to `recv()`, and the ways around it.
+> 8. **[From IPC to RPC](/programming/ipc-to-rpc.html)** — what a request/reply protocol adds on top of a flow, and where RPC ends.
 
 Every message needs a destination, and "destination" is ambiguous. It can mean the service you want, the machine that runs it, the place that machine plugs into the network, or the route that gets you there. Jerry Saltzer pulled those four apart in 1982, in a note later published as [RFC 1498, *On the Naming and Binding of Network Destinations*](https://www.rfc-editor.org/info/rfc1498/). This article reads the Internet through his four levels: where it keeps them apart, where it collapses them, and what the collapses cost. Then it asks how a binding is carried out, and finds six ways.
 
@@ -72,6 +73,8 @@ Each binding can in principle be many-to-many and change over time. That is his 
 | attachment point → path | several routes to one attachment point | one path ends at one attachment point, except multicast |
 
 **Why he stopped at four.** As I read the paper, its subject is one question, what a sender has to name to get data to a destination, analyzed within one network level. A connection isn't a destination, so it is out of scope, and he doesn't develop the idea that the same structure repeats in the layer below. Day does both: connections get their own identifiers, and the pattern recurses.
+
+**Where the levels come from.** Saltzer didn't invent this framework for networks. He brought it over from operating systems, where he had worked it out in his 1978 notes, *Naming and Binding of Objects*. The RFC says so: the concept of binding "provides a systematic way to think about naming", and the paper makes it "the central theme". Databases fought over the same idea at the same time. Codd's 1970 relational model let programs say what data they want without saying how to reach it. Bachman's navigational databases, where a program walks from record to record, were what it argued against. [Navigate or declare](/programming/navigate-or-declare.html) follows that split across networks, filesystems and databases.
 
 ## Saltzer's own examples
 

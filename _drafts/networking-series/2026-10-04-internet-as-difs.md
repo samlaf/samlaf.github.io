@@ -6,15 +6,16 @@ category: programming
 date: 2026-10-04
 ---
 
-> This is Part 3 of a seven-part [series on networking](/programming/networking-series-intro.html).
+> This is Part 3 of an eight-part [series on networking](/programming/networking-series-intro.html).
 >
 > 1. **[Networking is IPC](/programming/networking-is-ipc.html)** — one table of every way two parties exchange messages, and the same functions repeating at every boundary.
 > 2. **[Naming and binding](/programming/naming-and-binding.html)** — Saltzer's four levels, why IP:port does two jobs, and six ways to carry out a binding.
 > 3. **The Internet as DIFs** — Saltzer's levels inside a RINA layer, a web service read rank by rank, and what overlays like Tailscale are missing.
-> 4. **[Interconnects are networks](/programming/interconnects-are-networks.html)** — PCIe is a packet network wearing a 1992 bus costume.
-> 5. **[Ring buffers](/programming/ring-buffers.html)** — shared memory plus a doorbell, compared on five axes.
-> 6. **A packet's path through Linux** *(not yet written)* — from the NIC's descriptor ring to `recv()`, and the ways around it.
-> 7. **[From IPC to RPC](/programming/ipc-to-rpc.html)** — what a request/reply protocol adds on top of a flow, and where RPC ends.
+> 4. **[Future internets](/programming/future-internets.html)** — NDN, SCION and RINA each rewrite a different one of Saltzer's levels.
+> 5. **[Interconnects are networks](/programming/interconnects-are-networks.html)** — PCIe is a packet network wearing a 1992 bus costume.
+> 6. **[Ring buffers](/programming/ring-buffers.html)** — shared memory plus a doorbell, compared on five axes.
+> 7. **A packet's path through Linux** *(not yet written)* — from the NIC's descriptor ring to `recv()`, and the ways around it.
+> 8. **[From IPC to RPC](/programming/ipc-to-rpc.html)** — what a request/reply protocol adds on top of a flow, and where RPC ends.
 
 [Part 2](/programming/naming-and-binding.html) ended on a pattern. Almost every many-to-many binding on the Internet comes from inserting a new layer or a translator: a bond, a proxy, a NAT table, a connection ID. John Day reads that pattern as evidence that the layers were drawn wrong. This article applies Saltzer's four levels inside one layer of Day's architecture, RINA. Then it reads today's Internet rank by rank, as a stack of layers that each rebuild some of the same machinery. Last, it asks why NAT survives when overlays already exist above IP.
 
@@ -226,7 +227,7 @@ Upper layers do exist on top of TCP/IP, and you can stack as many as you like. T
 
 ### The web service, component by component
 
-Take the HTTP service from the table above, with its client, front and backends, and check it against the components every DIF has, as [Part 1](/programming/networking-is-ipc.html) lists them: An SDU (service data unit) is RINA's word for a message a user hands to a DIF.
+Take the HTTP service from the table above, with its client, front and backends, and check it against the components every DIF has, as [Part 1](/programming/networking-is-ipc.html) lists them. This is RINA's checklist. It measures how far a system is from a full DIF, not how well it does its own job. An SDU (service data unit) is RINA's word for a message a user hands to a DIF.
 
 | RINA component | HTTP service today | Status |
 | --- | --- | --- |
@@ -285,6 +286,8 @@ None of them adds all of it, and none shares an API with the others.
 Because NAT works for unmodified applications. An upper layer only helps the programs that join it: Tailscale needs a client, and an HTTP proxy only carries HTTP. NAT sits at the internet rank and quietly handles every application's traffic. TCP/IP offers no general "join an upper layer" step that every application gets for free, so the transparent hack won.
 
 What RINA adds is not upper layers. It is the *same* layer, with the same mechanisms and the same API, repeated at every rank. Every application gets naming, registration, enrollment, flow allocation and routing from whatever DIF it uses. Today each overlay reinvents some of them, differently: HTTP a little, a mesh most of the management, Tailscale the node level, iroh its own way.
+
+RINA is one answer to that gap. [Part 4](/programming/future-internets.html) sets it beside two others, NDN and SCION, which find the Internet's problem elsewhere: in what a packet names, and in who picks the path.
 
 ## References
 

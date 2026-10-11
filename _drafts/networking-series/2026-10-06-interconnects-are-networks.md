@@ -1,20 +1,21 @@
 ---
 title:  "Interconnects are networks"
-series: "Networking, Part 4"
+series: "Networking, Part 5"
 series_url: "/programming/networking-series-intro.html"
 category: programming
-date: 2026-10-05
+date: 2026-10-06
 ---
 
-> This is Part 4 of a seven-part [series on networking](/programming/networking-series-intro.html).
+> This is Part 5 of an eight-part [series on networking](/programming/networking-series-intro.html).
 >
 > 1. **[Networking is IPC](/programming/networking-is-ipc.html)** — one table of every way two parties exchange messages, and the same functions repeating at every boundary.
 > 2. **[Naming and binding](/programming/naming-and-binding.html)** — Saltzer's four levels, why IP:port does two jobs, and six ways to carry out a binding.
 > 3. **[The Internet as DIFs](/programming/internet-as-difs.html)** — Saltzer's levels inside a RINA layer, a web service read rank by rank, and what overlays like Tailscale are missing.
-> 4. **Interconnects are networks** — PCIe is a packet network wearing a 1992 bus costume.
-> 5. **[Ring buffers](/programming/ring-buffers.html)** — shared memory plus a doorbell, compared on five axes.
-> 6. **A packet's path through Linux** *(not yet written)* — from the NIC's descriptor ring to `recv()`, and the ways around it.
-> 7. **[From IPC to RPC](/programming/ipc-to-rpc.html)** — what a request/reply protocol adds on top of a flow, and where RPC ends.
+> 4. **[Future internets](/programming/future-internets.html)** — NDN, SCION and RINA each rewrite a different one of Saltzer's levels.
+> 5. **Interconnects are networks** — PCIe is a packet network wearing a 1992 bus costume.
+> 6. **[Ring buffers](/programming/ring-buffers.html)** — shared memory plus a doorbell, compared on five axes.
+> 7. **A packet's path through Linux** *(not yet written)* — from the NIC's descriptor ring to `recv()`, and the ways around it.
+> 8. **[From IPC to RPC](/programming/ipc-to-rpc.html)** — what a request/reply protocol adds on top of a flow, and where RPC ends.
 
 Talking to a device is two problems on the same wires, and each one has its own machinery. Most writing about storage and interconnects covers only the first.
 
@@ -176,7 +177,7 @@ PCIe doesn't violate the argument. It takes the performance-enhancement clause, 
 - **NVMe command timeouts** and the block layer's retries catch commands that never complete.
 - **File system checksums** (ZFS, btrfs) are the careful file transfer, verbatim. They catch what every hop below missed, including the drive's own firmware.
 
-RINA reads the same facts differently. In RINA every layer runs the same error and flow control protocol (EFCP, based on Richard Watson's delta-t work), with policies chosen for that layer's scope. Matta's group at Boston University spell out its structure in [Declarative Transport](https://www.cs.bu.edu/fac/matta/Papers/hotnets7-paper40.pdf), subtitled "No more transport protocols to design, only policies to specify." EFCP splits in two. The data transfer protocol (DTP) holds what must travel with the data: delimiting, fragmentation, sequence numbers, addresses, checksums. The data transfer control protocol (DTCP) holds the loosely coupled mechanisms: acknowledgement, retransmission, flow control and congestion control, each one switched on and tuned by policy. Whether a flow has a DTCP at all is itself a policy. Without one, each PDU is sent once, at whatever rate the layer below allows. PCIe's data link layer and TCP are then one function at two scopes. A link-scope layer uses aggressive local retry because loss is rare and retry is cheap. An internet-scope layer retransmits from the ends because the middle is large and varies. The end-to-end argument still holds inside each layer, where "end" means the ends of that layer. What RINA drops is the Internet's fixed placement, where only TCP may retransmit and every layer below must not. The IRATI team make this concrete: their VM-to-VM tests use a flow with flow control but no retransmission control. TCP/IP has no transport with that combination, since UDP has neither and TCP has both.
+RINA reads the same facts differently. In RINA every layer runs the same error and flow control protocol (EFCP, based on Richard Watson's delta-t work), and turns retransmission and flow control on or off by policy, as [Part 1](/programming/networking-is-ipc.html#mechanism-is-fixed-policy-varies) describes. PCIe's data link layer and TCP are then one function at two scopes. A link-scope layer uses aggressive local retry because loss is rare and retry is cheap. An internet-scope layer retransmits from the ends because the middle is large and varies. The end-to-end argument still holds inside each layer, where "end" means the ends of that layer. What RINA drops is the Internet's fixed placement, where only TCP may retransmit and every layer below must not.
 
 ### Virtio
 
@@ -212,17 +213,11 @@ Virtio is a transport, not a command set. It belongs on Layer 2 alongside PCIe, 
 
 The three surfacings differ mostly in the control plane, not the data plane: the virtqueues are the same, but how the guest *finds* the device is completely different. Only virtio-pci is found in-band; the others are the platform firmware's problem.
 
-virtio-net shows what happens when the transport is dressed up as the wrong thing. It presents a full Ethernet NIC to the guest, with a MAC address, an MTU, TSO and checksum offload, although nothing between guest and host is Ethernet. The IRATI project built the alternative: a shim DIF for hypervisors that exposes the shared-memory channel directly as a RINA layer. An application whose peer is on the host uses that layer with nothing above it, because it is the lowest layer whose scope covers the peer. In their host-to-VM test the unoptimized prototype beat both an emulated e1000 and virtio-net. VM-to-VM, through a normal layer stacked on two shims, virtio-net came out slightly ahead. vsock is Linux's own answer to the same mismatch: sockets addressed by context ID and port, with no Ethernet in between.
+virtio-net shows what happens when the transport is dressed up as the wrong thing. It presents a full Ethernet NIC to the guest, with a MAC address, an MTU, TSO and checksum offload, although nothing between guest and host is Ethernet. The IRATI project built the alternative, which [Part 1](/programming/networking-is-ipc.html#pick-the-lowest-layer-that-reaches) describes: a shim DIF that exposes the shared-memory channel directly as a RINA layer. Host-to-VM, it beat both an emulated e1000 and virtio-net. VM-to-VM, through a normal layer stacked on two shims, virtio-net came out slightly ahead. vsock is Linux's own answer to the same mismatch: sockets addressed by context ID and port, with no Ethernet in between.
 
 ### The same functions at every scope
 
-The PCIe vs Ethernet diagram lines up layers, and the layers don't match: PCIe has no network layer, and Ethernet has no retry. Lining up functions works better. The IRATI chapter lists what every RINA IPC process does:
-
-- **Data transfer:** delimiting, addressing, sequencing, relaying, multiplexing, lifetime termination, error check, encryption.
-- **Data transfer control:** flow control and retransmission control.
-- **Layer management:** enrollment, routing, flow allocation, namespace management, resource allocation, security management.
-
-PCIe and the Internet stack against that list:
+The PCIe vs Ethernet diagram lines up layers, and the layers don't match: PCIe has no network layer, and Ethernet has no retry. Lining up functions works better. Here are PCIe and the Internet stack against the list of what every RINA IPC process does, from [Part 1](/programming/networking-is-ipc.html#one-facility-repeated):
 
 | Function | PCIe | Ethernet + IP + TCP |
 | --- | --- | --- |
@@ -352,4 +347,3 @@ Two smaller fits:
 - J. Saltzer, D. Reed, D. Clark, [End-to-end arguments in system design](https://web.mit.edu/Saltzer/www/publications/endtoend/endtoend.pdf), ACM TOCS, 1984. Summary: [End-to-end principle (Wikipedia)](https://en.wikipedia.org/wiki/End-to-end_principle).
 - E. Grasa et al., [Recursive InterNetwork Architecture, Investigating RINA as an Alternative to TCP/IP (IRATI)](https://www.riverpublishers.com/pdf/ebook/chapter/RP_9788793519114C16.pdf), River Publishers, 2017.
 - J. Day, I. Matta, K. Mattar, "Networking is IPC: a guiding principle to a better Internet", CoNEXT 2008.
-- [Declarative Transport: No more transport protocols to design, only policies to specify](https://www.cs.bu.edu/fac/matta/Papers/hotnets7-paper40.pdf), Boston University, HotNets-VII submission, 2008.

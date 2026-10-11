@@ -8,6 +8,8 @@ Every system that talks to another one answers the same questions. How is one me
 
 This series argues that they are all one problem, solved again at every boundary. Robert Metcalfe put it in one line in 1972: networking is interprocess communication. John Day spent the next decades taking that line seriously, and the result is RINA, the Recursive InterNetwork Architecture. Its claim is that a network layer is not a module with its own special functions. It is the same IPC facility, repeated at different scopes, with policies tuned to each one.
 
+RINA is the most complete design built on that idea, and the series borrows its vocabulary. It isn't the only proposal for fixing what the Internet got wrong. [Part 4](/programming/future-internets.html) sets it beside NDN, which argues that most traffic isn't a conversation at all, and SCION, which hands the choice of path back to the sender. Each one questions an assumption the rest of the series makes.
+
 ## The map
 
 Here is the stack the series works with, from what the application cares about down to the wire:
@@ -77,7 +79,7 @@ Here is the stack the series works with, from what the application cares about d
                          │
                          ▼
 ┌──────────────────────────────────────────────────────┐
-│          RINA IPC MECHANISMS + POLICIES              │
+│             IPC MECHANISMS + POLICIES                │
 │                                                      │
 │ sequencing, retransmission, fragmentation,           │
 │ flow control, scheduling, rate control, QoS ...      │
@@ -107,7 +109,7 @@ Each box has protocols and systems that live in it. Some appear in more than one
 | RPC and messaging | how does a request find its reply? | Sun RPC, CORBA's IIOP, Java RMI, gRPC, Thrift, JSON-RPC, Cap'n Proto RPC, CDAP. Publish/subscribe: Kafka, MQTT |
 | IPC service semantics | what does a flow promise? | reliable byte stream (TCP, a QUIC stream), reliable messages (SCTP, `SOCK_SEQPACKET`), unreliable datagrams (UDP, QUIC datagrams), multicast (IP multicast, Ouroboros broadcast layers) |
 | IPC mechanisms and policies | how does a layer keep that promise? | sequencing, acknowledgement, retransmission, windows and congestion control, as TCP, QUIC, RINA's EFCP and Ouroboros's FRCP each combine them |
-| recursive IPC | over what scope? | the layers in [Part 3](/programming/internet-as-difs.html)'s rank table, from an HTTP service down to an Ethernet link; PCIe and the shared-memory rings of Parts 4 and 5 |
+| recursive IPC | over what scope? | the layers in [Part 3](/programming/internet-as-difs.html)'s rank table, from an HTTP service down to an Ethernet link; PCIe and the shared-memory rings of Parts 5 and 6 |
 | physical link | over what medium? | Ethernet PHYs, PCIe lanes, fiber, radio |
 
 ### Where virtual synchrony sits
@@ -158,10 +160,11 @@ Three ideas do most of the work:
 1. **[Networking is IPC](/programming/networking-is-ipc.html)** — one table of every way two parties exchange messages, from a function call to a broker, grouped by the boundary each one crosses. Read down a column and the same functions repeat at every scope. Read the gaps and you see what each layer leaves to the one above.
 2. **[Naming and binding](/programming/naming-and-binding.html)** — Saltzer's four levels and his own examples, why IP:port does two jobs, how DNS, VIPs, anycast and Kubernetes bind one service to many nodes, six ways to carry out a binding, and what `bind()` actually restricts.
 3. **[The Internet as DIFs](/programming/internet-as-difs.html)** — Saltzer's levels inside one RINA layer, and why one rank's node is the next rank's attachment point. Then a web service read rank by rank, from HTTP down to the link, and why NAT outlives every overlay built above IP.
-4. **[Interconnects are networks](/programming/interconnects-are-networks.html)** — PCIe is a packet network wearing a 1992 bus costume. Where it puts reliability, why that doesn't violate the end-to-end argument, how enumeration is addressing and routing under another name, and why a PCIe address names the slot, not the card.
-5. **[Ring buffers](/programming/ring-buffers.html)** — the one data structure under every fast row of the table: shared memory plus a doorbell. NIC descriptor rings, NVMe, virtqueues, Xen, io_uring and AF_XDP compared on five axes, the last of which is trust.
-6. **A packet's path through Linux** — from the NIC's DMA into a descriptor ring, through NAPI, `sk_buff` and the socket buffer, to `recv()`. Then the ways around it: DPDK, AF_XDP, RDMA. *(Not yet written.)*
-7. **[From IPC to RPC](/programming/ipc-to-rpc.html)** — what a request/reply protocol adds on top of a flow: message types, request IDs, cancellation, and failure semantics. Why every completion queue is an RPC protocol, and where RPC stops and distributed objects begin.
+4. **[Future internets](/programming/future-internets.html)** — NDN, SCION and RINA side by side. Each rewrites a different one of Saltzer's levels: NDN names the data instead of the host, SCION lets the sender choose and check the path, and RINA names nodes instead of interfaces and repeats the layer. What each one leaves alone, why the one in production is the one that changes the least, and why every future internet starts as an overlay on this one.
+5. **[Interconnects are networks](/programming/interconnects-are-networks.html)** — PCIe is a packet network wearing a 1992 bus costume. Where it puts reliability, why that doesn't violate the end-to-end argument, how enumeration is addressing and routing under another name, and why a PCIe address names the slot, not the card.
+6. **[Ring buffers](/programming/ring-buffers.html)** — the one data structure under every fast row of the table: shared memory plus a doorbell. NIC descriptor rings, NVMe, virtqueues, Xen, io_uring and AF_XDP compared on five axes, the last of which is trust.
+7. **A packet's path through Linux** — from the NIC's DMA into a descriptor ring, through NAPI, `sk_buff` and the socket buffer, to `recv()`. Then the ways around it: DPDK, AF_XDP, RDMA. *(Not yet written.)*
+8. **[From IPC to RPC](/programming/ipc-to-rpc.html)** — what a request/reply protocol adds on top of a flow: message types, request IDs, cancellation, and failure semantics. Why every completion queue is an RPC protocol, and where RPC stops and distributed objects begin.
 
 ## References
 

@@ -6,15 +6,16 @@ category: programming
 date: 2026-10-02
 ---
 
-> This is Part 1 of a seven-part [series on networking](/programming/networking-series-intro.html).
+> This is Part 1 of an eight-part [series on networking](/programming/networking-series-intro.html).
 >
 > 1. **Networking is IPC** — one table of every way two parties exchange messages, and the same functions repeating at every boundary.
 > 2. **[Naming and binding](/programming/naming-and-binding.html)** — Saltzer's four levels, why IP:port does two jobs, and six ways to carry out a binding.
 > 3. **[The Internet as DIFs](/programming/internet-as-difs.html)** — Saltzer's levels inside a RINA layer, a web service read rank by rank, and what overlays like Tailscale are missing.
-> 4. **[Interconnects are networks](/programming/interconnects-are-networks.html)** — PCIe is a packet network wearing a 1992 bus costume.
-> 5. **[Ring buffers](/programming/ring-buffers.html)** — shared memory plus a doorbell, compared on five axes.
-> 6. **A packet's path through Linux** *(not yet written)* — from the NIC's descriptor ring to `recv()`, and the ways around it.
-> 7. **[From IPC to RPC](/programming/ipc-to-rpc.html)** — what a request/reply protocol adds on top of a flow, and where RPC ends.
+> 4. **[Future internets](/programming/future-internets.html)** — NDN, SCION and RINA each rewrite a different one of Saltzer's levels.
+> 5. **[Interconnects are networks](/programming/interconnects-are-networks.html)** — PCIe is a packet network wearing a 1992 bus costume.
+> 6. **[Ring buffers](/programming/ring-buffers.html)** — shared memory plus a doorbell, compared on five axes.
+> 7. **A packet's path through Linux** *(not yet written)* — from the NIC's descriptor ring to `recv()`, and the ways around it.
+> 8. **[From IPC to RPC](/programming/ipc-to-rpc.html)** — what a request/reply protocol adds on top of a flow, and where RPC ends.
 
 Here is every way I could think of for two parties to exchange messages, from a function call to a message broker. Each row is one mechanism. Each column is one thing you might want from it. A green check means the mechanism provides it natively, amber means partly or conditionally, and a dash means it's absent and you build it yourself.
 
@@ -81,7 +82,7 @@ Most of the table's columns are on that list:
 | session resume | partly structural: flows aren't bound to addresses |
 | msg types, req/resp IDs | not a layer function: the application protocol's job |
 
-The last two rows are the honest part of the mapping. A RINA flow survives an address change, because connections are identified inside the layer and never by address; [Part 3](/programming/internet-as-difs.html) works through why. But resuming after the process at one end restarts is still the application's problem. And message types and request IDs belong above the layer entirely. RINA puts them in a single application protocol, CDAP, which [Part 7](/programming/ipc-to-rpc.html) returns to.
+The last two rows are the honest part of the mapping. A RINA flow survives an address change, because connections are identified inside the layer and never by address; [Part 3](/programming/internet-as-difs.html) works through why. But resuming after the process at one end restarts is still the application's problem. And message types and request IDs belong above the layer entirely. RINA puts them in a single application protocol, CDAP, which [Part 8](/programming/ipc-to-rpc.html) returns to.
 
 ### Layers differ by scope, not by function
 
@@ -119,6 +120,7 @@ The table also shows where the uniform picture is cleaner on paper than in pract
 - **Shared memory isn't a flow.** RINA's service is message passing. The fastest rows in the table, shared memory with a futex, io_uring's rings and RDMA's queue pairs, expose memory both sides can touch, and leave the protocol to the user. A DIF can be built on top of them, as IRATI's hypervisor shim is, but they aren't DIFs themselves.
 - **Trust shapes the design as much as scope.** A Xen ring is built for two guests that distrust each other. A virtqueue was built for a trusted hypervisor and is being hardened now that confidential VMs distrust it. io_uring trusts its consumer and distrusts its producer. Same mechanisms, but the trust model decides which ones get validated, copied or bounced. The [ring buffers article](/programming/ring-buffers.html) treats trust as its own axis.
 - **It is still mostly research.** RINA has prototypes, IRATI among them, and results like the ones above. Ouroboros, a design that grew out of the IRATI work, has another ([Part 3](/programming/internet-as-difs.html#ouroboros-a-descendant)). Neither has deployments at scale. The structural argument stands on its own. The performance claims are early.
+- **Not all traffic is a conversation.** The table's rows all connect two parties who want to talk. NDN starts from the opposite case: many receivers fetching the same named data, from whoever has a copy. [Part 4](/programming/future-internets.html#what-they-say-about-this-series) asks what that does to the thesis.
 
 None of this weakens the main point of the table. The same few functions appear at every boundary, every layer leaves some of them to the layer above, and the layer above builds them with the same mechanisms again. The rest of the series follows that pattern down to the hardware, and up to RPC.
 
