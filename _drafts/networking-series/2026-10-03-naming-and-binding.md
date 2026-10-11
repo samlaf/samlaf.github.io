@@ -9,22 +9,30 @@ date: 2026-10-03
 > This is Part 2 of a seven-part [series on networking](/programming/networking-series-intro.html).
 >
 > 1. **[Networking is IPC](/programming/networking-is-ipc.html)** — one table of every way two parties exchange messages, and the same functions repeating at every boundary.
-> 2. **Naming and binding** — Saltzer's four levels, why IP:port does two jobs, and why every many-to-many case needs a translator.
+> 2. **Naming and binding** — Saltzer's four levels, why IP:port does two jobs, and six ways to carry out a binding.
 > 3. **[The Internet as DIFs](/programming/internet-as-difs.html)** — Saltzer's levels inside a RINA layer, a web service read rank by rank, and what overlays like Tailscale are missing.
 > 4. **[Interconnects are networks](/programming/interconnects-are-networks.html)** — PCIe is a packet network wearing a 1992 bus costume.
 > 5. **[Ring buffers](/programming/ring-buffers.html)** — shared memory plus a doorbell, compared on five axes.
 > 6. **A packet's path through Linux** *(not yet written)* — from the NIC's descriptor ring to `recv()`, and the ways around it.
 > 7. **[From IPC to RPC](/programming/ipc-to-rpc.html)** — what a request/reply protocol adds on top of a flow, and where RPC ends.
 
-Every message needs a destination, and "destination" is ambiguous. It can mean the service you want, the machine that runs it, the place that machine plugs into the network, or the route that gets you there. Jerry Saltzer pulled those four apart in 1982, in a note later published as [RFC 1498, *On the Naming and Binding of Network Destinations*](https://www.rfc-editor.org/info/rfc1498/). This article reads the Internet through his four levels: where it keeps them apart, where it collapses them, and what the collapses cost.
+Every message needs a destination, and "destination" is ambiguous. It can mean the service you want, the machine that runs it, the place that machine plugs into the network, or the route that gets you there. Jerry Saltzer pulled those four apart in 1982, in a note later published as [RFC 1498, *On the Naming and Binding of Network Destinations*](https://www.rfc-editor.org/info/rfc1498/). This article reads the Internet through his four levels: where it keeps them apart, where it collapses them, and what the collapses cost. Then it asks how a binding is carried out, and finds six ways.
 
 The tables are my reading of the paper, not something Saltzer tabulates in this form. Where the fit is loose, the text says so. [Part 3](/programming/internet-as-difs.html) takes the same levels into RINA, where they repeat at every layer.
 
 - [Saltzer's four levels](#saltzers-four-levels)
 - [Saltzer's own examples](#saltzers-own-examples)
 - [Saltzer's levels in the Internet](#saltzers-levels-in-the-internet)
+  - [Why IP:port does two jobs](#why-ipport-does-two-jobs)
+  - [One service, many nodes: DNS, VIPs and anycast](#one-service-many-nodes-dns-vips-and-anycast)
+  - [Kubernetes runs each binding as a control loop](#kubernetes-runs-each-binding-as-a-control-loop)
+  - [Three IP addresses, three jobs](#three-ip-addresses-three-jobs)
+  - [What an IP address names: the host model](#what-an-ip-address-names-the-host-model)
+- [Six ways to carry out a binding](#six-ways-to-carry-out-a-binding)
 - [What `bind()` restricts](#what-bind-restricts)
 - [Fan-out and fan-in at each layer](#fan-out-and-fan-in-at-each-layer)
+  - [Where the neat story breaks](#where-the-neat-story-breaks)
+- [References](#references)
 
 ## Saltzer's four levels
 
@@ -162,12 +170,80 @@ A **headless Service** drops the VIP. DNS returns the pod IPs directly, as in th
 
 Like Saltzer's name server, an EndpointSlice fuses the first two bindings. It records pod IPs, not pods, so the data path goes from service name straight to attachment points. The node level exists, since the scheduler bound each pod to a machine, but the data path never sees it.
 
+### Three IP addresses, three jobs
+
+Follow one request through a cluster that uses a VXLAN overlay. A client pod on worker 1 calls a Service whose backend pod runs on worker 2. The request touches three IP addresses. They look alike, but each one names something different:
+
+| Address | Example | What it names | Who holds it |
+| --- | --- | --- | --- |
+| ClusterIP | `10.96.0.10` | the service | no interface: it exists only in kube-proxy's rules |
+| pod IP | `10.244.2.7` | the pod's attachment point in the pod network | the pod's virtual interface. Its prefix, `10.244.2.0/24`, belongs to worker 2 |
+| worker IP | `192.168.50.12` | the worker's attachment point in the physical network | the worker's NIC |
+
+```
+ client pod 10.244.1.4, on worker 1 (192.168.50.11)
+ backend pod 10.244.2.7, on worker 2 (192.168.50.12)
+
+ 1. resolve      api.default.svc.cluster.local ──DNS──► 10.96.0.10          service
+ 2. translate    dst 10.96.0.10 ──DNAT──► dst 10.244.2.7                    pod
+ 3. encapsulate  ┌─ outer: 192.168.50.11 → 192.168.50.12 ─┐                 worker
+                 │  inner: 10.244.1.4    → 10.244.2.7     │                 pod
+                 └────────────────────────────────────────┘
+```
+
+Each step performs one binding, and each uses a different mechanism. These are three of the [six ways to carry out a binding](#six-ways-to-carry-out-a-binding):
+
+| Binding | Mechanism | What happens to the packet | What must be remembered |
+| --- | --- | --- | --- |
+| service name → ClusterIP | resolution | nothing: it happens before the packet exists | the answer, in the client's DNS cache |
+| ClusterIP → pod IP | translation (DNAT) | its destination is rewritten | each connection, in conntrack on worker 1, so that replies can be rewritten back |
+| pod IP → worker IP | encapsulation (VXLAN) | it is wrapped in a second IP header | one route per worker: which worker IP holds which pod prefix |
+
+Translation and encapsulation differ in a way that matters. Translation changes the name inside the packet, so the two ends see different names for the same connection. The client believes it talks to `10.96.0.10`. The backend sees a connection to `10.244.2.7`. Conntrack has to remember every rewrite and undo it on each reply. Encapsulation leaves the inner packet alone. Worker 2 strips the outer header, and the backend receives exactly what the client sent. The outer header belongs to a separate network, and it never touches the inner names.
+
+The mechanism isn't fixed by the binding. The same ClusterIP → pod binding can happen in three places:
+
+- **In DNS.** A headless Service skips the ClusterIP and returns pod IPs.
+- **At `connect()`.** Cilium's socket-level load balancing rewrites the socket's destination once, when it connects. The ClusterIP never appears on the wire.
+- **On the first packet.** kube-proxy's DNAT rewrites each connection's packets as they leave.
+
+The pod → worker binding varies too. With native routing, the physical network learns each worker's pod prefix, through BGP or cloud routes, and forwards pod IPs directly. Then there is no second header.
+
+Saltzer's model has room for one attachment point per node. This cluster has two: a pod's attachment to the pod network, and a worker's attachment to the physical one. The pod network is a whole network carried inside another. [Part 3](/programming/internet-as-difs.html#a-kubernetes-cluster-rank-by-rank) reads it as two DIFs.
+
 ### What an IP address names: the host model
 
 What an IP address names depends on the host model (RFC 1122):
 
 - **Strong host model:** an address belongs to its interface, and a packet for it is accepted only on that interface. The address names an attachment point.
 - **Weak host model (Linux's default):** an address belongs to the host, and a packet for it is accepted on any interface. The address names something closer to Saltzer's missing node.
+
+## Six ways to carry out a binding
+
+Saltzer's levels say *what* gets bound. They don't say *how*. His paper shows three ways: a name server, routing, and Ethernet interfaces that listen for their own identifier. The examples above use more. Two questions sort them all: who performs the binding, and what happens to the name the sender used?
+
+| Mechanism | Who binds | What happens to the sender's name | Examples |
+| --- | --- | --- | --- |
+| resolution | the sender, before it sends | it never travels: the sender looks it up and sends to the answer | DNS, ARP, a headless Service, Cilium's load balancing at `connect()`, HTTP redirects |
+| routing | the network, at each hop | it travels unchanged, and forwarding tables hold the binding | anycast, native pod routing, learning bridges |
+| encapsulation | the network, where a lower layer begins | it travels unchanged, inside a header that carries a lower-level name | VXLAN, GRE, MPLS labels, LISP, WireGuard tunnels |
+| translation | a box on the path | it is rewritten | NAT, kube-proxy's DNAT |
+| proxying | a box on the path, which ends the connection and opens a new one | it reaches the proxy and goes no further | HTTP reverse proxies, SOCKS, mail relays |
+| filtering | the receivers | it reaches many receivers, and each keeps only what matches | Saltzer's shared Ethernet cable, ARP requests, multicast, mDNS |
+
+**Is the list complete?** Close to it, by construction. A binding happens at the sender, in the network or at the receivers. In the network, the name can stay as it is, get wrapped, get rewritten, or stop at a box that starts a new connection. I haven't found a case that doesn't reduce to one of these, or to a mix. Real systems do mix them. Mobile IP's home agent catches a mobile node's packets by routing, then forwards them by encapsulation.
+
+**The mechanism decides what each end sees.** Take one binding, a VIP in front of backends, done three ways. IPVS in NAT mode translates: it rewrites the VIP to a backend's address. [Maglev](https://www.usenix.org/conference/nsdi16/technical-sessions/presentation/eisenbud) encapsulates: it wraps the packet in GRE, and the backend, which also holds the VIP, replies straight to the client. Envoy proxies: it ends the client's connection and opens its own to a backend. The backend sees something different each time. Behind IPVS, the client talks to the backend's own address. Behind Maglev, the client talks to the VIP. Behind Envoy, the backend never sees the client at all, only Envoy. The state differs too. IPVS must remember each rewrite to undo it on the reply. Maglev's replies bypass it, so it has nothing to undo. Envoy holds two connections.
+
+**Only translation splits a connection's name.** Every other mechanism leaves both ends agreeing on who they talk to:
+
+- Resolution finishes before the first packet.
+- Routing, encapsulation and filtering deliver the sender's name intact.
+- Proxying makes two connections, and each one has honest ends.
+
+Translation makes one connection carry two names. The box in the middle must remember every rewrite and undo it on every reply. Protocols that write addresses into their payload, like FTP and SIP, break unless the box parses them too.
+
+RINA uses resolution, in each DIF's directory when a flow is set up. It uses routing inside each DIF, and encapsulation to carry one DIF's packets in flows of the DIF below. It has no use for translation. Names never leave their DIF, so nothing needs rewriting.
 
 ## What `bind()` restricts
 
@@ -220,8 +296,11 @@ That pattern is Day's argument for RINA, and [Part 3](/programming/internet-as-d
 
 - J. Saltzer, [RFC 1498, *On the Naming and Binding of Network Destinations*](https://www.rfc-editor.org/info/rfc1498/), 1993 (written 1982).
 - R. Braden (ed.), [RFC 1122, *Requirements for Internet Hosts: Communication Layers*](https://www.rfc-editor.org/info/rfc1122/), 1989.
+- C. Perkins (ed.), [RFC 5944, *IP Mobility Support for IPv4, Revised*](https://www.rfc-editor.org/info/rfc5944/), 2010.
 - D. Eisenbud et al., [Maglev: A Fast and Reliable Software Network Load Balancer](https://www.usenix.org/conference/nsdi16/technical-sessions/presentation/eisenbud), NSDI 2016.
 - Cloudflare, [Cloudflare's architecture: eliminating single points of failure](https://blog.cloudflare.com/cloudflares-architecture-eliminating-single-p/), 2013.
 - R. Hendriks et al., [Load-Balancing versus Anycast: A First Look at Operational Challenges](https://arxiv.org/html/2503.14351v1), 2025.
 - [Kubernetes: Service](https://kubernetes.io/docs/concepts/services-networking/service/) and EndpointSlice concepts.
+- [Kubernetes: Virtual IPs and Service Proxies](https://kubernetes.io/docs/reference/networking/virtual-ips/).
+- Cilium, [Routing: encapsulation and native routing](https://docs.cilium.io/en/stable/network/concepts/routing/), and [Kubernetes without kube-proxy](https://docs.cilium.io/en/stable/network/kubernetes/kubeproxy-free/), for socket-level load balancing.
 - [Thread on RFC 1498 and Kubernetes](https://x.com/samlafer/status/2077846060353905120), 2026.

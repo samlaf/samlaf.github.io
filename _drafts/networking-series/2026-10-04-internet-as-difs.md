@@ -9,7 +9,7 @@ date: 2026-10-04
 > This is Part 3 of a seven-part [series on networking](/programming/networking-series-intro.html).
 >
 > 1. **[Networking is IPC](/programming/networking-is-ipc.html)** — one table of every way two parties exchange messages, and the same functions repeating at every boundary.
-> 2. **[Naming and binding](/programming/naming-and-binding.html)** — Saltzer's four levels, why IP:port does two jobs, and why every many-to-many case needs a translator.
+> 2. **[Naming and binding](/programming/naming-and-binding.html)** — Saltzer's four levels, why IP:port does two jobs, and six ways to carry out a binding.
 > 3. **The Internet as DIFs** — Saltzer's levels inside a RINA layer, a web service read rank by rank, and what overlays like Tailscale are missing.
 > 4. **[Interconnects are networks](/programming/interconnects-are-networks.html)** — PCIe is a packet network wearing a 1992 bus costume.
 > 5. **[Ring buffers](/programming/ring-buffers.html)** — shared memory plus a doorbell, compared on five axes.
@@ -19,12 +19,21 @@ date: 2026-10-04
 [Part 2](/programming/naming-and-binding.html) ended on a pattern. Almost every many-to-many binding on the Internet comes from inserting a new layer or a translator: a bond, a proxy, a NAT table, a connection ID. John Day reads that pattern as evidence that the layers were drawn wrong. This article applies Saltzer's four levels inside one layer of Day's architecture, RINA. Then it reads today's Internet rank by rank, as a stack of layers that each rebuild some of the same machinery. Last, it asks why NAT survives when overlays already exist above IP.
 
 - [A layer is a DIF](#a-layer-is-a-dif)
+  - [Ouroboros, a descendant](#ouroboros-a-descendant)
 - [Saltzer's levels inside one DIF](#saltzers-levels-inside-one-dif)
+  - [A point of attachment is a flow from above, an address from below](#a-point-of-attachment-is-a-flow-from-above-an-address-from-below)
+  - [Whose name is registered where](#whose-name-is-registered-where)
 - [Why recurse, if multihoming and mobility are already solved?](#why-recurse-if-multihoming-and-mobility-are-already-solved)
 - [Security: enrollment and flow allocation](#security-enrollment-and-flow-allocation)
 - [Internet vs. RINA](#internet-vs-rina)
 - [A web service, rank by rank](#a-web-service-rank-by-rank)
+  - [A Kubernetes cluster, rank by rank](#a-kubernetes-cluster-rank-by-rank)
+  - [Overlays that keep the levels apart](#overlays-that-keep-the-levels-apart)
 - [Upper layers, but no common one](#upper-layers-but-no-common-one)
+  - [The web service, component by component](#the-web-service-component-by-component)
+  - [How close other overlays come](#how-close-other-overlays-come)
+  - [So why does NAT still exist?](#so-why-does-nat-still-exist)
+- [References](#references)
 
 ## A layer is a DIF
 
@@ -185,6 +194,17 @@ Reading down the table:
 - **The levels collapse where TCP/IP is exposed.** That is the internet row, and the HTTP row, which borrows the internet's names. The link row collapses too, as Saltzer noted for Ethernet in 1982.
 
 The node-local row shows both models side by side. A TCP port on `127.0.0.1` is a well-known name that any local user can claim: Part 2's unauthenticated registration. A Unix socket works more like a DIF. Its name is a filesystem path, and the directory's permissions decide who may create it. The kernel tells the server who each client is when the connection is set up (`SO_PEERCRED`), so the server can accept or refuse per peer. Docker's socket, gated by the `docker` group, works this way.
+
+### A Kubernetes cluster, rank by rank
+
+[Part 2](/programming/naming-and-binding.html#three-ip-addresses-three-jobs) followed one request through a cluster and found three kinds of IP address: a ClusterIP, a pod IP and a worker IP. They share one syntax, but they don't sit in three IP layers. Read as DIFs, two of the joins are layering, and one isn't.
+
+- **The pod network is a DIF over the physical network.** Its addresses are pod IPs. When each worker owns a pod prefix, those addresses depend on location: `10.244.2.0/24` means worker 2. A worker reaches other workers through VXLAN tunnels, which are flows into the physical network. That is RINA's structure: an address in DIF N, and a point of attachment that is a flow into DIF N−1. Encapsulation keeps the two DIFs' names apart, as layering should.
+- **The ClusterIP is not a DIF.** It is an application name forced into the address syntax, because IP has nowhere else to put one. kube-proxy's DNAT is flow allocation in disguise. On a connection's first packet, it looks up the name, picks a member, and keeps state for the flow in conntrack. RINA does the same work when a flow is set up. But there the client asks for a name and gets a port-id, nobody rewrites packets, and both ends agree on who they're talking to.
+
+Run the workers over Tailscale, and you get one more IP network: pod IPs inside tailnet IPs inside physical IPs, with ClusterIPs on top. Each one fills a different Saltzer level.
+
+The cluster has the separation Day asks for. Service names, pod addresses and physical attachment points are kept apart, and each can change without the others. What it lacks is uniformity. Each split uses a different tool: DNS, DNAT, VXLAN, routing. Each tool has its own control plane and its own failure modes. That says something for both sides. Day is right that we keep rebuilding separate address spaces on top of a single IP layer. But IP proved flexible enough to rebuild them without a new architecture. [The last section](#so-why-does-nat-still-exist) comes back to this split between separation and uniformity.
 
 ### Overlays that keep the levels apart
 
