@@ -1,5 +1,6 @@
 ---
-title:  "Powers vs Properties: Examples Compendium"
+title:  "Powers vs Properties"
+series: "Design Tradeoffs"
 category: programming
 ---
 

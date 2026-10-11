@@ -1,5 +1,6 @@
 ---
 title:  The Unbeknownst Pervasiveness of Immutability
+series: "Design Tradeoffs"
 category: programming
 ---
 

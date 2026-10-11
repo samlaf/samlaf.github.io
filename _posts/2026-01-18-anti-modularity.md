@@ -1,5 +1,6 @@
 ---
 title:  "Anti-Modularity in Software Systems"
+series: "Design Tradeoffs"
 category: programming
 ---
 
