@@ -83,7 +83,9 @@ Most of the table's columns are on that list:
 | session resume | partly structural: flows aren't bound to addresses |
 | msg types, req/resp IDs | not a layer function: the application protocol's job |
 
-The last two rows are the honest part of the mapping. A RINA flow survives an address change, because connections are identified inside the layer and never by address; [Part 3](/programming/internet-as-difs.html) works through why. But resuming after the process at one end restarts is still the application's problem. And message types and request IDs belong above the layer entirely. RINA puts them in a single application protocol, CDAP, which [Part 8](/programming/ipc-to-rpc.html) returns to.
+The last two rows are the honest part of the mapping. A RINA flow survives an address change, because connections are identified inside the layer and never by address; [Part 3](/programming/internet-as-difs.html) works through why. But resuming after the process at one end restarts is still the application's problem. And message types and request IDs belong above the layer entirely. RINA puts them in a single application protocol, CDAP, which [Part 9](/programming/ipc-to-rpc.html) returns to.
+
+Multiplexing on that list means many flows sharing one flow below, told apart by an identifier. That is one way of sharing among many. [Multiplexing, from first principles](/programming/multiplexing.html) places it among the others, from TDM and OFDMA to MIMO.
 
 ### Layers differ by scope, not by function
 

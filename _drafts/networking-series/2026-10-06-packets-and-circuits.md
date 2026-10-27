@@ -24,6 +24,7 @@ The rest of this series assumes it. But a provider backbone in [Part 3's rank ta
 
 - [Three choices in one word](#three-choices-in-one-word)
   - [Where the forwarding state lives](#where-the-forwarding-state-lives)
+  - [The statistical multiplexing bet](#the-statistical-multiplexing-bet)
 - [Virtual circuits: X.25, ATM, MPLS](#virtual-circuits-x25-atm-mpls)
 - [RFC 3439: are packets really simpler?](#rfc-3439-are-packets-really-simpler)
   - [Layering considered harmful](#layering-considered-harmful)
@@ -48,7 +49,7 @@ The first split is the only one about mechanism: does the switch read the data, 
 Two points the tree makes easy to miss:
 
 - **A circuit can still be dynamic.** The telephone network set up a new circuit for every call and tore it down at the end. Google's optical switches, [below](#circuits-under-packets), rewire a datacenter as demand changes. What makes something a circuit is that, once connected, it carries traffic without inspecting it.
-- **"Sharing" means two different things.** Time-division and wavelength-division multiplexing (TDM, WDM) let many circuits share one fiber, but each circuit still owns its timeslot or wavelength. Statistical multiplexing is different: many flows share one capacity, and nobody owns any of it. When IP runs over an optical circuit, both happen at once. The circuit owns its wavelength, and the packets inside it share that wavelength statistically. That is packet switching on top of circuit switching.
+- **"Sharing" means two different things.** Time-division and wavelength-division multiplexing (TDM, WDM) let many circuits share one fiber, but each circuit still owns its timeslot or wavelength. Statistical multiplexing is different: many flows share one capacity, and nobody owns any of it. When IP runs over an optical circuit, both happen at once. The circuit owns its wavelength, and the packets inside it share that wavelength statistically. That is packet switching on top of circuit switching. [Multiplexing, from first principles](/programming/multiplexing.html) sorts every way of sharing a channel, of which these are two.
 
 ### Where the forwarding state lives
 
@@ -63,6 +64,16 @@ The second choice, setting up a path first, is a binding in [Part 2](/programmin
 | NDN | at every hop, per request | one entry per pending request, in the PIT | the name of the data |
 
 The virtual-circuit label is worth a second look. It isn't an address. It names one connection on one link, and each switch rewrites it for the next link. In Part 2's terms, the first switch binds by encapsulation, pushing a label in front of the packet, and every switch after that binds by translation. That makes a label switch a NAT for connections, and it pays the cost Part 2 found in every NAT: it must hold state for every connection that passes through it. A datagram router holds state per destination, which is why the Internet's core scales with the number of prefixes, not the number of conversations.
+
+### The statistical multiplexing bet
+
+The third choice is where packets claim their advantage. Statistical multiplexing gives nobody a slice. All flows' packets land in one queue at each link, and the buffer turns demand that arrives at once into delay. It is easy to confuse with three neighbors:
+
+- **It isn't contention.** Nothing collides and nobody retries, as on ALOHA or early Ethernet. Packets wait.
+- **It isn't scheduling.** A packet switch serves what has already arrived, and never leaves the link idle while a packet is waiting. Fair-queuing disciplines such as WFQ and DRR change the order of the shared queue. They don't hand out slices.
+- **It isn't overcommit.** Overcommit is the provisioning bet that the peaks never all come at once. Statistical multiplexing is the mechanism that makes the bet pay. The total of n independent bursty flows swings by about √n times what one flow swings, not n times. So a link needs roughly n times the mean rate plus a few √n of headroom, not n times the peak.
+
+The gain has a price. Queueing delay grows without bound as a link's utilization approaches 1. A circuit gets predictable delay for free, because nothing ever waits. [RFC 3439](#rfc-3439-are-packets-really-simpler), below, shows how much of the gain operators actually keep.
 
 ## Virtual circuits: X.25, ATM, MPLS
 
@@ -85,7 +96,7 @@ The newest step moves MPLS toward SCION. [Segment routing](https://www.rfc-edito
 
 Packet switching won the argument on two claims: that statistical multiplexing uses links more efficiently, and that a stateless router is simpler than a switch that tracks calls. In 2002 Randy Bush and David Meyer, both long-time Internet operators, tested both claims in [RFC 3439, *Some Internet Architectural Guidelines and Philosophy*](https://www.rfc-editor.org/info/rfc3439/). Its section 5 is titled "Packet versus Circuit Switching: Fundamental Differences". They didn't find what the conventional story predicts.
 
-**Efficiency.** Statistical multiplexing should let packet networks run their links fuller. They cite Odlyzko and Coffman's measurements: IP links averaged between 3% and 20% utilization, from corporate networks to commercial backbones. Long-haul voice lines averaged about 33%. Internet traffic is bursty and hard to forecast, so operators add capacity early and in large steps. The efficiency is real in theory and spent in practice.
+**Efficiency.** Statistical multiplexing should let packet networks run their links fuller. They cite Odlyzko and Coffman's measurements: IP links averaged between 3% and 20% utilization, from corporate networks around 3% to commercial backbones at 15–20%. Long-haul voice lines averaged about 33%. Part of the gap is forecasting. Internet traffic is bursty and hard to predict, so operators add capacity early and in large steps. Section 6 gives a second reason. The habit of keeping IP links below 50%, they argue, isn't waste but protection capacity: room for a failed link's traffic. Its side effects are near-zero loss and delay close to the speed of light. A congested packet network can also turn unstable: lost routing messages cause loops and black holes. So operators trade most of the statistical multiplexing gain back for low delay and stability. The efficiency is real in theory and spent in practice.
 
 **Simplicity.** Here the numbers run the other way too:
 
