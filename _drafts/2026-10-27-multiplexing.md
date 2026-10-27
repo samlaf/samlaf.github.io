@@ -91,6 +91,50 @@ Packet switching is the best-known queued design. [Packets and circuits](/progra
 
 Compute lacks most of level 2 because it isn't a linear medium. Two radio signals add and can be separated again by projection, while two programs on one ALU cannot. That leaves compute with time-sharing, physical partitioning, and naming.
 
+## In practice
+
+### Real links, on one scale
+
+Here are real links on one logarithmic scale, with radio on the left and wired or optical on the right. The values are rough peak rates per link, so read them as orders of magnitude.
+
+![Approximate peak per-link rates on a log scale, from GPS's 50 b/s to multi-core fiber's Pb/s, radio on the left and wired or optical on the right](/assets/multiplexing/link-capacity-log-scale.svg)
+
+The scale spans about 14 orders of magnitude, and each end is set by a different level:
+
+- **The top is floors and bandwidth.** The best radio links top out around tens of Gb/s, which is where optics is just getting started. Fiber has both of optics' advantages: a huge band around 193 THz, and many modes.
+- **The bottom is height.** GPS satellites and Voyager have spectrum to spare. What they lack is power at the receiver, because they are very far away. These links are short on power, not on spectrum.
+
+### Bluetooth LE: below the first step
+
+Bluetooth Low Energy chooses to live on the first step of the power staircase, or below it.
+
+At low SNR the staircase changes shape. log₂(1 + x) ≈ 1.44x, so capacity becomes proportional to power. Each bit costs a roughly fixed amount of energy, instead of doubling. Shannon sets a hard floor here: an energy per bit of at least about −1.6 dB relative to the noise density, however clever the coding. So low-power radios are designed around **joules per bit**, not bits per second.
+
+Through the three levels:
+
+- **Floors:** one. A small omnidirectional antenna, and no MIMO.
+- **Carving:** 40 narrow 2 MHz channels. Three are reserved for advertising, placed to avoid the busiest Wi-Fi channels. Connections hop across the other 37. Each advertisement waits a small random delay first, so two devices don't keep colliding: ALOHA-style contention.
+- **Height:** about 1 mW, and simple modulation at roughly 1 bit per symbol. The LE Coded PHY goes further down the curve. It spends 8 symbols per bit (125 kb/s) to work at much lower SNR, for several times the range.
+- **Time:** the biggest energy saving isn't on the power axis at all. The radio is off almost all the time, and wakes briefly to advertise or listen. Energy is power × time, and duty cycling cuts the time.
+
+Contact tracing, as in the COVID exposure-notification apps, used BLE mostly at the **naming** layer. Phones broadcast short random identifiers every few hundred milliseconds, and changed them every 10 to 20 minutes for privacy. Distance was estimated from received signal strength. That is a crude proxy, because multipath and human bodies distort it heavily.
+
+### Jamming
+
+A jammer just adds noise. On each patch it covers, capacity drops from log₂(1 + P/N) to log₂(1 + P/(N + J)), where J is the jamming power at the receiver. Geometry matters a lot. A nearby jammer beats a distant transmitter even at modest power. That is why satellite navigation, whose signals arrive below the noise floor, is so easy to jam.
+
+Every defense maps onto one of the three levels:
+
+- **Height (level 3):** shout louder, get closer, or drop to more robust modulation and coding. This is a brute-force power race.
+- **Carving (level 2):** spread the signal over more of the floor than the jammer can cover. Frequency hopping forces the jammer either to spread its power thinly across the whole band, or to chase the hops. Direct-sequence spreading gains margin in proportion to how much wider the signal is than its data rate. Ukrainian drone builders are reported to counter jamming less by raw power than by [spectral maneuvers](https://www.gisreportsonline.com/?p=90047): frequency hopping, switching bands, and hiding control links in the clutter of satellite traffic.
+- **Floors (level 1):** use the spatial dimension. An adaptive antenna array can steer a null toward a jammer, spending one spatial degree of freedom for each jammer it cancels. A Starlink dish is a high-gain array pointed at a satellite overhead, so a jammer on the ground sits far outside its main beam. So attackers go for the other end of the link. Russia's Kupol "Guarantor" system reportedly points dishes at the satellites and floods Starlink's Ku-band *uplink*, where the satellite's receive beam does cover the jammer. A Ukrainian adviser claims each unit denies service over about 20 km². Even so, it takes six trailers and a lot of electric power, and its strong emissions make it [easy to find and target](https://insidegnss.com/?p=197044). In 2022 SpaceX beat an earlier wave of jamming with a software update within about a day. The Pentagon's director of electronic warfare called the speed of that response ["eyewatering"](https://interestingengineering.com/spacex-counter-russian-cyberattacks).
+- **Leave the radio channel entirely:** this is the cleanest illustration of the framework. A fiber is a guided floor that a radio jammer cannot reach at all. Both sides now fly FPV drones that unspool [10–20 km of optical fiber](https://www.lowyinstitute.org/the-interpreter/fibre-optic-drones-reshape-ukraine-s-technological-war) behind them, which makes them immune to electronic warfare. Only cutting the cable or destroying the drone stops one. Fiber's weakness is physical, so many systems pair it with a radio backup.
+
+Two more parts of the framework show up too:
+
+- **Naming:** spoofing, such as fake GPS signals or forged identifiers, attacks identity rather than capacity. The defense is authentication, as in Galileo's signal authentication service (OSNMA), not power.
+- **Allocation policy:** a jammer is a contender that refuses to back off. Contention protocols such as CSMA assume everyone cooperates, so they offer no protection against one. That is why military links lean on spreading, spatial nulling and wires.
+
 ## Takeaways
 
 - Every sharing scheme answers three questions: **which floor**, **which patch of that floor**, and **how much power on it**. Allocation policy and naming sit on top.
