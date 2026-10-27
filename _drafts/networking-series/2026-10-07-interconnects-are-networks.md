@@ -1,21 +1,22 @@
 ---
 title:  "Interconnects are networks"
-series: "Networking, Part 5"
+series: "Networking, Part 6"
 series_url: "/programming/networking-series-intro.html"
 category: programming
-date: 2026-10-06
+date: 2026-10-07
 ---
 
-> This is Part 5 of an eight-part [series on networking](/programming/networking-series-intro.html).
+> This is Part 6 of a nine-part [series on networking](/programming/networking-series-intro.html).
 >
 > 1. **[Networking is IPC](/programming/networking-is-ipc.html)** — one table of every way two parties exchange messages, and the same functions repeating at every boundary.
 > 2. **[Naming and binding](/programming/naming-and-binding.html)** — Saltzer's four levels, why IP:port does two jobs, and six ways to carry out a binding.
 > 3. **[The Internet as DIFs](/programming/internet-as-difs.html)** — Saltzer's levels inside a RINA layer, a web service read rank by rank, and what overlays like Tailscale are missing.
 > 4. **[Future internets](/programming/future-internets.html)** — NDN, SCION and RINA each rewrite a different one of Saltzer's levels.
-> 5. **Interconnects are networks** — PCIe is a packet network wearing a 1992 bus costume.
-> 6. **[Ring buffers](/programming/ring-buffers.html)** — shared memory plus a doorbell, compared on five axes.
-> 7. **A packet's path through Linux** *(not yet written)* — from the NIC's descriptor ring to `recv()`, and the ways around it.
-> 8. **[From IPC to RPC](/programming/ipc-to-rpc.html)** — what a request/reply protocol adds on top of a flow, and where RPC ends.
+> 5. **[Packets and circuits](/programming/packets-and-circuits.html)** — what circuit switching bundled, virtual circuits from X.25 to MPLS, and why Google put circuits back under its packet fabric.
+> 6. **Interconnects are networks** — PCIe is a packet network wearing a 1992 bus costume.
+> 7. **[Ring buffers](/programming/ring-buffers.html)** — shared memory plus a doorbell, compared on five axes.
+> 8. **A packet's path through Linux** *(not yet written)* — from the NIC's descriptor ring to `recv()`, and the ways around it.
+> 9. **[From IPC to RPC](/programming/ipc-to-rpc.html)** — what a request/reply protocol adds on top of a flow, and where RPC ends.
 
 Talking to a device is two problems on the same wires, and each one has its own machinery. Most writing about storage and interconnects covers only the first.
 
@@ -107,7 +108,7 @@ The most prescient part is the last section. Sonics' SiliconBackplane put a netw
 
 The decoupling argument is the thread running through this whole article. OCP's pitch (the core publishes requests, the interconnect figures out delivery) is the move PCIe made with config space, aimed at a different consumer. PCIe decoupled *software* from the interconnect: it kept the 1992 bus/bridge/tree fiction stable so drivers and enumeration code never noticed the fabric change from shared wires to a packet network. OCP and AXI decoupled *IP blocks* from the interconnect: keep the socket stable so the fabric can be a crossbar today and a mesh tomorrow. In both cases the winner wasn't just "switch beats bus" but "define a stable interface, then swap the transport freely behind it."
 
-The same design shows up at every scale: on-chip NoCs, die-to-die links (UCIe, which carries PCIe and CXL protocol over chiplet links), board-level PCIe, rack-level NVLink and CXL fabrics, datacenter Ethernet and InfiniBand. Shared buses are extinct at every layer; everything is packets over two-party links. The one thing that *didn't* converge is the software model, which is why "bus 4" still shows up in `lspci` a quarter century later. That software model is the control plane, below.
+The same design shows up at every scale: on-chip NoCs, die-to-die links (UCIe, which carries PCIe and CXL protocol over chiplet links), board-level PCIe, rack-level NVLink and CXL fabrics, datacenter Ethernet and InfiniBand. Shared buses are extinct at every layer; everything is packets over two-party links. The links themselves can be circuits, as Google's optical switches show in [Part 5](/programming/packets-and-circuits.html#circuits-under-packets). The one thing that *didn't* converge is the software model, which is why "bus 4" still shows up in `lspci` a quarter century later. That software model is the control plane, below.
 
 ### PCIe layering
 

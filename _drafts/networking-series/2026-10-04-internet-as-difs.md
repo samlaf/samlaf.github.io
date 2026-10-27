@@ -6,16 +6,17 @@ category: programming
 date: 2026-10-04
 ---
 
-> This is Part 3 of an eight-part [series on networking](/programming/networking-series-intro.html).
+> This is Part 3 of a nine-part [series on networking](/programming/networking-series-intro.html).
 >
 > 1. **[Networking is IPC](/programming/networking-is-ipc.html)** — one table of every way two parties exchange messages, and the same functions repeating at every boundary.
 > 2. **[Naming and binding](/programming/naming-and-binding.html)** — Saltzer's four levels, why IP:port does two jobs, and six ways to carry out a binding.
 > 3. **The Internet as DIFs** — Saltzer's levels inside a RINA layer, a web service read rank by rank, and what overlays like Tailscale are missing.
 > 4. **[Future internets](/programming/future-internets.html)** — NDN, SCION and RINA each rewrite a different one of Saltzer's levels.
-> 5. **[Interconnects are networks](/programming/interconnects-are-networks.html)** — PCIe is a packet network wearing a 1992 bus costume.
-> 6. **[Ring buffers](/programming/ring-buffers.html)** — shared memory plus a doorbell, compared on five axes.
-> 7. **A packet's path through Linux** *(not yet written)* — from the NIC's descriptor ring to `recv()`, and the ways around it.
-> 8. **[From IPC to RPC](/programming/ipc-to-rpc.html)** — what a request/reply protocol adds on top of a flow, and where RPC ends.
+> 5. **[Packets and circuits](/programming/packets-and-circuits.html)** — what circuit switching bundled, virtual circuits from X.25 to MPLS, and why Google put circuits back under its packet fabric.
+> 6. **[Interconnects are networks](/programming/interconnects-are-networks.html)** — PCIe is a packet network wearing a 1992 bus costume.
+> 7. **[Ring buffers](/programming/ring-buffers.html)** — shared memory plus a doorbell, compared on five axes.
+> 8. **A packet's path through Linux** *(not yet written)* — from the NIC's descriptor ring to `recv()`, and the ways around it.
+> 9. **[From IPC to RPC](/programming/ipc-to-rpc.html)** — what a request/reply protocol adds on top of a flow, and where RPC ends.
 
 [Part 2](/programming/naming-and-binding.html) ended on a pattern. Almost every many-to-many binding on the Internet comes from inserting a new layer or a translator: a bond, a proxy, a NAT table, a connection ID. John Day reads that pattern as evidence that the layers were drawn wrong. This article applies Saltzer's four levels inside one layer of Day's architecture, RINA. Then it reads today's Internet rank by rank, as a stack of layers that each rebuild some of the same machinery. Last, it asks why NAT survives when overlays already exist above IP.
 
@@ -187,7 +188,7 @@ Bold marks where TCP/IP collapses two levels into one.
 
 Below the link sits the medium itself: fiber, copper or radio. Day doesn't count it as a DIF, since it names and routes nothing. IRATI wraps such media in "shim DIFs" so the layer above sees the usual API.
 
-The backbone and fabric rows follow published designs, not any one provider's documentation. Microsoft's [VL2](https://www.microsoft.com/en-us/research/publication/vl2-a-scalable-and-flexible-data-center-network/) gives each server an application address and a separate location address, with a directory system that maps one to the other. Google's [Andromeda](https://www.usenix.org/conference/nsdi18/presentation/dalton) describes the virtual network layer that runs over such a fabric. Backbones keep a router's identity apart from its interfaces for the same reason: a loopback address stays reachable when any one link fails.
+The backbone and fabric rows follow published designs, not any one provider's documentation. Microsoft's [VL2](https://www.microsoft.com/en-us/research/publication/vl2-a-scalable-and-flexible-data-center-network/) gives each server an application address and a separate location address, with a directory system that maps one to the other. Google's [Andromeda](https://www.usenix.org/conference/nsdi18/presentation/dalton) describes the virtual network layer that runs over such a fabric. Backbones keep a router's identity apart from its interfaces for the same reason: a loopback address stays reachable when any one link fails. The backbone's MPLS paths are virtual circuits, and the fabric may itself run over optical circuits. [Part 5](/programming/packets-and-circuits.html) looks at both.
 
 Reading down the table:
 

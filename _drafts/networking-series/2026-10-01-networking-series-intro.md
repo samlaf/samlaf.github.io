@@ -109,7 +109,7 @@ Each box has protocols and systems that live in it. Some appear in more than one
 | RPC and messaging | how does a request find its reply? | Sun RPC, CORBA's IIOP, Java RMI, gRPC, Thrift, JSON-RPC, Cap'n Proto RPC, CDAP. Publish/subscribe: Kafka, MQTT |
 | IPC service semantics | what does a flow promise? | reliable byte stream (TCP, a QUIC stream), reliable messages (SCTP, `SOCK_SEQPACKET`), unreliable datagrams (UDP, QUIC datagrams), multicast (IP multicast, Ouroboros broadcast layers) |
 | IPC mechanisms and policies | how does a layer keep that promise? | sequencing, acknowledgement, retransmission, windows and congestion control, as TCP, QUIC, RINA's EFCP and Ouroboros's FRCP each combine them |
-| recursive IPC | over what scope? | the layers in [Part 3](/programming/internet-as-difs.html)'s rank table, from an HTTP service down to an Ethernet link; PCIe and the shared-memory rings of Parts 5 and 6 |
+| recursive IPC | over what scope? | the layers in [Part 3](/programming/internet-as-difs.html)'s rank table, from an HTTP service down to an Ethernet link; PCIe and the shared-memory rings of Parts 6 and 7 |
 | physical link | over what medium? | Ethernet PHYs, PCIe lanes, fiber, radio |
 
 ### Where virtual synchrony sits
@@ -161,10 +161,11 @@ Three ideas do most of the work:
 2. **[Naming and binding](/programming/naming-and-binding.html)** — Saltzer's four levels and his own examples, why IP:port does two jobs, how DNS, VIPs, anycast and Kubernetes bind one service to many nodes, six ways to carry out a binding, and what `bind()` actually restricts.
 3. **[The Internet as DIFs](/programming/internet-as-difs.html)** — Saltzer's levels inside one RINA layer, and why one rank's node is the next rank's attachment point. Then a web service read rank by rank, from HTTP down to the link, and why NAT outlives every overlay built above IP.
 4. **[Future internets](/programming/future-internets.html)** — NDN, SCION and RINA side by side. Each rewrites a different one of Saltzer's levels: NDN names the data instead of the host, SCION lets the sender choose and check the path, and RINA names nodes instead of interfaces and repeats the layer. What each one leaves alone, why the one in production is the one that changes the least, and why every future internet starts as an overlay on this one.
-5. **[Interconnects are networks](/programming/interconnects-are-networks.html)** — PCIe is a packet network wearing a 1992 bus costume. Where it puts reliability, why that doesn't violate the end-to-end argument, how enumeration is addressing and routing under another name, and why a PCIe address names the slot, not the card.
-6. **[Ring buffers](/programming/ring-buffers.html)** — the one data structure under every fast row of the table: shared memory plus a doorbell. NIC descriptor rings, NVMe, virtqueues, Xen, io_uring and AF_XDP compared on five axes, the last of which is trust.
-7. **A packet's path through Linux** — from the NIC's DMA into a descriptor ring, through NAPI, `sk_buff` and the socket buffer, to `recv()`. Then the ways around it: DPDK, AF_XDP, RDMA. *(Not yet written.)*
-8. **[From IPC to RPC](/programming/ipc-to-rpc.html)** — what a request/reply protocol adds on top of a flow: message types, request IDs, cancellation, and failure semantics. Why every completion queue is an RPC protocol, and where RPC stops and distributed objects begin.
+5. **[Packets and circuits](/programming/packets-and-circuits.html)** — circuit switching bundled three choices: switch signals instead of packets, set up the path first, reserve capacity. Virtual circuits from X.25 and ATM to MPLS, RFC 3439's case that circuits are the simpler machine, why Google put optical circuits back under its packet fabric, and why Day reads setup and reservation as policies.
+6. **[Interconnects are networks](/programming/interconnects-are-networks.html)** — PCIe is a packet network wearing a 1992 bus costume. Where it puts reliability, why that doesn't violate the end-to-end argument, how enumeration is addressing and routing under another name, and why a PCIe address names the slot, not the card.
+7. **[Ring buffers](/programming/ring-buffers.html)** — the one data structure under every fast row of the table: shared memory plus a doorbell. NIC descriptor rings, NVMe, virtqueues, Xen, io_uring and AF_XDP compared on five axes, the last of which is trust.
+8. **A packet's path through Linux** — from the NIC's DMA into a descriptor ring, through NAPI, `sk_buff` and the socket buffer, to `recv()`. Then the ways around it: DPDK, AF_XDP, RDMA. *(Not yet written.)*
+9. **[From IPC to RPC](/programming/ipc-to-rpc.html)** — what a request/reply protocol adds on top of a flow: message types, request IDs, cancellation, and failure semantics. Why every completion queue is an RPC protocol, and where RPC stops and distributed objects begin.
 
 ## References
 

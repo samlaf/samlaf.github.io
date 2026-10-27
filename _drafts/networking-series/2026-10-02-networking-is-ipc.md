@@ -6,16 +6,17 @@ category: programming
 date: 2026-10-02
 ---
 
-> This is Part 1 of an eight-part [series on networking](/programming/networking-series-intro.html).
+> This is Part 1 of a nine-part [series on networking](/programming/networking-series-intro.html).
 >
 > 1. **Networking is IPC** — one table of every way two parties exchange messages, and the same functions repeating at every boundary.
 > 2. **[Naming and binding](/programming/naming-and-binding.html)** — Saltzer's four levels, why IP:port does two jobs, and six ways to carry out a binding.
 > 3. **[The Internet as DIFs](/programming/internet-as-difs.html)** — Saltzer's levels inside a RINA layer, a web service read rank by rank, and what overlays like Tailscale are missing.
 > 4. **[Future internets](/programming/future-internets.html)** — NDN, SCION and RINA each rewrite a different one of Saltzer's levels.
-> 5. **[Interconnects are networks](/programming/interconnects-are-networks.html)** — PCIe is a packet network wearing a 1992 bus costume.
-> 6. **[Ring buffers](/programming/ring-buffers.html)** — shared memory plus a doorbell, compared on five axes.
-> 7. **A packet's path through Linux** *(not yet written)* — from the NIC's descriptor ring to `recv()`, and the ways around it.
-> 8. **[From IPC to RPC](/programming/ipc-to-rpc.html)** — what a request/reply protocol adds on top of a flow, and where RPC ends.
+> 5. **[Packets and circuits](/programming/packets-and-circuits.html)** — what circuit switching bundled, virtual circuits from X.25 to MPLS, and why Google put circuits back under its packet fabric.
+> 6. **[Interconnects are networks](/programming/interconnects-are-networks.html)** — PCIe is a packet network wearing a 1992 bus costume.
+> 7. **[Ring buffers](/programming/ring-buffers.html)** — shared memory plus a doorbell, compared on five axes.
+> 8. **A packet's path through Linux** *(not yet written)* — from the NIC's descriptor ring to `recv()`, and the ways around it.
+> 9. **[From IPC to RPC](/programming/ipc-to-rpc.html)** — what a request/reply protocol adds on top of a flow, and where RPC ends.
 
 Here is every way I could think of for two parties to exchange messages, from a function call to a message broker. Each row is one mechanism. Each column is one thing you might want from it. A green check means the mechanism provides it natively, amber means partly or conditionally, and a dash means it's absent and you build it yourself.
 
@@ -103,7 +104,7 @@ They split RINA's error and flow control protocol in two:
 
 Whether a flow has a DTCP at all is a policy too. Without one, each PDU is sent once, at whatever rate the layer below allows. That is UDP. Add flow control and retransmission with cumulative acks and you have something TCP-shaped. Add flow control without retransmission, which the IRATI team used for their VM experiments, and you have something the Internet doesn't offer as a transport at all.
 
-Through this lens, a dash in the table is a null policy. A row is a choice of policies at one scope. A new protocol is usually a new combination of old mechanisms.
+Through this lens, a dash in the table is a null policy. A row is a choice of policies at one scope. A new protocol is usually a new combination of old mechanisms. [Part 5](/programming/packets-and-circuits.html#day-setup-and-reservation-are-policies) reads connection setup and bandwidth reservation the same way.
 
 The idea is older than RINA. The [x-Kernel](https://dl.acm.org/doi/10.1109/32.67579) (1991) built protocol stacks out of small protocol objects that could be stacked in any order. [Horus](https://dl.acm.org/doi/10.1145/227210.227229) (1996) did the same for group communication: it built a virtual synchrony stack out of microprotocols, each adding one property, such as ordering, membership or flow control.
 
