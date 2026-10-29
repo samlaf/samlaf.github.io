@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 534" width="760" height="534" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="aS" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#64748b"/></marker>
+    <marker id="aT" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#0f7d8c"/></marker>
+    <marker id="aI" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5b5bd6"/></marker>
+  </defs>
+
+  <rect width="760" height="534" fill="#fdfdfc"/>
+
+  <!-- ═══ the matrix ═══ -->
+  <rect x="130" y="24" width="500" height="178" rx="8" fill="#f8fafc" stroke="#0f172a" stroke-width="1.6"/>
+  <text x="150" y="50" font-size="14.5" font-weight="700" fill="#0f172a">ACCESS-CONTROL MATRIX</text>
+  <text x="150" y="69" font-size="10.5" font-style="italic" fill="#64748b">f(subject, action, resource) tabulated. Mostly empty, so nobody stores it.</text>
+
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12.5">
+    <text x="335" y="98" fill="#475569" text-anchor="middle">File A</text>
+    <text x="450" y="98" fill="#475569" text-anchor="middle">File B</text>
+    <text x="565" y="98" fill="#475569" text-anchor="middle">Device C</text>
+    <line x1="150" y1="106" x2="610" y2="106" stroke="#cbd5e1"/>
+
+    <text x="165" y="132" fill="#0f172a" font-weight="700">Alice</text>
+    <rect x="293" y="114" width="84" height="26" rx="4" fill="#e2e8f0"/>
+    <text x="335" y="132" fill="#0f172a" text-anchor="middle">rw</text>
+    <rect x="408" y="114" width="84" height="26" rx="4" fill="#e2e8f0"/>
+    <text x="450" y="132" fill="#0f172a" text-anchor="middle">r</text>
+    <text x="565" y="132" fill="#cbd5e1" text-anchor="middle">·</text>
+
+    <text x="165" y="168" fill="#0f172a" font-weight="700">Bob</text>
+    <text x="335" y="168" fill="#cbd5e1" text-anchor="middle">·</text>
+    <rect x="408" y="150" width="84" height="26" rx="4" fill="#e2e8f0"/>
+    <text x="450" y="168" fill="#0f172a" text-anchor="middle">rw</text>
+    <rect x="523" y="150" width="84" height="26" rx="4" fill="#e2e8f0"/>
+    <text x="565" y="168" fill="#0f172a" text-anchor="middle">use</text>
+  </g>
+  <text x="380" y="193" font-size="10" fill="#94a3b8" text-anchor="middle">Lampson, 1974 — subjects down one axis, objects across the other</text>
+
+  <!-- projection arrows -->
+  <path d="M320,206 C 280,236 220,236 194,264" fill="none" stroke="#0f7d8c" stroke-width="1.4" marker-end="url(#aT)"/>
+  <path d="M440,206 C 480,236 540,236 566,264" fill="none" stroke="#5b5bd6" stroke-width="1.4" marker-end="url(#aI)"/>
+  <text x="244" y="232" font-size="11" font-style="italic" fill="#0f7d8c" text-anchor="end">reindex by column</text>
+  <text x="516" y="232" font-size="11" font-style="italic" fill="#5b5bd6">reindex by row</text>
+
+  <!-- ═══ ACL ═══ -->
+  <rect x="24" y="270" width="340" height="240" rx="8" fill="#e9f3f5" stroke="#0f7d8c" stroke-width="1.5"/>
+  <text x="46" y="302" font-size="15" font-weight="700" fill="#0b6270">ACCESS CONTROL LIST</text>
+  <text x="46" y="322" font-size="10.5" font-style="italic" fill="#4b7c84">store the relation by column, at the resource</text>
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13">
+    <text x="46" y="364" fill="#0b6270" font-weight="700">File A</text>
+    <text x="122" y="364" fill="#94a3b8">→</text>
+    <text x="146" y="364" fill="#0f172a">Alice: rw</text>
+    <text x="46" y="396" fill="#0b6270" font-weight="700">File B</text>
+    <text x="122" y="396" fill="#94a3b8">→</text>
+    <text x="146" y="396" fill="#0f172a">Alice: r</text>
+    <text x="236" y="396" fill="#0f172a">Bob: rw</text>
+    <text x="46" y="428" fill="#0b6270" font-weight="700">Device C</text>
+    <text x="122" y="428" fill="#94a3b8">→</text>
+    <text x="146" y="428" fill="#0f172a">Bob: use</text>
+  </g>
+  <line x1="46" y1="452" x2="342" y2="452" stroke="#b9d5da"/>
+  <text x="46" y="473" font-size="10.5" fill="#4b7c84">exact and invertible: the matrix, stored by column</text>
+  <text x="46" y="491" font-size="10.5" fill="#4b7c84">to copy Alice's access to Bob, visit every object</text>
+
+  <!-- ═══ capability list ═══ -->
+  <rect x="396" y="270" width="340" height="240" rx="8" fill="#f2f1fd" stroke="#5b5bd6" stroke-width="1.5"/>
+  <text x="418" y="302" font-size="15" font-weight="700" fill="#4340ac">CAPABILITY LIST</text>
+  <text x="418" y="322" font-size="10.5" font-style="italic" fill="#6b6bb8">store the relation by row, at the subject</text>
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13">
+    <text x="418" y="364" fill="#4340ac" font-weight="700">Alice</text>
+    <text x="480" y="364" fill="#94a3b8">→</text>
+    <text x="506" y="364" fill="#0f172a">File A: rw</text>
+    <text x="604" y="364" fill="#0f172a">File B: r</text>
+    <text x="418" y="396" fill="#4340ac" font-weight="700">Bob</text>
+    <text x="480" y="396" fill="#94a3b8">→</text>
+    <text x="506" y="396" fill="#0f172a">File B: rw</text>
+    <text x="604" y="396" fill="#0f172a">Device C: use</text>
+  </g>
+  <line x1="418" y1="452" x2="714" y2="452" stroke="#c9c7ef"/>
+  <text x="418" y="473" font-size="10.5" fill="#6b6bb8">exact and invertible: the matrix, stored by row</text>
+  <text x="418" y="491" font-size="10.5" fill="#6b6bb8">to copy Alice's access to Bob, go to Alice</text>
+
+  <line x1="368" y1="370" x2="392" y2="370" stroke="#cbd5e1" stroke-width="1.2" marker-start="url(#aS)" marker-end="url(#aS)"/>
+  <text transform="translate(380,404) rotate(-90)" font-size="10" font-style="italic" fill="#94a3b8" text-anchor="middle">transpose</text>
+</svg>

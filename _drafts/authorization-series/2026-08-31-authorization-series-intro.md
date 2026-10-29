@@ -40,7 +40,7 @@ This is a great starting point, but it is ABAC-focused. To take a more holistic 
 
 Each article takes one part of the grid[^other-maps]:
 
-- **[Part 1: Authorization models](/programming/authorization-models.html)** reads the Decide column as a database. Facts and rules are written, and every check is a query against the view they define. ACL, RBAC, ReBAC and ABAC are different schemas for the same facts, and DAC and MAC are answers to a different question: who may change them.
+- **[Part 1: Authorization is a database problem](/programming/authorization-models.html)** reads the Decide column as a database. Facts and rules are written, and every check is a query against the view they define. ACL, RBAC, ReBAC and ABAC are different schemas for the same facts, and DAC and MAC are answers to a different question: who may change them.
 - **[Part 2: How authority is enforced](/programming/authority-enforcement.html)** takes the reference monitor row. A database answer binds nothing on its own: something in the path of the effect has to apply it, or the path must not exist. Each stage has its own enforcer, and sandboxes are built from both strategies.
 - **[Part 3: Carriers](/programming/carriers.html)** takes the Carried row. A token is a copy of a decision that travels with the request, so the check does not have to go back to the store. Every copy is a cache, and taking it back means reaching every copy.
 - **[Part 4: Capabilities](/programming/capabilities.html)** follows the artifacts that span several columns. When one reference names the object, routes to it and carries the permission, designate, reach and decide become one act. "May Alice do this?" turns into "can Alice reach this?"

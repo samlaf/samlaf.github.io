@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 514 338" width="514" height="338" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="aG" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#3f7d52"/></marker>
+  </defs>
+
+  <rect width="514" height="338" fill="#fdfdfc"/>
+
+  <rect x="24" y="24" width="466" height="290" rx="8" fill="#edf6f0" stroke="#3f7d52" stroke-width="1.5"/>
+  <text x="44" y="54" font-size="15" font-weight="700" fill="#2f6741">ReBAC</text>
+  <text x="44" y="74" font-size="10.5" font-style="italic" fill="#5a8a6a">derive the relation from a graph of tuples</text>
+
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="10.5" fill="#0f172a">
+    <text x="44" y="100">folder:Projects#owner@Alice</text>
+    <text x="44" y="117">file:A#parent@folder:Projects</text>
+    <text x="44" y="134">group:ops#member@Bob</text>
+    <text x="44" y="151">device:C#use@group:ops</text>
+  </g>
+
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="10.5">
+    <rect x="44" y="178" width="74" height="24" rx="12" fill="#fff" stroke="#8cb79a"/><text x="81" y="194" fill="#0f172a" text-anchor="middle">Alice</text>
+    <rect x="186" y="178" width="88" height="24" rx="5" fill="#fff" stroke="#8cb79a"/><text x="230" y="194" fill="#0f172a" text-anchor="middle">Projects</text>
+    <rect x="342" y="178" width="88" height="24" rx="5" fill="#fff" stroke="#8cb79a"/><text x="386" y="194" fill="#0f172a" text-anchor="middle">File A</text>
+
+    <rect x="44" y="226" width="74" height="24" rx="12" fill="#fff" stroke="#8cb79a"/><text x="81" y="242" fill="#0f172a" text-anchor="middle">Bob</text>
+    <rect x="186" y="226" width="88" height="24" rx="5" fill="#fff" stroke="#8cb79a"/><text x="230" y="242" fill="#0f172a" text-anchor="middle">ops</text>
+    <rect x="342" y="226" width="88" height="24" rx="5" fill="#fff" stroke="#8cb79a"/><text x="386" y="242" fill="#0f172a" text-anchor="middle">Device C</text>
+  </g>
+  <g fill="none" stroke="#3f7d52" stroke-width="1.3">
+    <path d="M118,190 L182,190" marker-end="url(#aG)"/>
+    <path d="M274,190 L338,190" marker-end="url(#aG)"/>
+    <path d="M118,238 L182,238" marker-end="url(#aG)"/>
+    <path d="M274,238 L338,238" marker-end="url(#aG)"/>
+  </g>
+  <g font-size="9" font-style="italic" fill="#2f6741" text-anchor="middle">
+    <text x="150" y="186">owner</text>
+    <text x="306" y="186">parent</text>
+    <text x="150" y="234">member</text>
+    <text x="306" y="234">use</text>
+  </g>
+  <text x="44" y="290" font-size="10.5" fill="#5a8a6a">exact — run the check over every pair and the matrix comes back</text>
+  <text x="44" y="307" font-size="10.5" fill="#5a8a6a">a check asks: is the resource reachable from the subject along an allowed path?</text>
+</svg>

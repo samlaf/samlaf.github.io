@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 514 338" width="514" height="338" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="aM" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#a33b7a"/></marker>
+  </defs>
+
+  <rect width="514" height="338" fill="#fdfdfc"/>
+
+  <rect x="24" y="24" width="466" height="290" rx="8" fill="#fbeff6" stroke="#a33b7a" stroke-width="1.5"/>
+  <text x="44" y="54" font-size="15" font-weight="700" fill="#8d2d68">RBAC</text>
+  <text x="44" y="74" font-size="10.5" font-style="italic" fill="#a05b86">factor the relation: subject → role → permission</text>
+
+  <g font-size="10.5">
+    <text x="80" y="92" fill="#a05b86" text-anchor="middle">users</text>
+    <text x="224" y="92" fill="#a05b86" text-anchor="middle">roles</text>
+    <text x="393" y="92" fill="#a05b86" text-anchor="middle">permissions</text>
+  </g>
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11.5">
+    <rect x="38" y="100" width="84" height="24" rx="5" fill="#fff" stroke="#d99cc0"/><text x="80" y="116" fill="#0f172a" text-anchor="middle">Alice</text>
+    <rect x="38" y="132" width="84" height="24" rx="5" fill="#fff" stroke="#e8c6da"/><text x="80" y="148" fill="#94a3b8" text-anchor="middle">Carol</text>
+    <rect x="38" y="164" width="84" height="24" rx="5" fill="#fff" stroke="#e8c6da"/><text x="80" y="180" fill="#94a3b8" text-anchor="middle">Dan</text>
+    <rect x="38" y="210" width="84" height="24" rx="5" fill="#fff" stroke="#d99cc0"/><text x="80" y="226" fill="#0f172a" text-anchor="middle">Bob</text>
+
+    <rect x="178" y="126" width="92" height="24" rx="5" fill="#a33b7a"/><text x="224" y="142" fill="#fff" text-anchor="middle">editor</text>
+    <rect x="178" y="210" width="92" height="24" rx="5" fill="#a33b7a"/><text x="224" y="226" fill="#fff" text-anchor="middle">operator</text>
+
+    <rect x="318" y="96" width="150" height="24" rx="5" fill="#fff" stroke="#d99cc0"/><text x="393" y="112" fill="#0f172a" text-anchor="middle">rw File A</text>
+    <rect x="318" y="128" width="150" height="24" rx="5" fill="#fff" stroke="#d99cc0"/><text x="393" y="144" fill="#0f172a" text-anchor="middle">r File B</text>
+    <rect x="318" y="196" width="150" height="24" rx="5" fill="#fff" stroke="#d99cc0"/><text x="393" y="212" fill="#0f172a" text-anchor="middle">rw File B</text>
+    <rect x="318" y="228" width="150" height="24" rx="5" fill="#fff" stroke="#d99cc0"/><text x="393" y="244" fill="#0f172a" text-anchor="middle">use Device C</text>
+  </g>
+  <g fill="none" stroke="#a33b7a" stroke-width="1.2">
+    <path d="M122,112 C 150,112 150,138 176,138" marker-end="url(#aM)"/>
+    <path d="M122,144 C 150,144 150,138 176,138" marker-end="url(#aM)"/>
+    <path d="M122,176 C 150,176 150,138 176,138" marker-end="url(#aM)"/>
+    <path d="M122,222 C 150,222 150,222 176,222" marker-end="url(#aM)"/>
+    <path d="M270,138 C 294,138 294,108 316,108" marker-end="url(#aM)"/>
+    <path d="M270,138 C 294,138 294,140 316,140" marker-end="url(#aM)"/>
+    <path d="M270,222 C 294,222 294,208 316,208" marker-end="url(#aM)"/>
+    <path d="M270,222 C 294,222 294,240 316,240" marker-end="url(#aM)"/>
+  </g>
+  <line x1="44" y1="268" x2="470" y2="268" stroke="#e8c6da"/>
+  <text x="44" y="287" font-size="10.5" fill="#a05b86">exact — expand the roles and the matrix comes back</text>
+  <text x="44" y="304" font-size="10.5" fill="#a05b86">the saving is sharing the middle term, not changing which end the data hangs off</text>
+</svg>

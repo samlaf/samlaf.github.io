@@ -4,8 +4,8 @@
 <text x="40" y="40" font-size="21" font-weight="700" fill="#0f172a" text-anchor="start">The lifetimes nest, and one check reads them all</text>
 <text x="40" y="64" font-size="12.5" font-weight="400" fill="#64748b" text-anchor="start">A request sits inside a task, and a task inside a session. The enforcer&#x27;s clock runs under all of them.</text>
 <text x="40" y="174" font-size="14" font-weight="700" fill="#0f172a" text-anchor="start">session</text>
-<text x="120" y="174" font-size="12.5" font-weight="700" fill="#0f7d8c" text-anchor="start" font-family="Menlo, ui-monospace, SFMono-Regular, Consolas, monospace">facts</text>
-<text x="120" y="190" font-size="11" font-weight="400" fill="#64748b" text-anchor="start">the history so far</text>
+<text x="120" y="174" font-size="12.5" font-weight="700" fill="#0f7d8c" text-anchor="start" font-family="Menlo, ui-monospace, SFMono-Regular, Consolas, monospace">log</text>
+<text x="120" y="190" font-size="11" font-weight="400" fill="#64748b" text-anchor="start">the trace so far</text>
 <text x="40" y="230" font-size="14" font-weight="700" fill="#0f172a" text-anchor="start">task</text>
 <text x="120" y="230" font-size="12.5" font-weight="700" fill="#0f7d8c" text-anchor="start" font-family="Menlo, ui-monospace, SFMono-Regular, Consolas, monospace">f</text>
 <text x="120" y="246" font-size="11" font-weight="400" fill="#64748b" text-anchor="start">the policy for this task</text>
@@ -14,7 +14,7 @@
 <text x="120" y="302" font-size="12.5" font-weight="700" fill="#0f7d8c" text-anchor="start" font-family="Menlo, ui-monospace, SFMono-Regular, Consolas, monospace">resource, context</text>
 <text x="40" y="342" font-size="14" font-weight="700" fill="#0f172a" text-anchor="start">clock</text>
 <text x="120" y="342" font-size="12.5" font-weight="700" fill="#0f7d8c" text-anchor="start" font-family="Menlo, ui-monospace, SFMono-Regular, Consolas, monospace">time</text>
-<text x="120" y="358" font-size="11" font-weight="400" fill="#64748b" text-anchor="start">the enforcer&#x27;s own</text>
+<text x="120" y="358" font-size="11" font-weight="400" fill="#64748b" text-anchor="start">context from the enforcer</text>
 <line x1="330" y1="170" x2="1500" y2="170" stroke="#cbd5e1" stroke-width="6" stroke-linecap="round"/>
 <rect x="365" y="165" width="10" height="10" rx="2" fill="#0f7d8c" stroke="#0f7d8c" stroke-width="1.2"/>
 <rect x="455" y="165" width="10" height="10" rx="2" fill="#0f7d8c" stroke="#0f7d8c" stroke-width="1.2"/>
@@ -47,5 +47,5 @@
 <rect x="1080" y="329" width="300" height="18" rx="3" fill="#e7f3f4" stroke="#0f7d8c" stroke-width="1"/>
 <text x="1230.0" y="342" font-size="11" font-weight="600" fill="#0f7d8c" text-anchor="middle" font-family="Menlo, ui-monospace, SFMono-Regular, Consolas, monospace">within 1h</text>
 <line x1="1380" y1="142" x2="1380" y2="354" stroke="#0f7d8c" stroke-width="2" stroke-dasharray="5 4"/>
-<text x="1372" y="134" font-size="12.5" font-weight="700" fill="#0f7d8c" text-anchor="end" font-family="Menlo, ui-monospace, SFMono-Regular, Consolas, monospace">this check:  f_B(facts so far, subject, action, resource, context, time)</text>
+<text x="1372" y="134" font-size="12.5" font-weight="700" fill="#0f7d8c" text-anchor="end" font-family="Menlo, ui-monospace, SFMono-Regular, Consolas, monospace">this check:  f_B(subject, action, resource, context), reading the log so far and the clock</text>
 </svg>

@@ -43,7 +43,7 @@ Swap "secret" for "untrusted" and the network for a tool call, and the same pict
 
 A *trace* is one run of a system: the sequence of states or events it goes through. A *trace property* is a rule that each run satisfies or breaks on its own. "Every file this process read was allowed by the ACL" is one. To check it, you look at one run.
 
-[Alpern and Schneider][defining-liveness] (1985) split trace properties in two. A *safety* property says a bad thing never happens. Any violation shows up in a finite part of the run, so a monitor can stop the run at that point. A *liveness* property says a good thing eventually happens. No finite part of a run can prove it broken, because the good thing may still come. They also showed that the split is complete: every trace property is the intersection of a safety property and a liveness property. [Schneider][enforceable-security-policies] later proved that a monitor watching one run can enforce only safety properties. [Part 1](/programming/authorization-models.html#when-the-check-writes) of the authorization series builds on that result.
+[Alpern and Schneider][defining-liveness] (1985) split trace properties in two. A *safety* property says a bad thing never happens. Any violation shows up in a finite part of the run, so a monitor can stop the run at that point. A *liveness* property says a good thing eventually happens. No finite part of a run can prove it broken, because the good thing may still come. They also showed that the split is complete: every trace property is the intersection of a safety property and a liveness property. [Schneider][enforceable-security-policies] later proved that a monitor watching one run can enforce only safety properties. [Part 1](/programming/authorization-models.html#stateful-checks) of the authorization series builds on that result.
 
 So "every request is eventually answered" cannot be enforced at run time. In practice you add a deadline. "Every request is answered within five seconds" is broken by a finite run, the one where the sixth second passes, so a bounded liveness property is a safety property again.
 
@@ -86,7 +86,7 @@ That gives three ways around the problem.
 
 **Make the flow visible inside one run.** Carry labels at runtime, and join them whenever values combine. The monitor at the tool call can then see, in this run, that `to` carries the email's label. Labels turn the hyperproperty back into a trace property, over a richer state. The price is precision. A runtime tracker sees the branch that ran, not the one that did not. In `if secret: send(x)`, the runs that do *not* send leak the secret too. Trackers handle this with a label on the program counter: anything done inside a branch on a secret carries the secret's label.
 
-Distributed databases face the same choice. [Part 1](/programming/authorization-models.html#when-the-check-writes) of the authorization series compares the two: linearizability assumes every later operation may depend on every earlier one, the way a high-water mark does, while causal tokens track only the real dependencies, the way fine labels do. Both fine-grained answers share a blind spot. They see only the dependencies that flow through the system.
+Distributed databases face the same choice. [Part 1](/programming/authorization-models.html#stateful-checks) of the authorization series compares the two: linearizability assumes every later operation may depend on every earlier one, the way a high-water mark does, while causal tokens track only the real dependencies, the way fine labels do. Both fine-grained answers share a blind spot. They see only the dependencies that flow through the system.
 
 ## The context window
 
@@ -171,7 +171,7 @@ Last, some rules are not about runs at all. "The agent did what I meant" has no 
 
 Each series lands on the grid.
 
-- **Authorization** is almost entirely trace properties. A reference monitor judges one request, and Schneider's result says it can enforce only safety. Part 1's [checks that write](/programming/authorization-models.html#when-the-check-writes) add history, but a history is still one run. Capabilities too: "no reference, no access" is judged run by run. Confinement reaches a hyperproperty only by absence, by leaving no way out.
+- **Authorization** is almost entirely trace properties. A reference monitor judges one request, and Schneider's result says it can enforce only safety. Part 1's [stateful checks](/programming/authorization-models.html#stateful-checks) add history, but a history is still one run. Capabilities too: "no reference, no access" is judged run by run. Confinement reaches a hyperproperty only by absence, by leaving no way out.
 - **Identity** is trace properties as well. A binding is a fact about one run: this key belonged to this name when the check ran.
 - **Applied cryptography** is the exception. Its definitions compare worlds. [IND-CPA](/programming/crypto-primitives.html) asks whether an attacker can tell an encryption of one message from an encryption of another. Clarkson and Schneider place perfect indistinguishability in hypersafety, the PI in their figure, and note that IND-CPA and IND-CCA can be written as hyperproperties the same way. Encryption is how you get a hyperproperty when the adversary sees every run. It makes the public output independent of the secret.
 

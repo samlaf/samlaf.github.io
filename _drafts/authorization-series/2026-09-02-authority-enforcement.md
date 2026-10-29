@@ -8,7 +8,7 @@ date:   2026-09-02
 
 > This is Part 2 of a four-part [series on authorization](/programming/authorization-series-intro.html).
 >
-> - **[Part 1: Authorization models](/programming/authorization-models.html)** — what every system computes, and who may change it.
+> - **[Part 1: Authorization is a database problem](/programming/authorization-models.html)** — what every system computes, and who may change it.
 > - **Part 2: How authority is enforced** — what makes any of it binding.
 > - **[Part 3: Carriers](/programming/carriers.html)** — decisions that travel with the request.
 > - **[Part 4: Capabilities](/programming/capabilities.html)** — authority you hold, not authority you are.
@@ -61,7 +61,7 @@ Where a check runs sets the rung it survives. A check in the application falls a
 
 Two more attackers sit off the ladder, and either one joins any rung of it:
 
-- **Split the action.** The attacker spreads one intent across several requests, each allowed on its own. This defeats any monitor that judges one effect at a time, without defeating any single check. Only a monitor that remembers earlier requests can see it, and [Part 1](/programming/authorization-models.html#when-the-check-writes) covers those.
+- **Split the action.** The attacker spreads one intent across several requests, each allowed on its own. This defeats any monitor that judges one effect at a time, without defeating any single check. Only a monitor that remembers earlier requests can see it, and [Part 1](/programming/authorization-models.html#stateful-checks) covers those.
 - **Edit the policy.** The attacker targets the policy itself: the matchers, the callbacks, the configuration. Policy arrives through the same supply chain as everything else.
 
 So attacker strength is a partial order, not a line. A threat table with a single column mixes two questions. Rate each mechanism against the ladder, and you get the argument for stacking several: whatever falls at one rung needs something behind it that holds there.

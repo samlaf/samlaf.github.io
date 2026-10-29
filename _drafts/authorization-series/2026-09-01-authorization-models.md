@@ -1,5 +1,5 @@
 ---
-title:  "Authorization models: what every system computes"
+title:  "Authorization is a database problem"
 series: "Authorization, Part 1"
 series_url: "/programming/authorization-series-intro.html"
 category: programming
@@ -8,7 +8,7 @@ date:   2026-09-01
 
 > This is Part 1 of a four-part [series on authorization](/programming/authorization-series-intro.html).
 >
-> - **Part 1: Authorization models** — what every system computes, and who may change it.
+> - **Part 1: Authorization is a database problem** — what every system computes, and who may change it.
 > - **[Part 2: How authority is enforced](/programming/authority-enforcement.html)** — what makes any of it binding.
 > - **[Part 3: Carriers](/programming/carriers.html)** — decisions that travel with the request.
 > - **[Part 4: Capabilities](/programming/capabilities.html)** — authority you hold, not authority you are.
@@ -18,8 +18,8 @@ date:   2026-09-01
   - [Facts: schemas for the matrix](#facts-schemas-for-the-matrix)
     - [Access control lists and capability lists](#access-control-lists-and-capability-lists)
     - [RBAC](#rbac)
-    - [ABAC](#abac)
     - [ReBAC](#rebac)
+    - [ABAC](#abac)
   - [Rules: a policy is a view](#rules-a-policy-is-a-view)
   - [Writers](#writers)
     - [DAC and MAC are not rungs](#dac-and-mac-are-not-rungs)
@@ -28,7 +28,7 @@ date:   2026-09-01
 - [The read path](#the-read-path)
   - [Queries](#queries)
   - [Freshness](#freshness)
-- [When the check writes](#when-the-check-writes)
+- [Stateful checks](#stateful-checks)
 - [Real-world examples](#real-world-examples)
 - [References](#references)
 
@@ -54,31 +54,27 @@ Alice          rw        r
 Bob                      rw        use
 ```
 
-Read as a table, the matrix is `Allowed(subject, action, resource)`, and every access check is a point query against it: is this row present? Context is the odd one out. It is a parameter of the query, not a column of the table, and nothing stores it.
+Read as a table, the matrix is `Allowed(subject, action, resource)`, and every access check is a point query against it: is this row present? Context is the odd one out. It is a parameter of the query, not a column of the table, and nothing stores it. A store can hold conditions on context, but never the context itself.
 
 Seen as a data system, then, `f` is a query. Writers change facts and rules on the write path, checks ask `f` on the read path, and the two paths meet at the view the rules define:
 
-![The Decide column as a data system: writers, facts and rules on the write path, queries and the evaluator on the read path, meeting at the view; materialization decides where the boundary falls; carriers and enforcement extend beyond one database](/assets/authorization/decide-column.svg)
+![The Decide column as a data system: writers, facts and rules on the write path, queries and the evaluator on the read path, meeting at the view, whose cells can hold conditions on the request's context; materialization decides where the boundary falls](/assets/authorization/decide-column.svg)
 
-The rest of this article walks the figure. The write path comes first: what the facts look like, how rules turn them into the view, and who may write either. Then the boundary between the paths, which decides how much of the view is computed ahead of time. Then the read path: which questions the view can answer, and how fresh the answers are. The bottom row leaves the database. Enforcement is [Part 2](/programming/authority-enforcement.html), and carriers are [Part 3](/programming/carriers.html).
+The rest of this article walks the figure. The write path comes first: what the facts look like, how rules turn them into the view, and who may write either. Then the boundary between the paths, which decides how much of the view is computed ahead of time. Then the read path: which questions the view can answer, and how fresh the answers are. What lies beyond one database comes later in the series. Enforcement is [Part 2](/programming/authority-enforcement.html), and carriers are [Part 3](/programming/carriers.html).
 
 ## The write path
 
 ### Facts: schemas for the matrix
 
-The facts are what the store holds, and each model is a different schema for them.
-
-![Data models](/assets/authorization/data-models.svg)
-
-Six ways to write down the same `f`, on one running example. The first five are notations for the rectangle; the last is a different matrix. Going down from ACL to ReBAC, each step stores less and computes more at request time. That is a separate axis from the schema, and [materialization](#materialization-where-the-boundary-falls) takes it up below.
+The facts are what the store holds, and each model is a different schema for them. The table writes down the same `f` six ways, on one running example: Alice and Bob, two files and a device. The first five are notations for the rectangle; the last is a different matrix. Going down from ACL to ABAC, each step stores less and computes more at request time. That is a separate axis from the schema, and [materialization](#materialization-where-the-boundary-falls) takes it up below.
 
 | model | how `f` is represented | subject | resource | context | projected back onto the matrix |
 | --- | --- | --- | --- | --- | --- |
 | **ACL** | stored, indexed by resource | enumerated identity | one list per object | none | reindex by column — exact, invertible |
 | **capability list** | stored, indexed by subject | enumerated identity | one list per subject | none | reindex by row — exact, invertible |
 | **RBAC** | factored: subject → role → permission | coarsened into roles, the shared middle term | enumerated per role | none; faking it explodes the role set | expand the roles — exact |
-| **ABAC** | not stored; a predicate evaluated per request | attributes, open-ended | attributes | first-class, the axis a table does not have | evaluate the predicate over every pair — exact |
 | **ReBAC** | derived from a graph of tuples | graph node, reached through groups | fine-grained through hierarchy, without enumeration | none in Zanzibar; per-edge caveats in SpiceDB and OpenFGA | run the check over every pair — exact |
+| **ABAC** | not stored; a predicate evaluated per request | attributes, open-ended | attributes | first-class, the axis a table does not have | evaluate the predicate over every pair — exact |
 | **object capability** | held as references, over a square matrix | any entity | any entity — subjects and resources are one set | n/a: authority is held, not decided per request | flatten reachability — **lossy** |
 
 The last column is what makes them one family. Each model is a denormalized encoding of the same matrix, and a check is that encoding reified into a view for a single `(subject, action, resource, context)` point. Forwards is faithful. Backwards is underdetermined — you cannot recover which factorization, which predicate, or which tuples produced a given set of cells.
@@ -87,22 +83,9 @@ Only the last row is lossy, and it is worth saying exactly where. An object-capa
 
 #### Access control lists and capability lists
 
-The matrix is mostly empty, so nobody stores it. Real systems store one of its two projections.
+The matrix is mostly empty, so nobody stores it. Real systems store one of its two projections. Store it by column, at the resource, and you get an **access control list**. Store it by row, at the subject, and you get a **capability list**[^access-profile]:
 
-Store it by column, at the resource, and you get an **access control list**:
-
-```text
-File A → Alice: rw
-File B → Alice: r, Bob: rw
-Device C → Bob: use
-```
-
-Store it by row, at the subject, and you get a **capability list**[^access-profile]:
-
-```text
-Alice → File A: rw, File B: r
-Bob   → File B: rw, Device C: use
-```
+![The access-control matrix for Alice and Bob, stored by column as an access control list and by row as a capability list](/assets/authorization/facts-acl.svg)
 
 The same information, transposed. This is the observation that makes people say ACLs and capabilities are dual, and at this level they are. A file descriptor is a capability; `/etc/passwd`'s mode bits are an ACL; both describe cells of the same matrix. In database terms, they are one table stored under two different keys, and the key decides which questions are cheap to ask. The [read path](#queries) comes back to that.
 
@@ -112,28 +95,29 @@ Hold the duality loosely. The matrix describes permissions at an instant. It say
 
 RBAC inserts a reusable layer *between* subject and permission, so that `Users × Permissions` factors into `(Users × Roles)` and `(Roles × Permissions)`. The saving comes from sharing the middle term across many subjects, not from changing which end of the matrix the data hangs off.
 
+![RBAC: Alice, Carol and Dan hold the editor role, which grants rw on File A and r on File B; Bob holds the operator role, which grants rw on File B and use on Device C](/assets/authorization/facts-rbac.svg)
+
 In database terms, RBAC is normalization. It stores two tables, `UserRole` and `RolePermission`, and the matrix is their join. Role explosion is the sign that the schema no longer fits the data.
-
-#### ABAC
-
-ABAC is where the industry landed for anything complicated, with XACML and OPA's Rego as the two main expressions. Both share a shape: a policy document, a set of facts about subject and resource and environment, and an engine that evaluates one against the other at request time.
-
-A table indexed by subject and resource has two axes. Action fits in the cell. Context fits nowhere. There is no coordinate for "between 9 and 5," or "from a managed device," or "while the incident is open." You can fake it by multiplying out subjects — a `finance-daytime` role — but that is role explosion arriving on schedule.
-
-This is the real reason ABAC and its risk-adaptive variants exist. Not because subjects needed richer description, but because `f` grew a fourth argument and the table had no axis for it. Once you are evaluating a predicate at request time, context is free.
 
 #### ReBAC
 
 ReBAC stores the facts as a graph. Each fact is a tuple that names an object, a relation and a subject, and the subject can itself be a set, such as the members of a group. The running example has four:
 
-```text
-folder:Projects#owner@Alice
-file:A#parent@folder:Projects
-group:ops#member@Bob
-device:C#use@group:ops
-```
+![ReBAC: the four tuples, and the graph they form. Alice owns the Projects folder, which is the parent of File A. Bob is a member of ops, which may use Device C.](/assets/authorization/facts-rebac.svg)
 
 None of those tuples says that Alice may write File A. A rule does: the owner of a folder may write what the folder contains. [Zanzibar][zanzibar-google-s-consistent] calls these rules *userset rewrites*, and they are recursive, because groups hold groups and folders hold folders. A check is a reachability query: is there a path from the subject to the resource along relations the rules allow?
+
+#### ABAC
+
+ABAC is where the industry landed for anything complicated, with XACML and OPA's Rego as the two main expressions. Both share a shape: a policy document, a set of facts about subject and resource and environment, and an engine that evaluates one against the other at request time.
+
+![ABAC: the request's subject, resource, action and context feed a predicate that permits a write when the departments match, during working hours, from a managed device](/assets/authorization/facts-abac.svg)
+
+A table indexed by subject and resource has two axes. Action fits in the cell. Context fits nowhere. There is no coordinate for "between 9 and 5," or "from a managed device," or "while the incident is open." You can fake it by multiplying out subjects — a `finance-daytime` role — but that is role explosion arriving on schedule.
+
+This is the real reason ABAC and its risk-adaptive variants exist. Not because subjects needed richer description, but because `f` grew a fourth argument and the table had no axis for it. Once you are evaluating a predicate at request time, context is free.
+
+ReBAC has since borrowed this. Zanzibar's tuples carry no context. SpiceDB and OpenFGA let a tuple carry a condition: SpiceDB calls it a *caveat*, and OpenFGA a *condition*. Bob may use Device C, but only from the office network. The tuple can fix some of the condition's parameters when it is written, such as the office's address range. The check supplies the rest, such as the caller's IP. If the check leaves one out, SpiceDB does not guess. It answers *conditional* and names the missing fields. The store holds a condition on the context, and the context still comes with the request.
 
 Of the five, ReBAC is the only model whose facts need a different data model. ACLs and capability lists are lists, RBAC is two tables, and ABAC is attributes on records. ReBAC is a graph, and its checks are graph queries.
 
@@ -141,7 +125,7 @@ Of the five, ReBAC is the only model whose facts need a different data model. AC
 
 Every model so far has two kinds of state. *Facts* are stored: ACL entries, role assignments, tuples, attributes. *Rules* derive the matrix from them: the join in RBAC, the rewrites in ReBAC, the predicate in ABAC. Datalog draws the same line, between stored facts and the rules that derive new ones, and so does SQL, between tables and views. A policy is a view definition. It says which rows of `Allowed` exist, given the facts.
 
-Here is the ABAC rule from the figure above, in Rego, the language of OPA:
+Here is the rule from the ABAC figure, in Rego, the language of OPA:
 
 ```rego
 package files
@@ -202,23 +186,22 @@ Karp puts his finger on why it gets neglected. Writing about the earliest identi
 
 > IBAC stores permissions in an access matrix, and the IBAC model doesn't include a specification of permissions for changing its entries. That left it to a trusted party, the system administrator.
 
-The matrix has no theory of its own mutation. Every model since is an answer to that gap, and the answers differ from each other far more than the evaluation schemes do. They are all answers about writes, because granting access is a write. The line between facts and rules blurs here. A Linux ACL entry is a rule and a fact at once: it says who may do what, and it is stored on the file like any other attribute. In ReBAC the schema is policy and the relationship tuples are data, yet writing a tuple is how you grant access. So each model's answer is an answer to who may make that write:
+The matrix has no theory of its own mutation, and neither do the schemas above. They say what the facts look like, not who may change them. Granting access is a write, so the question is who may make that write. The line between facts and rules blurs here. A Linux ACL entry is a rule and a fact at once: it says who may do what, and it is stored on the file like any other attribute. In ReBAC the schema is policy and the relationship tuples are data, yet writing a tuple is how you grant access. The answers come from a separate family of models, and they differ from each other far more than the schemas do:
 
 ```text
-ACL / DAC          the owner
-MAC                nobody, beyond the lattice
-RBAC               admins, plus whoever holds role-grant rights
-ABAC               whoever owns the policy document
-ReBAC              whoever may write tuples
-capability list    still the administrator
-object capability  the holder
+DAC                   the owner
+MAC                   a security officer; owners cannot override
+administrative roles  admins, scoped by the admin roles they hold
+object capability     the holder, passing on at most what it holds
 ```
 
-Six of those seven answers are a version of "someone with administrative standing," and they all have to be supplied from outside the model. The seventh is the rule the [square matrix](/programming/capabilities.html#squaring-the-matrix) states about itself, and it is the argument of the capabilities article.
+Any schema can pair with any of these. RBAC says nothing about who assigns roles. [ARBAC97][arbac97] answered that separately, with administrative roles that govern the others: RBAC applied to its own writes. And [Osborn, Sandhu and Munawer][rbac-dac-mac] showed that RBAC can be configured to enforce DAC or MAC.
+
+Three of those four answers are a version of "someone with administrative standing," and they all have to be supplied from outside the model. The fourth is the rule the [square matrix](/programming/capabilities.html#squaring-the-matrix) states about itself, and it is the argument of the capabilities article.
 
 There is a sharper way to see the split. Ask whether the mutation right is **monotone**. Delegation can only ever hand on less than the holder has, so authority shrinks along every edge. Administrative rights do the opposite: they manufacture authority the grantor does not hold, which is what makes "admin" a different power rather than a larger one. Two very different things wear the same word, and Part 4 depends on keeping them apart.
 
-There is a second question hiding in the same list: *where do you go* to make the change. To give Bob everything Alice has under an ACL, you visit every object. Under a capability list you go to Alice. That is a real operational difference and it is invisible in the evaluation view.
+There is a second question about writes: *where do you go* to make the change. To give Bob everything Alice has under an ACL, you visit every object. Under a capability list you go to Alice. That is a real operational difference and it is invisible in the evaluation view.
 
 One more thing about writes, before leaning on the matrix too hard. Once cells can be edited, the question you most want to ask — *can this permission ever reach that subject, by any sequence of legal edits* — is undecidable in the general case. Harrison, Ruzzo and Ullman proved it in 1976, and the result is why every tractable model since is a deliberate restriction of the general protection system rather than an implementation of it: take-grant, typed matrices, and the bounded schemes real engines actually ship. Keep it in view for the [capabilities article](/programming/capabilities.html), where the same question comes back as the thing capabilities are worst at.
 
@@ -226,46 +209,45 @@ One more thing about writes, before leaning on the matrix too hard. Once cells c
 
 The clean ladder oversimplifies, and the first two entries are where it does the most damage.
 
-DAC and MAC are usually presented as the first two levels of increasing sophistication in describing a subject. They are not. Neither says anything about how the matrix is indexed. The **D** in discretionary means *the owner may change the matrix at their discretion*. The **M** in mandatory means *the owner may not* — a lattice constrains every edit, including the administrator's. Both are answers to the mutation question and nothing else.
+DAC and MAC are usually presented as the first two levels of increasing sophistication in describing a subject. They are not. Neither says anything about how the matrix is indexed. The **D** in discretionary means *the owner may change the matrix at their discretion*. The **M** in mandatory means *the owner may not*: a security officer sets the labels and the policy, and no owner can override them. Both are answers to the mutation question and nothing else.
 
 Once you see that, an old confusion goes away. SELinux's type enforcement is a *compression* choice: a security context is the full `user:role:type:level` tuple, and access is decided between types rather than users. MAC is a *mutation* choice. They are complements in that design, which is exactly what you would expect from two answers to two different questions, and not at all what you would expect from two rungs of one ladder.
 
 #### Policies compose, and the rule is not the same as the edit right
 
-One more thing hides in the mutation column, and the MAC row is where it shows.
+One more thing hides in the list of writers, and the MAC row is where it shows.
 
-I wrote that under MAC nobody may change a cell beyond what the lattice permits. That describes the effect and not the mechanism. What is actually happening is that `f` is computed from two policies with two different authors, combined with a conjunction:
+Saying that under MAC the owner may not change the matrix describes the effect, not the mechanism. What actually happens is that `f` is computed from two policies with two different authors, combined with a conjunction:
 
 ```text
 f = mandatory ∧ discretionary
 ```
 
-The owner may still edit the discretionary half freely. They simply cannot relax the other half, because the combining rule is an `and`. Mandatory versus discretionary is a statement about *composition*, not about edit rights.
+The security officer writes the mandatory half. The owner may still edit the discretionary half freely. They simply cannot relax the other half, because the combining rule is an `and`. Mandatory versus discretionary is a statement about *composition*, not about edit rights.
 
 Once you look for it, composition is everywhere and rarely specified. XACML names its combining algorithms explicitly — deny-overrides, permit-overrides, first-applicable — which is more than most systems do. Real deployments stack an organizational policy, a team policy, a resource owner's settings and a per-request grant, and the rule for combining them is usually whatever the code happens to do.
 
-Combining needs more than two answers, and an XACML PDP has four. *Permit* and *Deny* are the obvious two. *NotApplicable* means no policy's target matched the request: the policy abstains, and that is what lets a combining algorithm tell "not my business" apart from "no." *Indeterminate* means evaluation failed, because an attribute was missing or a source was down. XACML 3.0 even records which way it might have gone, as Indeterminate{P}, {D} or {DP}.
+Combining needs more than two answers, and XACML has four. *Permit* and *Deny* are the obvious two. *NotApplicable* means no policy's target matched the request: the policy abstains, and that is what lets a combining algorithm tell "not my business" apart from "no." *Indeterminate* means evaluation failed, because an attribute was missing or a source was down. XACML 3.0 even records which way it might have gone, as Indeterminate{P}, {D} or {DP}.
 
-The PEP still has to turn all four into allow or deny, and XACML calls its rule for that *PEP bias*. A deny-biased PEP treats everything except Permit as deny. AuthZEN's evaluation response is a boolean, so it builds that collapse into the protocol. NotApplicable is a decision's version of a lookup that comes back empty, and [Part 2](/programming/authority-enforcement.html#absence-is-a-lookup-that-comes-back-empty) turns that empty lookup into an enforcement strategy of its own.
+The enforcer still has to turn all four into allow or deny, and XACML calls its rule for that the *bias*. A deny-biased enforcer treats everything except Permit as deny. AuthZEN's evaluation response is a boolean, so it builds that collapse into the protocol. NotApplicable is a decision's version of a lookup that comes back empty, and [Part 2](/programming/authority-enforcement.html#absence-is-a-lookup-that-comes-back-empty) turns that empty lookup into an enforcement strategy of its own.
 
 AI agents make this concrete. An agent's effective authority is the conjunction of an org policy, the user's grant, the repository's branch protection and the tool's own rules — four policies, four owners, and no agreed account of how they combine.
 
 ## Materialization: where the boundary falls
 
-The view in the figure can be stored in full, stored in part, or computed on every check. Kleppmann calls this the boundary between the write path and the read path. Work on the write path is paid when facts change. Work on the read path is paid when someone asks. Moving the boundary moves the cost, not the answer.
+The view, `Allowed`, can be stored in full, stored in part, or computed on every check. That choice sets where the write path ends and the read path begins. It moves the cost, never the answer. The two ends fail in opposite ways:
 
-Each model sits somewhere along that line:
+- **Precompute on write.** A check is a lookup. But every change has to reach every row derived from it, and a row that misses the change is a stale grant.
+- **Compute on read.** A change is one write. But every check pays for the derivation, and depends on whoever holds the facts.
 
-- **ACL.** The rows are the view. A check is a lookup. A change that spans many rows, such as "give Bob everything Alice has," is many writes.
-- **RBAC.** The two tables are stored, and the join runs at check time. Many systems store the joined result too. Windows expands a user's groups into the access token at logon, which is why a group change waits for the next logon.
-- **Zanzibar.** The tuples are stored, and the rewrites run at check time, except for nested groups. Its Leopard index precomputes group membership and keeps it current from the stream of tuple changes, because walking deeply nested groups on every check is slow.
-- **ABAC.** Only the attributes are stored. The predicate runs on every check.
+Three things decide where a real system lands:
 
-The two ends fail in opposite ways. Precompute, and checks are cheap, but every change has to reach every row derived from it, and a row that misses the change is a stale grant. Compute on read, and a change is one write, but every check pays for the derivation and depends on whoever holds the facts.
-
-The data-models figure reads as if the model fixed where the boundary sits. It doesn't. ABAC decisions can be cached, and RBAC can be expanded ahead of time. The schema says what the facts look like. Materialization says when the view is computed, and any schema can move along it.
-
-A materialized view does not have to stay in the store, either. The Windows access token is RBAC, joined at logon and carried by every process the user starts. Once the copy leaves the store, revoking it means reaching the copy. That is the subject of [Part 3](/programming/carriers.html).
+- **The schema does not fix it.** The Facts sections ran along this line, from ACL to ABAC, but any schema's view can be stored, and how it is stored decides how a change reaches it:
+  - *Maintained.* Updated on every write. Zanzibar's Leopard index keeps nested group membership current as tuples change, because walking deep groups on every check is slow.
+  - *Snapshot.* Computed once and kept. Windows expands a user's groups into an access token at logon, so a group change waits for the next logon.
+  - *Cache.* Computed on the first check and kept until it expires. Even an ABAC decision can be cached this way, and a change then waits out the expiry.
+- **Context caps it.** A cell that depends on context cannot be stored as allow or deny, because the context arrives with the request. What can be stored is the condition left once the facts are filled in. OPA's partial evaluation produces exactly that, and SpiceDB's `LookupResources` marks such results as conditional.
+- **A stored view can leave the store.** The Windows token is a snapshot that rides with every process the user starts. Revoking access then means reaching every copy. That is the subject of [Part 3](/programming/carriers.html).
 
 ## The read path
 
@@ -283,53 +265,47 @@ RBAC answers both through its join. ReBAC answers the check by walking the graph
 
 A lookup is not automatically current. The store that answers a check is usually a replica, and a replica can lag behind the write that revoked access.
 
-Zanzibar's paper calls the result the *new enemy problem*. Alice removes Bob from a document's ACL, and then new content is added to the document. If the check on that content reads a replica that has not yet seen the removal, Bob sees content written after he lost access. Zanzibar's fix is the *zookie*. When content changes, the client asks Zanzibar for a zookie and stores it with the content. Later checks on that content pass the zookie, and Zanzibar evaluates them at a snapshot at least as fresh as the one it names. In Kleppmann's terms, that is causal consistency: a check may not see a world older than the write it depends on.
+Zanzibar's paper calls the result the *new enemy problem*. Alice removes Bob from a document's ACL, and then new content is added to the document. If the check on that content reads a replica that has not yet seen the removal, Bob sees content written after he lost access. Zanzibar's fix is the *zookie*. When content changes, the client asks Zanzibar for a zookie and stores it with the content. Later checks on that content pass the zookie, and Zanzibar evaluates them at a snapshot at least as fresh as the one it names. Databases call this guarantee *causal consistency*: a check may not see a world older than the write it depends on.
 
 Freshness is a guarantee you ask for, not a property of looking things up. It also qualifies [Part 3](/programming/carriers.html#fresh-or-frozen)'s trade between a fresh lookup and a frozen copy: the lookup is only as fresh as the replica it reads.
 
 Where the evaluator runs — inside the application, as a library, or as a service — is the last choice on the read path. It mostly decides latency and what fails when the evaluator is down.
 
-## When the check writes
+## Stateful checks
 
 Everything so far keeps the two paths apart. Writers change facts and rules, and a check only reads them. Asking `f` never changes the next answer.
 
 Some policies need it to. The oldest is the [Chinese Wall][brewer-nash] of Brewer and Nash, from 1989, written for consultants who serve competing clients. Files are grouped by company, and companies by conflict of interest. Alice may read any bank's files until she reads one. From then on, every other bank's files are denied. The matrix changed, and no administrator wrote the change. The check did. The family has a name, *history-based access control*, from [Edjlali, Acharya and Chaudhary][history-based-access-control]'s 1998 work on mobile code. [Usage control][ucon-abc] made it a property of the model in 2004 and called it *mutability*: using an object can update the attributes the next decision reads.
 
-So the check takes the facts as an argument, and returns new ones with each answer:
+In database terms, the check now writes. The store gains a new table: an append-only log of what the enforcer saw, one row per request. Monitoring theory calls this log a *trace*, and policies that read it *trace-based*. The check returns the row it appends along with its answer, and the next check reads the log:
 
 ```text
-f(subject, action, resource, context)               → decision
-f(facts, subject, action, resource, context, time)  → (decision, facts')
+stateless:  f(subject, action, resource, context) → decision
+stateful:   f(subject, action, resource, context) → (decision, update)
 ```
 
-The first line is the special case: the facts never change, and nothing reads the clock. [Schneider][enforceable-security-policies] gave the general case its theory in 2000. A monitor that watches each step of a program and can stop it is a *security automaton*, and the facts it carries are the automaton's state. The policies it can enforce are *safety properties* of the execution: a bad thing never happens. An ACL is an automaton with one state.
+The first line is the special case where nothing is appended. [Schneider][enforceable-security-policies] gave the general case its theory in 2000. A monitor that watches each step of a program and can stop it is a *security automaton*. Its input is the trace, and the policies it can enforce are *safety properties* of the execution: a bad thing never happens. An ACL is an automaton with one state.
 
-AI agents made this mainstream, because one tool call rarely says what an agent is doing. The attacker who [splits one intent across several requests](/programming/authority-enforcement.html#who-is-the-attacker) defeats any check that judges one request at a time. Two recent engines take the stateful path, and they land at opposite ends of the [materialization](#materialization-where-the-boundary-falls) line:
+AI agents made this mainstream, because one tool call rarely says what an agent is doing. The attacker who [splits one intent across several requests](/programming/authority-enforcement.html#who-is-the-attacker) defeats any check that judges one request at a time. Once the log exists, the rest is ordinary database work:
 
-- **[Dogwood][dogwood]** keeps the raw log of tool calls and their responses, and adds temporal operators to Cedar: `formerly within 1h`, `count_within`, `sum_within`. "Sell shares only if an approval for these shares came back in the last hour" is a query over the log, run at check time. The operators come from [metric first-order temporal logic][mfotl], the specification language of runtime monitoring.
-- **[Omnigent][omnigent]** folds the log into the facts as it goes. A policy is a handler that takes "the old state and the new event" and returns a new state and a decision. That is Schneider's automaton, written as code.
+- **Policies are temporal queries over the log.** [Dogwood][dogwood] adds temporal operators to Cedar: `formerly within 1h`, `count_within`, `sum_within`. "Sell shares only if an approval for these shares came back in the last hour" is a query over the log, run at check time. The operators come from [metric first-order temporal logic][mfotl], the specification language of runtime monitoring.
+- **Time is `now()`.** `within 1h` is `WHERE ts > now() - 1h`, and an expiring grant is `WHERE expires_at > now()`. So the clock can move the answer with no write at all: same log, same request, a new answer. [TRBAC][trbac] did this for RBAC in 2000, with roles that turn on and off on a schedule. `now()` has to come from the enforcer's own clock, never from an hour the caller reports.
+- **Query the log, or maintain a view of it.** This is the [materialization](#materialization-where-the-boundary-falls) trade again. Dogwood keeps the raw log and queries it per check, so a rule added next week applies to everything already recorded. [Omnigent][omnigent] folds each event into state as it arrives: a policy is a handler that takes "the old state and the new event" and returns a new state and a decision. That is Schneider's automaton, written as code. Checks are cheap, but you have to decide in advance what to remember.
+- **The view definition can change per task.** [Conseca][conseca] has a model write a policy for each task from trusted input only. That policy becomes one more term in the [conjunction](#policies-compose-and-the-rule-is-not-the-same-as-the-edit-right).
 
-The trade is the one from the Materialization section, in the vocabulary of event sourcing. A log lets you add a rule next week and apply it to everything already recorded. Folded state is cheap to check, but you have to decide in advance what to remember.
+The check is also a new writer, and the most trustworthy one in the system. The log records what the enforcer saw happen, not what anyone claims. That is why it is a table and not more context: context comes from the caller, and the caller cannot forge the log, as long as the enforcer runs outside its reach. A log kept in the agent's own harness falls with the harness: [Part 2](/programming/authority-enforcement.html#who-is-the-attacker)'s rung 2.
 
-The check that writes is also a new writer, and the most trustworthy one in the system. It records what the enforcer saw happen, not what anyone claims. The agent cannot forge that record, as long as the enforcer runs outside the agent's reach. A log kept in the agent's own harness falls with the harness: [Part 2](/programming/authority-enforcement.html#who-is-the-attacker)'s rung 2.
+![The check written as f(subject, action, resource, context) → (decision, update), with an arrow from each part to the systems that make it move: per-task policy for f, information flow control for the request, temporal and attribute-based access control for context, and history-based access control for the update](/assets/authorization/contextual-policies.svg)
 
-Agents put pressure on the other arguments as well:
+The lifetimes nest. A request sits inside a task, and a task inside a session. The policy changes per task, the log grows with each request, and the clock runs under all of them. One check reads a slice of each:
 
-- **`f` itself.** The rules can be written per task. [Conseca][conseca] has a model draft a policy for each task from trusted input only, and that policy becomes one more term in the [conjunction](#policies-compose-and-the-rule-is-not-the-same-as-the-edit-right).
-- **`context`.** More can travel with each call, as AuthZEN's `context` field already allows: device, network, a risk score.
-- **`time`.** The clock can move the answer with no write at all. A grant expires, or a `within 1h` window slides past an old approval. Same facts, same request, a new answer. This is the enforcer's own clock, not an hour the caller reports in `context`. [TRBAC][trbac] added it to RBAC in 2000, with roles that turn on and off on a schedule.
-
-![The check written as f(facts, subject, action, resource, context, time), with an arrow from each argument to the systems that make it move: per-task policy for f, history-based access control for facts, information flow control for the request, attribute-based access control for context, and temporal access control for time](/assets/authorization/contextual-policies.svg)
-
-The lifetimes nest. A request sits inside a task, and a task inside a session. The rules change per task, the facts grow with each request, and the clock runs under all of them. One check reads a slice of each:
-
-![A timeline with four lanes: the session's facts grow by one entry per request, the policy changes when a new task starts, requests arrive as ticks, and the clock runs underneath. One check reads the facts so far, the current task's policy, its own request, and a one-hour window of the clock.](/assets/authorization/check-lifetimes.svg)
+![A timeline with four lanes: the session's log grows by one row per request, the policy changes when a new task starts, requests arrive as ticks, and the clock runs underneath. One check reads the log so far, the current task's policy, its own request, and a one-hour window of the clock.](/assets/authorization/check-lifetimes.svg)
 
 "Intent-based policy" is a name for what all of these try to approximate. Intent itself is not an input. No check can read it, and every system here guesses at it from what it can read.
 
 Schneider's theory also marks where this stops. A trace monitor sees which calls happened. It does not see which value flowed into which argument. That is information flow, and it is not a property of a single trace. [Clarkson and Schneider][hyperproperties] call it a *hyperproperty*: a property of sets of traces, which no monitor watching one execution can check. A prompt injection can be a sequence of perfectly legal calls. [Part 4](/programming/capabilities.html#prompt-injection-is-a-confused-deputy) takes that case.
 
-Distributed databases hit the same wall. In Kleppmann's example, Alice reads a final score from one replica and tells Bob, whose replica has not caught up yet. The database broke none of its rules. The dependency ran through a channel it never saw: Alice talking to Bob. Both fields answer in the same two ways. Linearizability assumes every later operation may depend on every earlier one. Its security twin is [Biba][biba]'s *low-water mark*: once an agent reads untrusted text, everything it does next counts as untrusted. Causal tokens like the [zookie](#freshness) track only the real dependencies, and so do fine-grained labels. They cost less, but they see only what flows through the system. An LLM is exactly such a hidden channel, inside your own system. Nothing records which input shaped which output.
+Distributed databases hit the same wall. Alice reads a match's final score from one replica and tells Bob. Bob's replica has not caught up, so when he looks, the match is still on. The database broke none of its rules. The dependency ran through a channel it never saw: Alice talking to Bob. Both fields answer in the same two ways. The first assumes every later operation may depend on every earlier one. Databases call this *linearizability*: the system acts as if there were one copy of the data, so nobody sees an older state than someone before them. Its security twin is [Biba][biba]'s *low-water mark*: once an agent reads untrusted text, everything it does next counts as untrusted. The second tracks only the real dependencies. Causal tokens like the [zookie](#freshness) do this, and so do fine-grained labels. They cost less, but they see only what flows through the system. An LLM is exactly such a hidden channel, inside your own system. Nothing records which input shaped which output.
 
 ## Real-world examples
 
@@ -347,12 +323,12 @@ A system is not one model. It makes a choice on each axis of the figure:
 | Zanzibar, Ory Keto | relation tuples | recursive rewrites | per check; Leopard precomputes nested groups | client services, through writes |
 | SpiceDB, OpenFGA | tuples with caveats or conditions | rewrites, plus predicates on edges | per check, with caches | client services, through writes |
 | Cedar / AWS Verified Permissions, Oso, Aserto Topaz | entities, relationships and attributes | one language for ReBAC and ABAC | computed per request | policy authors |
-| Dogwood, Omnigent | a history of the session's requests | predicates over the history | Dogwood keeps the log and queries it per check; Omnigent folds it into state per request | the enforcer, on every request |
+| Dogwood, Omnigent | a log of the session's requests | temporal queries over the log | Dogwood keeps the log and queries it per check; Omnigent folds it into state per request | the enforcer, on every request |
 | KeyKOS, EROS, seL4, Fuchsia, Cap'n Proto, WASI Preview 2 | references held by each process | none | stored as the references themselves | the holder |
 
 The last row is a different matrix, and [Part 4](/programming/capabilities.html) is about it.
 
-Everything in this article decides at the resource. The PDP looks up what was written and computes `f`. The [next article](/programming/authority-enforcement.html) asks what makes that answer bind on the system where the effect happens. [Part 3](/programming/carriers.html) then asks what changes when the request brings a copy of the decision with it.
+Everything in this article decides at the resource. The evaluator looks up what was written and computes `f`. The [next article](/programming/authority-enforcement.html) asks what makes that answer bind on the system where the effect happens. [Part 3](/programming/carriers.html) then asks what changes when the request brings a copy of the decision with it.
 
 ## References
 
@@ -377,7 +353,10 @@ Everything in this article decides at the resource. The PDP looks up what was wr
 19. [Monitoring Metric First-Order Temporal Properties][mfotl] — Basin, Klaedtke, Müller, Zălinescu, JACM 2015; the logic under Dogwood's operators
 20. [Hyperproperties][hyperproperties] — Clarkson and Schneider, 2010; why information flow is not a property of one trace
 21. [Biba Model][biba] — Biba, 1977; integrity labels, and the low-water mark for subjects that read less-trusted data
+22. [The ARBAC97 Model for Role-Based Administration of Roles][arbac97] — Sandhu, Bhamidipati, Munawer, TISSEC 1999; who may assign roles, answered with roles
+23. [Configuring Role-Based Access Control to Enforce Mandatory and Discretionary Access Control Policies][rbac-dac-mac] — Osborn, Sandhu, Munawer, TISSEC 2000; RBAC as either DAC or MAC
 
+[arbac97]: https://doi.org/10.1145/300830.300839 "The ARBAC97 model for role-based administration of roles"
 [authorization-terminology-mess]: https://idpro.org/authorization-terminology-is-a-mess-lets-fix-it/ "Authorization Terminology Is a Mess. Let's Fix It."
 [authzen-spec]: https://openid.net/specs/authorization-api-1_0.html#name-information-model "Authorization API 1.0: information model - OpenID Foundation"
 [authzen]: https://openid.net/wg/authzen/ "AuthZEN - OpenID Foundation working group"
@@ -395,6 +374,7 @@ Everything in this article decides at the resource. The PDP looks up what was wr
 [opa-policy-language]: https://www.openpolicyagent.org/docs/latest/policy-language/ "Policy Language - Open Policy Agent"
 [postgres-row-security]: https://www.postgresql.org/docs/current/ddl-rowsecurity.html "PostgreSQL: Row Security Policies"
 [protection]: https://www.microsoft.com/en-us/research/publication/protection/ "Protection"
+[rbac-dac-mac]: https://doi.org/10.1145/354876.354878 "Configuring role-based access control to enforce mandatory and discretionary access control policies"
 [rfc4949]: https://datatracker.ietf.org/doc/html/rfc4949 "RFC 4949: Internet Security Glossary, Version 2"
 [state-union-authorization]: https://idpro.org/the-state-of-the-union-of-authorization/ "The State of the Union of Authorization"
 [trbac]: https://www.cerias.purdue.edu/apps/reports_and_papers/view/3971 "TRBAC: A Temporal Role-Based Access Control Model"

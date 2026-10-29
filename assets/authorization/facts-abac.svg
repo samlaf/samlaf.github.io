@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 514 338" width="514" height="338" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="aO" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#c2793a"/></marker>
+  </defs>
+
+  <rect width="514" height="338" fill="#fdfdfc"/>
+
+  <rect x="24" y="24" width="466" height="290" rx="8" fill="#fdf3e9" stroke="#c2793a" stroke-width="1.5"/>
+  <text x="44" y="54" font-size="15" font-weight="700" fill="#a55f22">ABAC</text>
+  <text x="44" y="74" font-size="10.5" font-style="italic" fill="#b07a45">do not tabulate — compute the relation, per request</text>
+
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11">
+    <text x="44" y="102" fill="#a55f22">subject</text>
+    <text x="128" y="102" fill="#0f172a">Alice · dept=eng · mgr=true</text>
+    <text x="44" y="121" fill="#a55f22">resource</text>
+    <text x="128" y="121" fill="#0f172a">File A · dept=eng</text>
+    <text x="44" y="140" fill="#a55f22">action</text>
+    <text x="128" y="140" fill="#0f172a">write</text>
+    <text x="44" y="159" fill="#a55f22">context</text>
+    <text x="128" y="159" fill="#0f172a">14:20 · device=managed</text>
+  </g>
+  <path d="M258,168 L258,184" stroke="#c2793a" stroke-width="1.4" marker-end="url(#aO)"/>
+  <rect x="44" y="190" width="426" height="82" rx="6" fill="#fff" stroke="#e0b184"/>
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11.5">
+    <text x="60" y="210" fill="#a55f22" font-weight="700">permit if</text>
+    <text x="60" y="229" fill="#0f172a">   subject.dept == resource.dept</text>
+    <text x="60" y="248" fill="#0f172a">   and 09:00 ≤ context.time ≤ 17:00</text>
+    <text x="60" y="265" fill="#0f172a">   and context.device == "managed"</text>
+  </g>
+  <text x="44" y="290" font-size="10.5" fill="#b07a45">exact — evaluate the predicate over every pair and the matrix comes back</text>
+  <text x="44" y="307" font-size="10.5" fill="#b07a45">context is a first-class argument here; a table has no axis for it</text>
+</svg>
