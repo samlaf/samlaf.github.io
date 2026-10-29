@@ -129,7 +129,11 @@ request ──► PEP ──────► PDP
 - **PEP**, policy enforcement point. Sits in the path of the effect. Cannot be bypassed. Does what the decision says.
 - **PDP**, policy decision point. Evaluates policy against facts and returns an answer. Need not be in the path at all.
 
-The [series intro](/programming/authorization-series-intro.html) adds XACML's other two boxes: the PAP, where policy is authored, and the PIP, where facts come from. [Part 1](/programming/authorization-models.html) reads all four as a database. The distinction is logical. All four can be one kernel function, or four services in different datacenters. What matters is that only the PEP has to satisfy Anderson's first two properties. The PDP must be *correct*; the PEP must be *unavoidable*. Conflating them is how people end up with an authorization system that is beautifully expressive and trivially routed around.
+XACML placed the split inside a larger system. This is how NIST draws it, in [SP 800-162][nist-sp-800-162]:
+
+![PEP, PDP, PAP and PIP, with the policy repository, the attribute repository and environment conditions](/assets/authorization/nist-abac-functional-points.png)
+
+The two other boxes are the PAP, where policy is authored, and the PIP, where facts come from. XACML was built for ABAC, but [AuthZEN][authzen-api], the OpenID Foundation's Authorization API, now standardizes the PEP-to-PDP interface for every model. [Part 1](/programming/authorization-models.html) reads all four boxes as a database. The distinction is logical. All four can be one kernel function, or four services in different datacenters. What matters is that only the PEP has to satisfy Anderson's first two properties. The PDP must be *correct*; the PEP must be *unavoidable*. Conflating them is how people end up with an authorization system that is beautifully expressive and trivially routed around.
 
 The [Flask architecture][flask-security-architecture] is the cleanest instantiation, and the direct ancestor of SELinux. Flask separates **object managers**, which own resources and enforce decisions, from a **security server**, which evaluates policy. An object manager asks whether a subject may perform an operation on an object, caches the returned access vector, and — the part people forget — receives notifications when a policy change requires revoking what it cached.
 
@@ -161,7 +165,7 @@ This article asks what makes each stage hold. [Part 4](/programming/capabilities
 | reach | the name resolves, and delivery fails | `ENETUNREACH` in an empty network namespace; a timeout |
 | decide | the request arrives, and the answer is no | `EACCES`; HTTP 403 |
 
-The object a name resolves to is often a lower-level name. DNS resolves a host to an IP address, and the address is what reach routes. [RFC 1498][rfc1498] chains these bindings: service to node, node to attachment point, attachment point to path. So designate and reach are one pair that repeats at every layer. A URL is a host, resolved by DNS and reached over IP, plus a path, resolved and reached again inside the server. Day's [RINA][networking-is-ipc-paper] goes further and repeats all four stages in every layer, each with its own enforcer. Each layer's reach calls designate in the layer below: to get a packet to the next hop, a layer asks the one below for a flow to that hop's name. The [series intro](/programming/authorization-series-intro.html#from-a-chain-to-a-grid) reads the grid this way.
+The object a name resolves to is often a lower-level name. DNS resolves a host to an IP address, and the address is what reach routes. [RFC 1498][rfc1498] chains these bindings: service to node, node to attachment point, attachment point to path. So designate and reach are one pair that repeats at every layer. A URL is a host, resolved by DNS and reached over IP, plus a path, resolved and reached again inside the server. Day's [RINA][networking-is-ipc-paper] goes further and repeats all four stages in every layer, each with its own enforcer. Each layer's reach calls designate in the layer below: to get a packet to the next hop, a layer asks the one below for a flow to that hop's name. [Networking, Part 3](/programming/internet-as-difs.html#security-enrollment-and-flow-allocation) reads the grid this way.
 
 ### Every stage has its own enforcer
 
@@ -595,33 +599,37 @@ Between those monitors, decisions have to travel. A token issued in one domain i
 
 1. [Computer Security Technology Planning Study][computer-security-technology-planning] — Anderson, 1972; the reference monitor
 2. [The Flask Security Architecture][flask-security-architecture] — object managers, security server, access-vector caching, revocation
-3. [Robust Composition][robust-composition] — Miller's thesis; "only connectivity begets connectivity"
-4. [Joe-E: A Security-Oriented Subset of Java][joe-e-security-oriented] — removing ambient authority from an unforgeable heap
-5. [Linux Security Modules: General Security Support for the Linux Kernel][linux-security-modules-general] — the original LSM design
-6. [Linux Security Module usage][linux-security-module-usage] and [LSM development][lsm-development]
-7. [AppArmor — Where Do LSMs Fit?][apparmor-where-do-lsms] — syscall filtering versus DAC, MAC, and resolved-object hooks
-8. [Landlock][landlock] — unprivileged monotonic self-restriction
-9. [BPF LSM programs][bpf-lsm-programs]
-10. [Linux namespaces][linux-namespaces] and [capabilities][linux-capabilities]
-11. [`setpriv`][setpriv] — the credential tuple in one exec: uid, gid, the three capability sets, securebits, `no_new_privs`, LSM labels, Landlock and seccomp
-12. [Software isolation in Linux][software-isolation-linux] — the mechanism inventory
-13. [Capsicum: Practical Capabilities for UNIX][capsicum-practical-capabilities-unix]
-14. [10 years seL4][10-years-sel4] — the grant right and what verification bought
-15. [seL4 reference manual][sel4-reference-manual] — CNodes, untyped retyping, the capability derivation tree, `Revoke`
-16. [WebAssembly Component Model][webassembly-component-model] and [WASI security principles][wasi-security-principles]
-17. [Handling Algebraic Effects][handling-algebraic-effects] — effect handlers as programmable interpretations
-18. [Chromium sandbox design][chromium-sandbox] — broker and target, restricted tokens, and interception as compatibility rather than security
-19. [Building Secure and Reliable Systems, Chapter 3: Safe Proxies][bsrs-safe-proxies] — Warmuz, Oprea et al.; Google's Tool Proxy
-20. [Firecracker design][firecracker-design] and [the jailer][firecracker-jailer] — the microVM threat model, the device model, and confining the VMM itself
-21. [Lambda environment variables][lambda-envvars] — the execution role's keys, handed to the function
-22. [AuthZEN Interop][authzen-interop] — the Todo scenario, with PEPs at the gateway and in the backend
-23. [AI Engineer: AI security][ai-engineer-security] — trust boundaries for agents, approvals bound to exact actions, and controls that share failure modes
-24. [AI Engineer: sandboxes and execution isolation][ai-engineer-sandboxes] — talks and historic papers, from namespaces and microVMs to agent sandbox fleets
+3. [NIST SP 800-162][nist-sp-800-162] — the PEP, PDP, PAP and PIP, drawn for ABAC
+4. [AuthZEN Authorization API][authzen-api] — the PEP-to-PDP interface, standardized for every model
+5. [Robust Composition][robust-composition] — Miller's thesis; "only connectivity begets connectivity"
+6. [Joe-E: A Security-Oriented Subset of Java][joe-e-security-oriented] — removing ambient authority from an unforgeable heap
+7. [Linux Security Modules: General Security Support for the Linux Kernel][linux-security-modules-general] — the original LSM design
+8. [Linux Security Module usage][linux-security-module-usage] and [LSM development][lsm-development]
+9. [AppArmor — Where Do LSMs Fit?][apparmor-where-do-lsms] — syscall filtering versus DAC, MAC, and resolved-object hooks
+10. [Landlock][landlock] — unprivileged monotonic self-restriction
+11. [BPF LSM programs][bpf-lsm-programs]
+12. [Linux namespaces][linux-namespaces] and [capabilities][linux-capabilities]
+13. [`setpriv`][setpriv] — the credential tuple in one exec: uid, gid, the three capability sets, securebits, `no_new_privs`, LSM labels, Landlock and seccomp
+14. [Software isolation in Linux][software-isolation-linux] — the mechanism inventory
+15. [Capsicum: Practical Capabilities for UNIX][capsicum-practical-capabilities-unix]
+16. [10 years seL4][10-years-sel4] — the grant right and what verification bought
+17. [seL4 reference manual][sel4-reference-manual] — CNodes, untyped retyping, the capability derivation tree, `Revoke`
+18. [WebAssembly Component Model][webassembly-component-model] and [WASI security principles][wasi-security-principles]
+19. [Handling Algebraic Effects][handling-algebraic-effects] — effect handlers as programmable interpretations
+20. [Chromium sandbox design][chromium-sandbox] — broker and target, restricted tokens, and interception as compatibility rather than security
+21. [Building Secure and Reliable Systems, Chapter 3: Safe Proxies][bsrs-safe-proxies] — Warmuz, Oprea et al.; Google's Tool Proxy
+22. [Firecracker design][firecracker-design] and [the jailer][firecracker-jailer] — the microVM threat model, the device model, and confining the VMM itself
+23. [Lambda environment variables][lambda-envvars] — the execution role's keys, handed to the function
+24. [AuthZEN Interop][authzen-interop] — the Todo scenario, with PEPs at the gateway and in the backend
+25. [AI Engineer: AI security][ai-engineer-security] — trust boundaries for agents, approvals bound to exact actions, and controls that share failure modes
+26. [AI Engineer: sandboxes and execution isolation][ai-engineer-sandboxes] — talks and historic papers, from namespaces and microVMs to agent sandbox fleets
 
 [10-years-sel4]: https://microkerneldude.org/2019/08/06/10-years-sel4-still-the-best-still-getting-better "10 years seL4"
 [ai-engineer-sandboxes]: https://ai.engineer/topics/sandboxes-and-execution-isolation "AI Engineer: sandboxes and execution isolation"
 [ai-engineer-security]: https://ai.engineer/topics/ai-security "AI Engineer: AI security"
 [apparmor-where-do-lsms]: https://apparmor.net/about/lsm_introduction/ "AppArmor — Where Do LSMs Fit?"
+[authzen-api]: https://openid.net/specs/authorization-api-1_0.html "Authorization API 1.0 - OpenID Foundation"
+[nist-sp-800-162]: https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-162.pdf "NIST SP 800-162: Guide to Attribute Based Access Control (ABAC) Definition and Considerations"
 [bpf-lsm-programs]: https://docs.kernel.org/bpf/prog_lsm.html "BPF LSM programs"
 [bsrs-safe-proxies]: https://google.github.io/building-secure-and-reliable-systems/raw/ch03.html "Building Secure and Reliable Systems, Chapter 3: Safe Proxies"
 [chromium-sandbox]: https://chromium.googlesource.com/chromium/src/+/HEAD/docs/design/sandbox.md "Chromium sandbox design"

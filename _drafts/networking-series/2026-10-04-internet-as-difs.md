@@ -131,6 +131,10 @@ The number of layers isn't fixed: you add a DIF wherever a new scope or policy i
 - **Enrollment.** To join a DIF, an IPC process must authenticate under the DIF's enrollment policy. Non-members can't address members at all, because addresses never leave the DIF.
 - **Flow allocation.** An application asks for a flow by destination application name. The DIF looks the name up in its directory and applies access control before any flow exists. The destination can refuse.
 
+The [authorization series](/programming/authorization-series-intro.html#from-a-chain-to-a-grid) follows a request through four stages: designate, reach, authenticate and decide. A DIF has all four. Its directory designates, mapping an application name to an address. Enrollment authenticates: a new member proves who it is and is given an address. Routing reaches, hop by hop over those addresses. The destination decides, once, when a flow is set up. It hands back a port-id that works like a file descriptor, and packets on that flow are never judged again. The middle of the layer is protected by absence instead: addresses never leave the DIF, so a non-member has nothing to send to. Each stage also leans on the layer below. Reaching the next hop means asking the lower DIF to designate it by name, and enrolling means first reaching a member through the lower DIF.
+
+Seen this way, the Internet's top layer fills only two stages. DNS designates and IP reaches, but anyone may join, and nothing checks a flow before it starts. That is why every service has to authenticate and decide for itself.
+
 Proponents argue this makes firewalls unnecessary. That claim comes from research prototypes, not from deployments at scale.
 
 ## Internet vs. RINA
