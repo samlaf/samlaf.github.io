@@ -268,7 +268,7 @@ Three consequences follow, and they are why the distinction is worth keeping:
 
 - **New objects.** A per-subject namespace binds only what someone put in it, so a file created tomorrow is absent by default. A filter over a shared namespace has to classify every new name, and a denylist misses the syscall added next year.
 - **What leaks.** A no confirms that the object exists, and ⊥ says nothing. That is why GitHub answers 404, not 403, for a private repository you cannot see: a judge dressed as an absence. Seccomp can do the same by returning `ENOSYS`, so what the workload sees is not the test.
-- **What can fail.** A judge runs policy code on every request, and that code can be wrong or broken. XACML even has a decision for it, *Indeterminate*, which [Part 1](/programming/authorization-models.html#policies-compose-and-the-rule-is-not-the-same-as-the-edit-right) covers. Absence is computed by the ordinary resolver, which has to work anyway. Its risk moves to setup: was the namespace built right?
+- **What can fail.** A judge runs policy code on every request, and that code can be wrong or broken. XACML even has a decision for it, *Indeterminate*, meaning evaluation failed. Absence is computed by the ordinary resolver, which has to work anyway. Its risk moves to setup: was the namespace built right?
 
 The strongest designs cut two stages at once. The workload never acquires the real GitHub token. It holds a placeholder handle that reaches only a gateway, and the gateway authorizes only approved operations. That is *authority attenuation* — possession of a powerful resource replaced by permission to request a smaller set of effects.
 

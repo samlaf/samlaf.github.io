@@ -13,7 +13,6 @@ date:   2026-09-01
 > - **[Part 3: Carriers](/programming/carriers.html)** — decisions that travel with the request.
 > - **[Part 4: Capabilities](/programming/capabilities.html)** — authority you hold, not authority you are.
 
-- [One function, one relation](#one-function-one-relation)
 - [The write path](#the-write-path)
   - [Facts: schemas for the matrix](#facts-schemas-for-the-matrix)
     - [Access control lists and capability lists](#access-control-lists-and-capability-lists)
@@ -22,8 +21,6 @@ date:   2026-09-01
     - [ABAC](#abac)
   - [Rules: a policy is a view](#rules-a-policy-is-a-view)
   - [Writers](#writers)
-    - [DAC and MAC are not rungs](#dac-and-mac-are-not-rungs)
-    - [Policies compose, and the rule is not the same as the edit right](#policies-compose-and-the-rule-is-not-the-same-as-the-edit-right)
 - [Materialization: where the boundary falls](#materialization-where-the-boundary-falls)
 - [The read path](#the-read-path)
   - [Queries](#queries)
@@ -31,8 +28,6 @@ date:   2026-09-01
 - [Stateful checks](#stateful-checks)
 - [Real-world examples](#real-world-examples)
 - [References](#references)
-
-## One function, one relation
 
 Abstractly, every authorization system evaluates a function of the form[^authzen-shape]:
 
@@ -46,40 +41,26 @@ where:
 - **Resource** is what they want it done to
 - **Context** is everything else that bears on the answer and belongs to none of the first three: time of day, device information, network location, risk score, whether the country is at war, etc.
 
-Tabulate `f` over subjects and resources and you get a relation. Lampson's access-control matrix has subjects down one axis, objects across the other, and permitted operations in the cells:
-
-```text
-             File A    File B    Device C
-Alice          rw        r
-Bob                      rw        use
-```
-
-Read as a table, the matrix is `Allowed(subject, action, resource)`, and every access check is a point query against it: is this row present? Context is the odd one out. It is a parameter of the query, not a column of the table, and nothing stores it. A store can hold conditions on context, but never the context itself.
-
-Seen as a data system, then, `f` is a query. Writers change facts and rules on the write path, checks ask `f` on the read path, and the two paths meet at the view the rules define:
+Any real system needs to instantiate f, and the clearest way to understand the distinction between the various authorization models is to see them from a database perspective. Writers change facts and rules on the write path, whereas checks query `f` on the read path, and the two paths meet at the view the rules define[^planes]:
 
 ![The Decide column as a data system: writers, facts and rules on the write path, queries and the evaluator on the read path, meeting at the view, whose cells can hold conditions on the request's context; materialization decides where the boundary falls](/assets/authorization/decide-column.svg)
 
-The rest of this article walks the figure. The write path comes first: what the facts look like, how rules turn them into the view, and who may write either. Then the boundary between the paths, which decides how much of the view is computed ahead of time. Then the read path: which questions the view can answer, and how fresh the answers are. What lies beyond one database comes later in the series. Enforcement is [Part 2](/programming/authority-enforcement.html), and carriers are [Part 3](/programming/carriers.html).
+The rest of this article walks the figure. The write path comes first: what the facts look like, how rules turn them into the view, and who may write either. Then the boundary between the paths, which decides how much of the view is computed ahead of time. Finally the read path: which questions the view can answer, and how fresh the answers are. What lies beyond one database comes later in the series.
 
 ## The write path
 
 ### Facts: schemas for the matrix
 
-The facts are what the store holds, and each model is a different schema for them. The table writes down the same `f` six ways, on one running example: Alice and Bob, two files and a device. The first five are notations for the rectangle; the last is a different matrix. Going down from ACL to ABAC, each step stores less and computes more at request time. That is a separate axis from the schema, and [materialization](#materialization-where-the-boundary-falls) takes it up below.
+The facts are what the store holds, and each model is a different schema for them. The table writes down the same `f` six ways, on one running example: Alice and Bob, two files and a device. The first five are notations for the rectangle; the last is [a different matrix](/programming/capabilities.html#squaring-the-matrix). Going down from ACL to ABAC, each step stores less and computes more at request time. That is a separate axis from the schema, and [materialization](#materialization-where-the-boundary-falls) takes it up below.
 
-| model | how `f` is represented | subject | resource | context | projected back onto the matrix |
-| --- | --- | --- | --- | --- | --- |
-| **ACL** | stored, indexed by resource | enumerated identity | one list per object | none | reindex by column — exact, invertible |
-| **capability list** | stored, indexed by subject | enumerated identity | one list per subject | none | reindex by row — exact, invertible |
-| **RBAC** | factored: subject → role → permission | coarsened into roles, the shared middle term | enumerated per role | none; faking it explodes the role set | expand the roles — exact |
-| **ReBAC** | derived from a graph of tuples | graph node, reached through groups | fine-grained through hierarchy, without enumeration | none in Zanzibar; per-edge caveats in SpiceDB and OpenFGA | run the check over every pair — exact |
-| **ABAC** | not stored; a predicate evaluated per request | attributes, open-ended | attributes | first-class, the axis a table does not have | evaluate the predicate over every pair — exact |
-| **object capability** | held as references, over a square matrix | any entity | any entity — subjects and resources are one set | n/a: authority is held, not decided per request | flatten reachability — **lossy** |
-
-The last column is what makes them one family. Each model is a denormalized encoding of the same matrix, and a check is that encoding reified into a view for a single `(subject, action, resource, context)` point. Forwards is faithful. Backwards is underdetermined — you cannot recover which factorization, which predicate, or which tuples produced a given set of cells.
-
-Only the last row is lossy, and it is worth saying exactly where. An object-capability graph *is* a matrix — the [square one](/programming/capabilities.html#squaring-the-matrix). What is not faithful is squashing it back into a rectangle by declaring some entities to be subjects and the rest to be resources. `Alice: rw X` is a true statement about what Alice can eventually cause and a false statement about the authority she holds: the projection computes reachability and throws away the path, so Bob disappears from a description of a system whose entire structure is that Bob is in the middle. Two more things go with him: every cell that was a subject talking to a subject, and the rule that said which cells could be written next.
+| model | how `f` is represented | subject | resource | context |
+| --- | --- | --- | --- | --- |
+| **ACL** | stored, indexed by resource | enumerated identity | one list per object | none |
+| **capability list** | stored, indexed by subject | enumerated identity | one list per subject | none |
+| **RBAC** | factored: subject → role → permission | coarsened into roles, the shared middle term | enumerated per role | none; faking it explodes the role set |
+| **ReBAC** | derived from a graph of tuples | graph node, reached through groups | fine-grained through hierarchy, without enumeration | none in Zanzibar; per-edge caveats in SpiceDB and OpenFGA |
+| **ABAC** | not stored; a predicate evaluated per request | attributes, open-ended | attributes | first-class, the axis a table does not have |
+| **object capability** | held as references, over a square matrix | any entity | any entity — subjects and resources are one set | n/a: authority is held, not decided per request |
 
 #### Access control lists and capability lists
 
@@ -180,13 +161,7 @@ From then on, [Postgres adds][postgres-row-security] the `USING` predicate to ev
 
 ### Writers
 
-Facts and rules say what `f` is. There is a second question underneath it that gets far less attention and turns out to matter more: **who is allowed to change `f`, and where do they go to do it?** A policy that cannot be widened without a deploy is a policy that gets widened to `*` in advance. The cost of granting a legitimate exception is a security property, not an ergonomics complaint, and it is the one that decides whether the system is still enforcing anything six months later.
-
-Karp puts his finger on why it gets neglected. Writing about the earliest identity-based systems:
-
-> IBAC stores permissions in an access matrix, and the IBAC model doesn't include a specification of permissions for changing its entries. That left it to a trusted party, the system administrator.
-
-The matrix has no theory of its own mutation, and neither do the schemas above. They say what the facts look like, not who may change them. Granting access is a write, so the question is who may make that write. The line between facts and rules blurs here. A Linux ACL entry is a rule and a fact at once: it says who may do what, and it is stored on the file like any other attribute. In ReBAC the schema is policy and the relationship tuples are data, yet writing a tuple is how you grant access. The answers come from a separate family of models, and they differ from each other far more than the schemas do:
+Facts and rules say what `f` is. A separate question is who may change it. Granting access is a write, so the question is who may make that write, and the schemas above say nothing about it. There are four common answers:
 
 ```text
 DAC                   the owner
@@ -195,43 +170,11 @@ administrative roles  admins, scoped by the admin roles they hold
 object capability     the holder, passing on at most what it holds
 ```
 
-Any schema can pair with any of these. RBAC says nothing about who assigns roles. [ARBAC97][arbac97] answered that separately, with administrative roles that govern the others: RBAC applied to its own writes. And [Osborn, Sandhu and Munawer][rbac-dac-mac] showed that RBAC can be configured to enforce DAC or MAC.
+Any schema can pair with any of these. RBAC says nothing about who assigns roles. [ARBAC97][arbac97] answered that separately, with administrative roles that govern the others: RBAC applied to its own writes. And [Osborn, Sandhu and Munawer][rbac-dac-mac] showed that RBAC can be configured to enforce DAC or MAC. So DAC and MAC are not the first rungs of a ladder that climbs to RBAC and ABAC. They answer a different question.
 
-Three of those four answers are a version of "someone with administrative standing," and they all have to be supplied from outside the model. The fourth is the rule the [square matrix](/programming/capabilities.html#squaring-the-matrix) states about itself, and it is the argument of the capabilities article.
+The answers split on one property: whether a grant can create authority. A capability holder passes on at most what it holds, so authority shrinks along every edge. An administrator grants authority they do not hold themselves. Part 4 depends on keeping the two apart.
 
-There is a sharper way to see the split. Ask whether the mutation right is **monotone**. Delegation can only ever hand on less than the holder has, so authority shrinks along every edge. Administrative rights do the opposite: they manufacture authority the grantor does not hold, which is what makes "admin" a different power rather than a larger one. Two very different things wear the same word, and Part 4 depends on keeping them apart.
-
-There is a second question about writes: *where do you go* to make the change. To give Bob everything Alice has under an ACL, you visit every object. Under a capability list you go to Alice. That is a real operational difference and it is invisible in the evaluation view.
-
-One more thing about writes, before leaning on the matrix too hard. Once cells can be edited, the question you most want to ask — *can this permission ever reach that subject, by any sequence of legal edits* — is undecidable in the general case. Harrison, Ruzzo and Ullman proved it in 1976, and the result is why every tractable model since is a deliberate restriction of the general protection system rather than an implementation of it: take-grant, typed matrices, and the bounded schemes real engines actually ship. Keep it in view for the [capabilities article](/programming/capabilities.html), where the same question comes back as the thing capabilities are worst at.
-
-#### DAC and MAC are not rungs
-
-The clean ladder oversimplifies, and the first two entries are where it does the most damage.
-
-DAC and MAC are usually presented as the first two levels of increasing sophistication in describing a subject. They are not. Neither says anything about how the matrix is indexed. The **D** in discretionary means *the owner may change the matrix at their discretion*. The **M** in mandatory means *the owner may not*: a security officer sets the labels and the policy, and no owner can override them. Both are answers to the mutation question and nothing else.
-
-Once you see that, an old confusion goes away. SELinux's type enforcement is a *compression* choice: a security context is the full `user:role:type:level` tuple, and access is decided between types rather than users. MAC is a *mutation* choice. They are complements in that design, which is exactly what you would expect from two answers to two different questions, and not at all what you would expect from two rungs of one ladder.
-
-#### Policies compose, and the rule is not the same as the edit right
-
-One more thing hides in the list of writers, and the MAC row is where it shows.
-
-Saying that under MAC the owner may not change the matrix describes the effect, not the mechanism. What actually happens is that `f` is computed from two policies with two different authors, combined with a conjunction:
-
-```text
-f = mandatory ∧ discretionary
-```
-
-The security officer writes the mandatory half. The owner may still edit the discretionary half freely. They simply cannot relax the other half, because the combining rule is an `and`. Mandatory versus discretionary is a statement about *composition*, not about edit rights.
-
-Once you look for it, composition is everywhere and rarely specified. XACML names its combining algorithms explicitly — deny-overrides, permit-overrides, first-applicable — which is more than most systems do. Real deployments stack an organizational policy, a team policy, a resource owner's settings and a per-request grant, and the rule for combining them is usually whatever the code happens to do.
-
-Combining needs more than two answers, and XACML has four. *Permit* and *Deny* are the obvious two. *NotApplicable* means no policy's target matched the request: the policy abstains, and that is what lets a combining algorithm tell "not my business" apart from "no." *Indeterminate* means evaluation failed, because an attribute was missing or a source was down. XACML 3.0 even records which way it might have gone, as Indeterminate{P}, {D} or {DP}.
-
-The enforcer still has to turn all four into allow or deny, and XACML calls its rule for that the *bias*. A deny-biased enforcer treats everything except Permit as deny. AuthZEN's evaluation response is a boolean, so it builds that collapse into the protocol. NotApplicable is a decision's version of a lookup that comes back empty, and [Part 2](/programming/authority-enforcement.html#absence-is-a-lookup-that-comes-back-empty) turns that empty lookup into an enforcement strategy of its own.
-
-AI agents make this concrete. An agent's effective authority is the conjunction of an org policy, the user's grant, the repository's branch protection and the tool's own rules — four policies, four owners, and no agreed account of how they combine.
+Once cells can be edited, the question you most want to ask is whether a permission can ever reach a subject, through any sequence of legal edits. Harrison, Ruzzo and Ullman proved in 1976 that this is undecidable in general. That is why every practical model restricts which edits are legal: take-grant, typed matrices, and the bounded schemes real engines ship. The [capabilities article](/programming/capabilities.html) comes back to this question, because it is the one capabilities answer worst.
 
 ## Materialization: where the boundary falls
 
@@ -275,7 +218,7 @@ Where the evaluator runs — inside the application, as a library, or as a servi
 
 Everything so far keeps the two paths apart. Writers change facts and rules, and a check only reads them. Asking `f` never changes the next answer.
 
-Some policies need it to. The oldest is the [Chinese Wall][brewer-nash] of Brewer and Nash, from 1989, written for consultants who serve competing clients. Files are grouped by company, and companies by conflict of interest. Alice may read any bank's files until she reads one. From then on, every other bank's files are denied. The matrix changed, and no administrator wrote the change. The check did. The family has a name, *history-based access control*, from [Edjlali, Acharya and Chaudhary][history-based-access-control]'s 1998 work on mobile code. [Usage control][ucon-abc] made it a property of the model in 2004 and called it *mutability*: using an object can update the attributes the next decision reads.
+Some policies need it to. The oldest is the [Chinese Wall][brewer-nash] of Brewer and Nash, from 1989, written for consultants who serve competing clients. Files are grouped by company, and companies by conflict of interest. Alice may read any bank's files until she reads one. From then on, every other bank's files are denied. The matrix changed, and no administrator wrote the change. The check did. A stateful firewall works the same way: packets write its connection table, not an administrator. The family has a name, *history-based access control*, from [Edjlali, Acharya and Chaudhary][history-based-access-control]'s 1998 work on mobile code. [Usage control][ucon-abc] made it a property of the model in 2004 and called it *mutability*: using an object can update the attributes the next decision reads.
 
 In database terms, the check now writes. The store gains a new table: an append-only log of what the enforcer saw, one row per request. Monitoring theory calls this log a *trace*, and policies that read it *trace-based*. The check returns the row it appends along with its answer, and the next check reads the log:
 
@@ -291,7 +234,7 @@ AI agents made this mainstream, because one tool call rarely says what an agent 
 - **Policies are temporal queries over the log.** [Dogwood][dogwood] adds temporal operators to Cedar: `formerly within 1h`, `count_within`, `sum_within`. "Sell shares only if an approval for these shares came back in the last hour" is a query over the log, run at check time. The operators come from [metric first-order temporal logic][mfotl], the specification language of runtime monitoring.
 - **Time is `now()`.** `within 1h` is `WHERE ts > now() - 1h`, and an expiring grant is `WHERE expires_at > now()`. So the clock can move the answer with no write at all: same log, same request, a new answer. [TRBAC][trbac] did this for RBAC in 2000, with roles that turn on and off on a schedule. `now()` has to come from the enforcer's own clock, never from an hour the caller reports.
 - **Query the log, or maintain a view of it.** This is the [materialization](#materialization-where-the-boundary-falls) trade again. Dogwood keeps the raw log and queries it per check, so a rule added next week applies to everything already recorded. [Omnigent][omnigent] folds each event into state as it arrives: a policy is a handler that takes "the old state and the new event" and returns a new state and a decision. That is Schneider's automaton, written as code. Checks are cheap, but you have to decide in advance what to remember.
-- **The view definition can change per task.** [Conseca][conseca] has a model write a policy for each task from trusted input only. That policy becomes one more term in the [conjunction](#policies-compose-and-the-rule-is-not-the-same-as-the-edit-right).
+- **The view definition can change per task.** [Conseca][conseca] has a model write a policy for each task from trusted input only. An action must pass both that policy and the standing ones.
 
 The check is also a new writer, and the most trustworthy one in the system. The log records what the enforcer saw happen, not what anyone claims. That is why it is a table and not more context: context comes from the caller, and the caller cannot forge the log, as long as the enforcer runs outside its reach. A log kept in the agent's own harness falls with the harness: [Part 2](/programming/authority-enforcement.html#who-is-the-attacker)'s rung 2.
 
@@ -334,27 +277,26 @@ Everything in this article decides at the resource. The evaluator looks up what 
 
 1. [The State of the Union of Authorization][state-union-authorization] — the landscape diagram
 2. [Protection][protection] — Lampson, 1974; the access matrix
-3. [From ABAC to ZBAC: The Evolution of Access Control Models][from-abac-zbac-evolution] — Karp, Haury, Davis; the observation that the matrix has no theory of its own mutation
-4. [Type Enforcement][type-enforcement] — why the MAC/RBAC relationship is not a simple ladder
-5. [The Ultimate Guide to Choosing the Right Authorization Language][ultimate-guide-choosing-right] — XACML versus Rego
-6. [Zanzibar: Google's Consistent, Global Authorization System][zanzibar-google-s-consistent] — relationship-based authorization, the Leopard index, and zookies against the new enemy problem
-7. [AuthZEN][authzen] — standardizing the decision-point interface; its [information model][authzen-spec] is where the subject/action/resource/context request is defined
-8. [Designing Data-Intensive Applications][ddia] — Kleppmann; facts and derived views, and the boundary between the write path and the read path
-9. [OPA policy language][opa-policy-language] — Rego and its Datalog lineage
-10. [Postgres row security policies][postgres-row-security] — `CREATE POLICY`, a view the database applies to every query
-11. [The Chinese Wall Security Policy][brewer-nash] — Brewer and Nash, 1989; access that depends on what you accessed before
-12. [Enforceable Security Policies][enforceable-security-policies] — Schneider, 2000; security automata, and why a monitor enforces only safety properties
-13. [Introducing Dogwood][dogwood] — Cedar with temporal operators over the log of tool calls
-14. [Contextual policies in Omnigent][omnigent] — policies as handlers over session state
-15. [Contextual Agent Security: A Policy for Every Purpose][conseca] — Tsai and Bagdasarian, HotOS 2025; a policy written per task
-16. [History-based Access Control for Mobile Code][history-based-access-control] — Edjlali, Acharya, Chaudhary, CCS 1998; the name for the family
-17. [The UCON<sub>ABC</sub> Usage Control Model][ucon-abc] — Park and Sandhu, 2004; mutable attributes, updated by use
-18. [TRBAC: A Temporal Role-Based Access Control Model][trbac] — Bertino, Bonatti, Ferrari, 2000; roles enabled and disabled on a schedule
-19. [Monitoring Metric First-Order Temporal Properties][mfotl] — Basin, Klaedtke, Müller, Zălinescu, JACM 2015; the logic under Dogwood's operators
-20. [Hyperproperties][hyperproperties] — Clarkson and Schneider, 2010; why information flow is not a property of one trace
-21. [Biba Model][biba] — Biba, 1977; integrity labels, and the low-water mark for subjects that read less-trusted data
-22. [The ARBAC97 Model for Role-Based Administration of Roles][arbac97] — Sandhu, Bhamidipati, Munawer, TISSEC 1999; who may assign roles, answered with roles
-23. [Configuring Role-Based Access Control to Enforce Mandatory and Discretionary Access Control Policies][rbac-dac-mac] — Osborn, Sandhu, Munawer, TISSEC 2000; RBAC as either DAC or MAC
+3. [Type Enforcement][type-enforcement] — why the MAC/RBAC relationship is not a simple ladder
+4. [The Ultimate Guide to Choosing the Right Authorization Language][ultimate-guide-choosing-right] — XACML versus Rego
+5. [Zanzibar: Google's Consistent, Global Authorization System][zanzibar-google-s-consistent] — relationship-based authorization, the Leopard index, and zookies against the new enemy problem
+6. [AuthZEN][authzen] — standardizing the decision-point interface; its [information model][authzen-spec] is where the subject/action/resource/context request is defined
+7. [Designing Data-Intensive Applications][ddia] — Kleppmann; facts and derived views, and the boundary between the write path and the read path
+8. [OPA policy language][opa-policy-language] — Rego and its Datalog lineage
+9. [Postgres row security policies][postgres-row-security] — `CREATE POLICY`, a view the database applies to every query
+10. [The Chinese Wall Security Policy][brewer-nash] — Brewer and Nash, 1989; access that depends on what you accessed before
+11. [Enforceable Security Policies][enforceable-security-policies] — Schneider, 2000; security automata, and why a monitor enforces only safety properties
+12. [Introducing Dogwood][dogwood] — Cedar with temporal operators over the log of tool calls
+13. [Contextual policies in Omnigent][omnigent] — policies as handlers over session state
+14. [Contextual Agent Security: A Policy for Every Purpose][conseca] — Tsai and Bagdasarian, HotOS 2025; a policy written per task
+15. [History-based Access Control for Mobile Code][history-based-access-control] — Edjlali, Acharya, Chaudhary, CCS 1998; the name for the family
+16. [The UCON<sub>ABC</sub> Usage Control Model][ucon-abc] — Park and Sandhu, 2004; mutable attributes, updated by use
+17. [TRBAC: A Temporal Role-Based Access Control Model][trbac] — Bertino, Bonatti, Ferrari, 2000; roles enabled and disabled on a schedule
+18. [Monitoring Metric First-Order Temporal Properties][mfotl] — Basin, Klaedtke, Müller, Zălinescu, JACM 2015; the logic under Dogwood's operators
+19. [Hyperproperties][hyperproperties] — Clarkson and Schneider, 2010; why information flow is not a property of one trace
+20. [Biba Model][biba] — Biba, 1977; integrity labels, and the low-water mark for subjects that read less-trusted data
+21. [The ARBAC97 Model for Role-Based Administration of Roles][arbac97] — Sandhu, Bhamidipati, Munawer, TISSEC 1999; who may assign roles, answered with roles
+22. [Configuring Role-Based Access Control to Enforce Mandatory and Discretionary Access Control Policies][rbac-dac-mac] — Osborn, Sandhu, Munawer, TISSEC 2000; RBAC as either DAC or MAC
 
 [arbac97]: https://doi.org/10.1145/300830.300839 "The ARBAC97 model for role-based administration of roles"
 [authorization-terminology-mess]: https://idpro.org/authorization-terminology-is-a-mess-lets-fix-it/ "Authorization Terminology Is a Mess. Let's Fix It."
@@ -366,7 +308,6 @@ Everything in this article decides at the resource. The evaluator looks up what 
 [ddia]: https://dataintensive.net/ "Designing Data-Intensive Applications"
 [dogwood]: https://aws.amazon.com/blogs/opensource/introducing-dogwood-runtime-verification-for-ai-agents/ "Introducing Dogwood: runtime verification for AI agents"
 [enforceable-security-policies]: https://dl.acm.org/doi/10.1145/353323.353382 "Enforceable Security Policies"
-[from-abac-zbac-evolution]: https://shiftleft.com/mirrors/www.hpl.hp.com/techreports/2009/HPL-2009-30.pdf "From ABAC to ZBAC: The Evolution of Access Control Models"
 [history-based-access-control]: https://www.cse.buffalo.edu/cadi/papers/1998/1998_3.pdf "History-based Access Control for Mobile Code"
 [hyperproperties]: https://content.iospress.com/articles/journal-of-computer-security/jcs393 "Hyperproperties"
 [mfotl]: https://doi.org/10.1145/2699444 "Monitoring Metric First-Order Temporal Properties"
@@ -386,5 +327,7 @@ Everything in this article decides at the resource. The evaluator looks up what 
 ## Footnotes <!-- omit in toc -->
 
 [^authzen-shape]: This signature doesn't generalize all authorization models by coincidence; it is also the signature that the industry converged on and is in the process of standardizing via [AuthZEN][authzen], the OpenID Foundation's decision-point protocol. It deliberately says nothing about how the answer is reached. It standardizes only the shape of the question, which is a strong signal that the shape is the settled part.
+
+[^planes]: Networking has names for these two paths: the write path is a control plane, and the read path a data plane. A router computes routes ahead of time and installs them in a forwarding table, so each packet costs one lookup. [Materialization](#materialization-where-the-boundary-falls) is the same choice.
 
 [^access-profile]: [RFC 4949][rfc4949], the Internet Security Glossary, has a name for this row that keeps it away from the word capability: defining the access control matrix, it says "each row is equivalent to an *access profile* for the subject." The glossary does not actually recommend the term — `access profile` is marked "O", meaning non-Internet origin and not for use in Internet documents, and its entry reads only "synonym for capability list." `capability list` is the entry it recommends. The distinction RFC 4949 does draw is the one worth holding on to: a *capability list* enumerates what a subject may reach, while a *capability token* is an unforgeable object whose possession is itself the proof. Part 4 lives in the gap between those two. I keep "capability list" here, which also matches the Linux sense of the word — `CAP_NET_ADMIN` and friends are a per-process list of permitted operations, a row and not a token.
