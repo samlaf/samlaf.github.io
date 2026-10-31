@@ -127,8 +127,6 @@ Those axes don't fit on a plane, so the cleanest way to read an adversary is as 
 
 ![Parallel-coordinates plot of the adversary model: four orthogonal axes — behaviour (passive→crash→omission→Byzantine), compute (bounded→quantum→unbounded), targeting (static→adaptive), and mobility (non-mobile→mobile) — each applying to the wire or a corrupted node, with a passive eavesdropper, Dolev–Yao, a quantum harvest-now-decrypt-later attacker, and a mobile Byzantine node drawn as polylines](/assets/keys-names-authority-series/threat-model/adversary-axes.svg)
 
-Once the adversary is inside the machine, one more ladder matters: how much of the machine they own. An attacker may control only the input a program reads, or run arbitrary code in it, or own its kernel. That ladder decides what any enforcer is worth, so [Part 2 of the authorization series](/programming/authority-enforcement.html#who-is-the-attacker) draws it.
-
 TODO: related with content of this thread: https://x.com/ittaia/status/2020963847134454041
 
 ## Where the frontier is now

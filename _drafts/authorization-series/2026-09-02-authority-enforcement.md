@@ -13,7 +13,6 @@ date:   2026-09-02
 > - **[Part 3: Carriers](/programming/carriers.html)** — decisions that travel with the request.
 > - **[Part 4: Capabilities](/programming/capabilities.html)** — authority you hold, not authority you are.
 
-- [Who is the attacker](#who-is-the-attacker)
 - [What is sandboxing](#what-is-sandboxing)
 - [Theory](#theory)
   - [The reference monitor](#the-reference-monitor)
@@ -42,28 +41,9 @@ date:   2026-09-02
 - [Conclusion: what this does not solve](#conclusion-what-this-does-not-solve)
 - [References](#references)
 
-[Part 1](/programming/authorization-models.html) read the decision as a database: stored facts, rules that derive a view, and checks that query it. A database enforces its own answers. It never returns a row nobody selected. An authorization answer is about an effect somewhere else, such as a file opened or a packet sent, and nothing in the store makes it hold. This article is about what does.
+[Part 1](/programming/authorization-models.html) read the decision as a database: stored facts, rules that derive a view, and checks that query it.
 
-There are two ways. Something in the path of the effect applies the decision, or the path is not there at all. Either way, the claim is only as good as the attacker it holds against. So this article starts with the attacker, then with sandboxes, which use both ways.
-
-## Who is the attacker
-
-Every mechanism in this article exists to stop someone. A monitor in the path, a missing route, a filter on a syscall: each is a claim about an attacker. The same seccomp filter binds a program fed a hostile file, and means nothing to a kernel exploit. So "this is sandboxed" is not an answer until it says which attacker it was measured against.
-
-Three attackers form a ladder, by how much of the machine they own:
-
-1. **The attacker controls the input.** They write what the program reads: a file, a page, a request. The program's own code stays honest. This attacker defeats any check that relies on the program telling a request it should honor from one it should not.
-2. **The attacker runs arbitrary code in the workload.** This defeats every cooperative convention: an `HTTP_PROXY` setting, a tool API, a policy a library enforces. Checks in the kernel still hold.
-3. **The attacker owns the kernel.** Every check enforced inside that machine fails at once. Every fact the machine reports about itself becomes a claim rather than evidence.
-
-Where a check runs sets the rung it survives. A check in the application falls at rung 2. A check in the guest kernel falls at rung 3. A check in the host, or at the resource server, survives all three.
-
-Two more attackers sit off the ladder, and either one joins any rung of it:
-
-- **Split the action.** The attacker spreads one intent across several requests, each allowed on its own. This defeats any monitor that judges one effect at a time, without defeating any single check. Only a monitor that remembers earlier requests can see it, and [Part 1](/programming/authorization-models.html#stateful-checks) covers those.
-- **Edit the policy.** The attacker targets the policy itself: the matchers, the callbacks, the configuration. Policy arrives through the same supply chain as everything else.
-
-So attacker strength is a partial order, not a line. A threat table with a single column mixes two questions. Rate each mechanism against the ladder, and you get the argument for stacking several: whatever falls at one rung needs something behind it that holds there.
+There are two ways. Something in the path of the effect applies the decision, or the path is not there at all. Sandboxes use both, so this article starts with them.
 
 ## What is sandboxing
 
@@ -217,7 +197,7 @@ Knowing which stage a mechanism cuts, and that nothing goes around it, still lea
 | JavaScript callback in a host proxy | HTTP methods, paths, headers, bodies | arbitrary code and external state | host process |
 | IAM at the resource | API actions on named resources | declarative policy | remote resource server |
 
-Neither row dominates; they protect different boundaries. An LSM sees every kernel object but trusts the guest kernel. A host callback sees only the traffic routed to it but survives a compromised guest. Trust placement is also what sets the rung a monitor survives on the [attacker ladder](#who-is-the-attacker). Non-bypassability is none of the three. It belongs to reach.
+Neither row dominates; they protect different boundaries. An LSM sees every kernel object but trusts the guest kernel. A host callback sees only the traffic routed to it but survives a compromised guest. Non-bypassability is none of the three. It belongs to reach.
 
 ### What can change between check and use
 

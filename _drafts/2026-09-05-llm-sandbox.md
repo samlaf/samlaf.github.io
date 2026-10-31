@@ -540,9 +540,9 @@ agent-creds shows one way to make that binding structural. Its guest-visible han
 
 The absence/judgment split from the enforcement article hides trust placement. In particular, "malicious code defeats judgment" is true of in-guest judgment but false of a host gateway designed to distrust the guest kernel.
 
-Making that precise means asking two questions instead of one: *which adversary* is a plane rated against, and *which harm* is it meant to prevent. Collapsing them into a single list is how sandboxes end up compared on a number nobody can define. [Part 2](/programming/authority-enforcement.html#who-is-the-attacker) supplies the first axis — three rungs, by how much of the machine the attacker owns, plus two that sit off the ladder and combine with any rung.
+Making that precise means asking two questions instead of one: *which adversary* is a plane rated against, and *which harm* is it meant to prevent. Collapsing them into a single list is how sandboxes end up compared on a number nobody can define. The first axis is how much of the system the attacker controls. Three points on it are enough here: they write the input the agent reads, they run code in the guest, or they own the guest kernel.
 
-Rated against the rungs, the planes sort cleanly, and the sort is the entire argument for composing them:
+Rated against those three, the planes sort cleanly, and the sort is the entire argument for composing them:
 
 | Enforcement plane | Attacker controls the input | Attacker runs code | Attacker owns the guest kernel |
 | --- | --- | --- | --- |
@@ -556,7 +556,7 @@ Rated against the rungs, the planes sort cleanly, and the sort is the entire arg
 
 Read down the third column and the recommended architecture writes itself. Everything above the VM boundary is defense in depth; everything at or below it is what you are actually relying on once the guest is fully lost. Read across the first row and you get the honest limit of semantic governance: it is the most legible plane and the first one to go.
 
-The two off-ladder adversaries cut across every row rather than appearing in one. An attacker who splits a single intent across several individually-permitted requests defeats all seven equally, because every one of them adjudicates one effect at a time. An attacker who can edit the policy artifacts defeats whichever plane reads them — which is the sharpest argument for buying non-bypassability with topology rather than with rules.
+Two more attackers cut across every row rather than appearing in one. An attacker who splits a single intent across several individually-permitted requests defeats all seven equally, because every one of them adjudicates one effect at a time. An attacker who can edit the policy artifacts defeats whichever plane reads them — which is the sharpest argument for buying non-bypassability with topology rather than with rules.
 
 The second axis is harm, and it is what the planes are *for*:
 
@@ -704,7 +704,7 @@ They need not be separate deployments. They should be separate architectural int
 
 ## Agent-specific threats
 
-The table below is the same two axes applied to what is specific about agents. A1 is the input-controlling adversary from [Part 2](/programming/authority-enforcement.html#who-is-the-attacker), arriving through a channel the agent needs open; the rest are harms peculiar to a delegate whose plan is discovered at runtime.
+The table below is the same two axes applied to what is specific about agents. A1 is the attacker who controls the input, arriving through a channel the agent needs open; the rest are harms peculiar to a delegate whose plan is discovered at runtime.
 
 | Threat | Compute boundary | Guest LSM | Capability gateway | Semantic governance | Upstream controls |
 | --- | --- | --- | --- | --- | --- |
