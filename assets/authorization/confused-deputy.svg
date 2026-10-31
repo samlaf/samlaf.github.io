@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 520" width="1120" height="520" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+<defs>
+<marker id="aS" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#334155"/></marker>
+<marker id="aR" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#b54848"/></marker>
+</defs>
+<rect width="1120" height="520" fill="#fdfdfc"/>
+<text x="40" y="40" font-size="21" font-weight="700" fill="#0f172a">The confused deputy, twice</text>
+<text x="40" y="64" font-size="12.5" fill="#64748b">Hardy's compiler holds write access to the billing file BILL. A user asks it to write debugging output, and names BILL as the destination.</text>
+
+<!-- left: ambient authority -->
+<rect x="40" y="84" width="500" height="416" rx="10" fill="#fff" stroke="#334155" stroke-width="1.2"/>
+<text x="60" y="114" font-size="15" font-weight="700" fill="#0f172a">The request carries a name</text>
+<text x="60" y="134" font-size="12.5" fill="#64748b">The authority comes from who is asking.</text>
+
+<rect x="64" y="164" width="130" height="56" rx="8" fill="#fff" stroke="#334155" stroke-width="1.2"/>
+<text x="129" y="197" font-size="14" font-weight="700" fill="#0f172a" text-anchor="middle">User</text>
+
+<rect x="320" y="156" width="196" height="72" rx="8" fill="#fff" stroke="#334155" stroke-width="1.2"/>
+<text x="336" y="180" font-size="14" font-weight="700" fill="#0f172a">Compiler</text>
+<rect x="336" y="192" width="164" height="20" rx="10" fill="#eef2f6" stroke="#94a3b8"/>
+<text x="418" y="206" font-size="11" fill="#334155" text-anchor="middle">its own: write BILL</text>
+
+<line x1="194" y1="192" x2="316" y2="192" stroke="#334155" stroke-width="1.5" marker-end="url(#aS)"/>
+<text x="255" y="182" font-size="11" fill="#334155" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">-o /sys/BILL</text>
+
+<line x1="418" y1="228" x2="418" y2="264" stroke="#334155" stroke-width="1.5" marker-end="url(#aS)"/>
+<text x="408" y="250" font-size="11" fill="#334155" text-anchor="end" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">open("/sys/BILL", w)</text>
+
+<rect x="320" y="268" width="196" height="64" rx="8" fill="#eef2f6" stroke="#334155" stroke-width="1.2"/>
+<text x="336" y="292" font-size="13" font-weight="700" fill="#0f172a">Kernel</text>
+<text x="336" y="314" font-size="12" fill="#334155">May the compiler write BILL?</text>
+
+<line x1="418" y1="332" x2="418" y2="368" stroke="#b54848" stroke-width="1.5" marker-end="url(#aR)"/>
+<text x="428" y="354" font-size="12" font-weight="700" fill="#8f2f2f">yes</text>
+
+<rect x="320" y="372" width="196" height="44" rx="8" fill="#fbecec" stroke="#b54848" stroke-width="1.2"/>
+<text x="418" y="399" font-size="13" font-weight="700" fill="#8f2f2f" text-anchor="middle">BILL overwritten</text>
+
+<text x="60" y="444" font-size="12.5" fill="#334155">The kernel checks the compiler, not the request.</text>
+<text x="60" y="466" font-size="12.5" fill="#334155">Nothing records which argument should carry which right,</text>
+<text x="60" y="486" font-size="12.5" fill="#334155">so the compiler cannot tell its authority from the user's.</text>
+
+<!-- right: capabilities -->
+<rect x="580" y="84" width="500" height="416" rx="10" fill="#f4fafb" stroke="#0f7d8c" stroke-width="1.2"/>
+<text x="600" y="114" font-size="15" font-weight="700" fill="#0f172a">The request carries the authority</text>
+<text x="600" y="134" font-size="12.5" fill="#64748b">Alice passes one handle per argument.</text>
+
+<rect x="604" y="156" width="150" height="112" rx="8" fill="#fff" stroke="#334155" stroke-width="1.2"/>
+<text x="620" y="180" font-size="14" font-weight="700" fill="#0f172a">Alice holds</text>
+<rect x="620" y="192" width="118" height="20" rx="10" fill="#e3f1f3" stroke="#0f7d8c"/>
+<text x="679" y="206" font-size="11" fill="#0f5f6b" text-anchor="middle">read in.c</text>
+<rect x="620" y="216" width="118" height="20" rx="10" fill="#e3f1f3" stroke="#0f7d8c"/>
+<text x="679" y="230" font-size="11" fill="#0f5f6b" text-anchor="middle">write out.o</text>
+<rect x="620" y="240" width="118" height="20" rx="10" fill="#eef2f6" stroke="#94a3b8"/>
+<text x="679" y="254" font-size="11" fill="#334155" text-anchor="middle">read BILL</text>
+
+<rect x="860" y="156" width="196" height="96" rx="8" fill="#fff" stroke="#334155" stroke-width="1.2"/>
+<text x="876" y="180" font-size="14" font-weight="700" fill="#0f172a">Compiler receives</text>
+<rect x="876" y="192" width="118" height="20" rx="10" fill="#e3f1f3" stroke="#0f7d8c"/>
+<text x="935" y="206" font-size="11" fill="#0f5f6b" text-anchor="middle">in: read in.c</text>
+<rect x="876" y="216" width="118" height="20" rx="10" fill="#e3f1f3" stroke="#0f7d8c"/>
+<text x="935" y="230" font-size="11" fill="#0f5f6b" text-anchor="middle">out: write out.o</text>
+
+<line x1="754" y1="212" x2="856" y2="212" stroke="#334155" stroke-width="1.5" marker-end="url(#aS)"/>
+<text x="805" y="202" font-size="11.5" fill="#64748b" font-style="italic" text-anchor="middle">passes two</text>
+
+<line x1="958" y1="252" x2="958" y2="290" stroke="#334155" stroke-width="1.5" marker-end="url(#aS)"/>
+<text x="968" y="275" font-size="11" fill="#334155">writes through out</text>
+<rect x="860" y="294" width="196" height="44" rx="8" fill="#e3f1f3" stroke="#0f7d8c" stroke-width="1.2"/>
+<text x="958" y="321" font-size="13" font-weight="700" fill="#0f5f6b" text-anchor="middle">out.o written</text>
+
+<line x1="679" y1="268" x2="679" y2="350" stroke="#b54848" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#aR)"/>
+<text x="689" y="314" font-size="11" fill="#8f2f2f" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">out: write BILL?</text>
+<rect x="604" y="354" width="230" height="62" rx="8" fill="#fbecec" stroke="#b54848" stroke-width="1.2"/>
+<text x="620" y="378" font-size="13" font-weight="700" fill="#8f2f2f">Fails at the source</text>
+<text x="620" y="400" font-size="12" fill="#334155">Alice holds no write on BILL to pass.</text>
+
+<text x="600" y="444" font-size="12.5" fill="#334155">Each argument arrives with its own authority, and the</text>
+<text x="600" y="466" font-size="12.5" fill="#334155">compiler writes only through the handle it was given.</text>
+<text x="600" y="486" font-size="12.5" fill="#334155">The attack never reaches the deputy.</text>
+</svg>

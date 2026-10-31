@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 640" width="1120" height="640" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+<defs><marker id="aS" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#334155"/></marker></defs>
+<rect width="1120" height="640" fill="#fdfdfc"/>
+<text x="40" y="40" font-size="21" font-weight="700" fill="#0f172a">Which stage do you cut, and how?</text>
+<text x="40" y="64" font-size="12.5" fill="#64748b">Each stage on the request's path can be cut by absence, where nothing is there to ask for, or by judgment, where something answers no.</text>
+
+<!-- row labels -->
+<rect x="40" y="88" width="150" height="168" rx="8" fill="#e3f1f3" stroke="#0f7d8c" stroke-width="1.2"/>
+<text x="56" y="114" font-size="15" font-weight="700" fill="#0f172a">Absence</text>
+<text x="56" y="136" font-size="12" fill="#334155" font-style="italic">no path exists:</text>
+<text x="56" y="154" font-size="12" fill="#334155" font-style="italic">there is nothing</text>
+<text x="56" y="172" font-size="12" fill="#334155" font-style="italic">to ask for</text>
+
+<text x="56" y="301" font-size="13" font-weight="700" fill="#334155">The request</text>
+
+<rect x="40" y="340" width="150" height="190" rx="8" fill="#f3f1fa" stroke="#6b5fb5" stroke-width="1.2"/>
+<text x="56" y="366" font-size="15" font-weight="700" fill="#0f172a">Judgment</text>
+<text x="56" y="388" font-size="12" fill="#334155" font-style="italic">every path passes</text>
+<text x="56" y="406" font-size="12" fill="#334155" font-style="italic">a point that decides:</text>
+<text x="56" y="424" font-size="12" fill="#334155" font-style="italic">you asked, and the</text>
+<text x="56" y="442" font-size="12" fill="#334155" font-style="italic">answer is no</text>
+
+<rect x="40" y="546" width="150" height="72" rx="8" fill="#fff" stroke="#94a3b8" stroke-width="1.2"/>
+<text x="56" y="572" font-size="13" font-weight="700" fill="#334155">Seen from</text>
+<text x="56" y="590" font-size="13" font-weight="700" fill="#334155">inside</text>
+
+<!-- absence cells -->
+<rect x="206" y="88" width="204" height="168" rx="8" fill="#f4fafb" stroke="#0f7d8c" stroke-width="1.2"/>
+<text x="222" y="114" font-size="12.5" fill="#0f172a">WASI import not supplied</text>
+<text x="222" y="136" font-size="12.5" fill="#0f172a">Capsicum <tspan font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11.5">cap_enter()</tspan></text>
+<text x="222" y="158" font-size="12.5" fill="#0f172a">no descriptor was passed</text>
+<text x="222" y="180" font-size="12.5" fill="#0f172a">an unguessable URL</text>
+
+<rect x="424" y="88" width="204" height="168" rx="8" fill="#f4fafb" stroke="#0f7d8c" stroke-width="1.2"/>
+<text x="440" y="114" font-size="12.5" fill="#0f172a"><tspan font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11.5">chroot</tspan>, mount namespace</text>
+<text x="440" y="136" font-size="12.5" fill="#0f172a">a VM: host names mean</text>
+<text x="440" y="154" font-size="12.5" fill="#0f172a">nothing inside it</text>
+
+<rect x="642" y="88" width="204" height="168" rx="8" fill="#f4fafb" stroke="#0f7d8c" stroke-width="1.2"/>
+<text x="658" y="114" font-size="12.5" fill="#0f172a">network namespace with</text>
+<text x="658" y="132" font-size="12.5" fill="#0f172a">no route</text>
+<text x="658" y="154" font-size="12.5" fill="#0f172a">a VM with no device</text>
+<text x="658" y="176" font-size="12.5" fill="#0f172a">Wasm: no syscall instruction</text>
+
+<rect x="860" y="88" width="204" height="168" rx="8" fill="#fff" stroke="#cbd5e1" stroke-width="1.2" stroke-dasharray="5 4"/>
+<text x="876" y="114" font-size="12.5" fill="#64748b" font-style="italic">none: deciding is a</text>
+<text x="876" y="132" font-size="12.5" fill="#64748b" font-style="italic">judgment by definition</text>
+
+<!-- the path -->
+<rect x="206" y="276" width="204" height="44" rx="22" fill="#fff" stroke="#334155" stroke-width="1.4"/>
+<text x="308" y="303" font-size="14" font-weight="700" fill="#0f172a" text-anchor="middle">acquire</text>
+<rect x="424" y="276" width="204" height="44" rx="22" fill="#fff" stroke="#334155" stroke-width="1.4"/>
+<text x="526" y="303" font-size="14" font-weight="700" fill="#0f172a" text-anchor="middle">designate</text>
+<rect x="642" y="276" width="204" height="44" rx="22" fill="#fff" stroke="#334155" stroke-width="1.4"/>
+<text x="744" y="303" font-size="14" font-weight="700" fill="#0f172a" text-anchor="middle">reach</text>
+<rect x="860" y="276" width="204" height="44" rx="22" fill="#fff" stroke="#334155" stroke-width="1.4"/>
+<text x="962" y="303" font-size="14" font-weight="700" fill="#0f172a" text-anchor="middle">decide</text>
+<line x1="410" y1="298" x2="422" y2="298" stroke="#334155" stroke-width="1.6" marker-end="url(#aS)"/>
+<line x1="628" y1="298" x2="640" y2="298" stroke="#334155" stroke-width="1.6" marker-end="url(#aS)"/>
+<line x1="846" y1="298" x2="858" y2="298" stroke="#334155" stroke-width="1.6" marker-end="url(#aS)"/>
+<line x1="1064" y1="298" x2="1080" y2="298" stroke="#334155" stroke-width="1.6" marker-end="url(#aS)"/>
+
+<!-- judgment cells -->
+<rect x="206" y="340" width="204" height="190" rx="8" fill="#faf9fd" stroke="#6b5fb5" stroke-width="1.2"/>
+<text x="222" y="366" font-size="12.5" fill="#0f172a">an issuer that refuses to</text>
+<text x="222" y="384" font-size="12.5" fill="#0f172a">mint a token or handle</text>
+
+<rect x="424" y="340" width="204" height="190" rx="8" fill="#faf9fd" stroke="#6b5fb5" stroke-width="1.2"/>
+<text x="440" y="366" font-size="12.5" fill="#0f172a">a resolver that refuses</text>
+<text x="440" y="384" font-size="12.5" fill="#0f172a">names by policy</text>
+
+<rect x="642" y="340" width="204" height="190" rx="8" fill="#faf9fd" stroke="#6b5fb5" stroke-width="1.2"/>
+<text x="658" y="366" font-size="12.5" font-weight="700" fill="#0f172a">seccomp</text>
+<text x="658" y="384" font-size="12" fill="#334155">per kernel entry point, on</text>
+<text x="658" y="400" font-size="12" fill="#334155">scalar arguments only</text>
+<text x="658" y="426" font-size="12.5" font-weight="700" fill="#0f172a">firewall, egress allowlist</text>
+<text x="658" y="444" font-size="12" fill="#334155">per destination</text>
+
+<rect x="860" y="340" width="204" height="190" rx="8" fill="#faf9fd" stroke="#6b5fb5" stroke-width="1.2"/>
+<text x="876" y="366" font-size="12.5" font-weight="700" fill="#0f172a">LSM, Landlock</text>
+<text x="876" y="384" font-size="12" fill="#334155">on the resolved object</text>
+<text x="876" y="410" font-size="12.5" font-weight="700" fill="#0f172a"><tspan font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11.5">setpriv</tspan> credentials</text>
+<text x="876" y="428" font-size="12" fill="#334155">on the subject side</text>
+<text x="876" y="454" font-size="12.5" font-weight="700" fill="#0f172a">ACL, branch protection</text>
+<text x="876" y="472" font-size="12" fill="#334155">on the object side, at</text>
+<text x="876" y="488" font-size="12" fill="#334155">the resource</text>
+
+<!-- seen from inside -->
+<rect x="206" y="546" width="204" height="72" rx="8" fill="#fff" stroke="#94a3b8" stroke-width="1.2"/>
+<text x="222" y="572" font-size="12" fill="#334155">nothing: there was never</text>
+<text x="222" y="590" font-size="12" fill="#334155">a name to try</text>
+<rect x="424" y="546" width="204" height="72" rx="8" fill="#fff" stroke="#94a3b8" stroke-width="1.2"/>
+<text x="440" y="572" font-size="11.5" fill="#334155" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">ENOENT, NXDOMAIN</text>
+<text x="440" y="590" font-size="12" fill="#334155">or a different file</text>
+<rect x="642" y="546" width="204" height="72" rx="8" fill="#fff" stroke="#94a3b8" stroke-width="1.2"/>
+<text x="658" y="572" font-size="11.5" fill="#334155" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">ENETUNREACH, EPERM,</text>
+<text x="658" y="590" font-size="11.5" fill="#334155" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">ENOSYS<tspan font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12">, a timeout</tspan></text>
+<rect x="860" y="546" width="204" height="72" rx="8" fill="#fff" stroke="#94a3b8" stroke-width="1.2"/>
+<text x="876" y="572" font-size="11.5" fill="#334155" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">EACCES, HTTP 403</text>
+</svg>

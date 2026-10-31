@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 520" width="1120" height="520" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+<defs>
+<marker id="aS" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#334155"/></marker>
+<marker id="aT" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#0f7d8c"/></marker>
+</defs>
+<rect width="1120" height="520" fill="#fdfdfc"/>
+<text x="40" y="40" font-size="21" font-weight="700" fill="#0f172a">Policy at the edge, handles below</text>
+<text x="40" y="64" font-size="12.5" fill="#64748b">One service resolves who is asking and asks the policy store. Everything downstream holds only a handle to one document.</text>
+
+<!-- zones -->
+<rect x="40" y="88" width="480" height="412" rx="10" fill="#fff" stroke="#334155" stroke-width="1.2"/>
+<text x="60" y="116" font-size="15" font-weight="700" fill="#0f172a">Decide once</text>
+<text x="60" y="136" font-size="12" fill="#64748b" font-style="italic">the administrative question: who may see doc 4471?</text>
+<rect x="540" y="88" width="540" height="412" rx="10" fill="#f4fafb" stroke="#0f7d8c" stroke-width="1.2"/>
+<text x="560" y="116" font-size="15" font-weight="700" fill="#0f172a">Enforce below</text>
+<text x="560" y="136" font-size="12" fill="#64748b" font-style="italic">the execution question: what can each worker reach?</text>
+
+<!-- relationship store -->
+<rect x="290" y="160" width="210" height="64" rx="8" fill="#fff" stroke="#334155" stroke-width="1.2"/>
+<text x="306" y="186" font-size="14" font-weight="700" fill="#0f172a">Relationship store</text>
+<text x="306" y="208" font-size="12" fill="#64748b">global, queryable policy</text>
+
+<!-- request -->
+<rect x="60" y="316" width="170" height="64" rx="8" fill="#fff" stroke="#334155" stroke-width="1.2"/>
+<text x="76" y="342" font-size="12" fill="#0f172a" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">GET /docs/4471</text>
+<text x="76" y="364" font-size="12" fill="#64748b">session: alice</text>
+
+<!-- edge service -->
+<rect x="290" y="308" width="210" height="80" rx="8" fill="#fff" stroke="#334155" stroke-width="1.2"/>
+<text x="306" y="334" font-size="14" font-weight="700" fill="#0f172a">Edge service</text>
+<text x="306" y="356" font-size="12" fill="#334155">the only component that</text>
+<text x="306" y="374" font-size="12" fill="#334155">knows the string "alice"</text>
+
+<line x1="230" y1="348" x2="286" y2="348" stroke="#334155" stroke-width="1.5" marker-end="url(#aS)"/>
+<line x1="360" y1="306" x2="360" y2="228" stroke="#334155" stroke-width="1.5" marker-end="url(#aS)"/>
+<text x="352" y="262" font-size="11" fill="#334155" text-anchor="end" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">check(user:alice,</text>
+<text x="352" y="278" font-size="11" fill="#334155" text-anchor="end" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">viewer, doc:4471)</text>
+<line x1="430" y1="226" x2="430" y2="304" stroke="#334155" stroke-width="1.5" marker-end="url(#aS)"/>
+<text x="440" y="270" font-size="12" font-weight="700" fill="#0f5f6b">allow</text>
+
+<text x="60" y="436" font-size="12.5" fill="#334155">The edge does not pass "alice, approved" downstream.</text>
+<text x="60" y="458" font-size="12.5" fill="#334155">It mints a handle that designates doc 4471 and</text>
+<text x="60" y="480" font-size="12.5" fill="#334155">conveys read, and hands that on.</text>
+
+<!-- workers -->
+<rect x="620" y="160" width="190" height="64" rx="8" fill="#fff" stroke="#334155" stroke-width="1.2"/>
+<text x="636" y="184" font-size="14" font-weight="700" fill="#0f172a">Renderer</text>
+<rect x="636" y="194" width="120" height="20" rx="10" fill="#e3f1f3" stroke="#0f7d8c"/>
+<text x="696" y="208" font-size="11" fill="#0f5f6b" text-anchor="middle">doc 4471: read</text>
+
+<rect x="620" y="268" width="190" height="64" rx="8" fill="#fff" stroke="#334155" stroke-width="1.2"/>
+<text x="636" y="292" font-size="14" font-weight="700" fill="#0f172a">Thumbnailer</text>
+<rect x="636" y="302" width="150" height="20" rx="10" fill="#e3f1f3" stroke="#0f7d8c"/>
+<text x="711" y="316" font-size="11" fill="#0f5f6b" text-anchor="middle">doc 4471: read, 30 s</text>
+
+<rect x="620" y="376" width="190" height="64" rx="8" fill="#fff" stroke="#334155" stroke-width="1.2"/>
+<text x="636" y="400" font-size="14" font-weight="700" fill="#0f172a">Export worker</text>
+<rect x="636" y="410" width="120" height="20" rx="10" fill="#e3f1f3" stroke="#0f7d8c"/>
+<text x="696" y="424" font-size="11" fill="#0f5f6b" text-anchor="middle">doc 4471: read</text>
+
+<line x1="500" y1="340" x2="616" y2="194" stroke="#0f7d8c" stroke-width="1.5" marker-end="url(#aT)"/>
+<line x1="500" y1="356" x2="616" y2="406" stroke="#0f7d8c" stroke-width="1.5" marker-end="url(#aT)"/>
+<text x="560" y="250" font-size="11.5" fill="#0f5f6b" font-style="italic" transform="rotate(-51 560 250)">mints a handle</text>
+<line x1="715" y1="224" x2="715" y2="264" stroke="#0f7d8c" stroke-width="1.5" marker-end="url(#aT)"/>
+<text x="724" y="248" font-size="11" fill="#0f5f6b">wraps: read, 30 s</text>
+
+<!-- document store -->
+<rect x="880" y="236" width="180" height="96" rx="8" fill="#fff" stroke="#334155" stroke-width="1.2"/>
+<text x="896" y="262" font-size="14" font-weight="700" fill="#0f172a">Document store</text>
+<text x="896" y="284" font-size="12" fill="#334155">reached only through</text>
+<text x="896" y="302" font-size="12" fill="#334155">a handle</text>
+<line x1="810" y1="192" x2="876" y2="262" stroke="#94a3b8" stroke-width="1.2" marker-end="url(#aS)"/>
+<line x1="810" y1="300" x2="876" y2="290" stroke="#94a3b8" stroke-width="1.2" marker-end="url(#aS)"/>
+<line x1="810" y1="408" x2="876" y2="316" stroke="#94a3b8" stroke-width="1.2" marker-end="url(#aS)"/>
+
+<text x="880" y="372" font-size="12" font-weight="700" fill="#8f2f2f">No superuser connection.</text>
+<text x="880" y="392" font-size="12" fill="#334155">If a worker could open one,</text>
+<text x="880" y="410" font-size="12" fill="#334155">the check above would be</text>
+<text x="880" y="428" font-size="12" fill="#334155">advisory, and every path that</text>
+<text x="880" y="446" font-size="12" fill="#334155">skips it would reach everything.</text>
+</svg>

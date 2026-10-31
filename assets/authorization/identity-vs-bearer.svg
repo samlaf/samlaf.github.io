@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 828" width="1120" height="828" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+<defs><marker id="aS" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#334155"/></marker></defs>
+<rect width="1120" height="828" fill="#fdfdfc"/>
+<text x="40" y="40" font-size="21" font-weight="700" fill="#0f172a">Identity-based and bearer authorization converge</text>
+<text x="40" y="64" font-size="12.5" fill="#64748b">Each side patches its weakness by importing the other side's core mechanism, and both end at the same design.</text>
+
+<!-- headers -->
+<rect x="40" y="88" width="500" height="64" rx="8" fill="#fff" stroke="#334155" stroke-width="1.2"/>
+<text x="56" y="114" font-size="16" font-weight="700" fill="#0f172a">Identity-based</text>
+<text x="56" y="138" font-size="12.5" fill="#64748b">ACL, RBAC, ReBAC · the authority lives in a store at the resource</text>
+<rect x="580" y="88" width="500" height="64" rx="8" fill="#fff" stroke="#334155" stroke-width="1.2"/>
+<text x="596" y="114" font-size="16" font-weight="700" fill="#0f172a">Bearer token</text>
+<text x="596" y="138" font-size="12.5" fill="#64748b">API keys, share links, macaroons · the authority lives in the token</text>
+
+<!-- strengths -->
+<rect x="40" y="168" width="500" height="124" rx="8" fill="#fff" stroke="#94a3b8" stroke-width="1.2"/>
+<text x="56" y="194" font-size="14" font-weight="700" fill="#0f172a">Strengths</text>
+<text x="56" y="218" font-size="12.5" fill="#334155">Global review: "who can touch X?" is one query</text>
+<text x="56" y="238" font-size="12.5" fill="#334155">Policy is edited in one place</text>
+<text x="56" y="258" font-size="12.5" fill="#334155">Revoke by editing the store</text>
+<rect x="580" y="168" width="500" height="124" rx="8" fill="#fff" stroke="#94a3b8" stroke-width="1.2"/>
+<text x="596" y="194" font-size="14" font-weight="700" fill="#0f172a">Strengths</text>
+<text x="596" y="218" font-size="12.5" fill="#334155">Checked offline, with no lookup</text>
+<text x="596" y="238" font-size="12.5" fill="#334155">Delegate by handing it over; attenuate by adding caveats</text>
+<text x="596" y="258" font-size="12.5" fill="#334155">The holder selects which authority to use</text>
+<text x="596" y="278" font-size="12.5" fill="#334155">No identity revealed at use</text>
+
+<!-- weaknesses -->
+<rect x="40" y="308" width="500" height="64" rx="8" fill="#fbecec" stroke="#b54848" stroke-width="1.2"/>
+<text x="56" y="334" font-size="14" font-weight="700" fill="#8f2f2f">Weakness: the confused deputy</text>
+<text x="56" y="356" font-size="12.5" fill="#334155">The request names an object; the store authorizes whoever is asking.</text>
+<rect x="580" y="308" width="500" height="64" rx="8" fill="#fbecec" stroke="#b54848" stroke-width="1.2"/>
+<text x="596" y="334" font-size="14" font-weight="700" fill="#8f2f2f">Weaknesses: revocation and propagation</text>
+<text x="596" y="356" font-size="12.5" fill="#334155">Revoking means reaching every copy, and a copy can travel anywhere.</text>
+
+<line x1="290" y1="374" x2="290" y2="396" stroke="#334155" stroke-width="1.6" marker-end="url(#aS)"/>
+<line x1="830" y1="374" x2="830" y2="396" stroke="#334155" stroke-width="1.6" marker-end="url(#aS)"/>
+
+<!-- patches -->
+<rect x="40" y="400" width="500" height="144" rx="8" fill="#f3f1fa" stroke="#6b5fb5" stroke-width="1.2"/>
+<text x="56" y="426" font-size="14" font-weight="700" fill="#0f172a">Patch: carry context with the request</text>
+<text x="56" y="450" font-size="12.5" fill="#334155">Propagate the original caller's identity</text>
+<text x="56" y="470" font-size="12.5" fill="#334155">Label the data, make every endorsement explicit</text>
+<text x="56" y="492" font-size="11" fill="#64748b" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">sts:ExternalId, aws:SourceArn, IFC labels</text>
+<text x="56" y="526" font-size="12.5" fill="#5b4fa5" font-style="italic">imports: authority scoped to one request</text>
+<rect x="580" y="400" width="500" height="144" rx="8" fill="#f3f1fa" stroke="#6b5fb5" stroke-width="1.2"/>
+<text x="596" y="426" font-size="14" font-weight="700" fill="#0f172a">Patch: add a registry</text>
+<text x="596" y="450" font-size="12.5" fill="#334155">Point the token at an entry the issuer can delete</text>
+<text x="596" y="470" font-size="12.5" fill="#334155">Expire it, which needs a clock authority</text>
+<text x="596" y="490" font-size="12.5" fill="#334155">Log every use to learn where it went</text>
+<text x="596" y="526" font-size="12.5" fill="#5b4fa5" font-style="italic">imports: a central table, checked on use</text>
+
+<!-- convergence -->
+<line x1="290" y1="546" x2="440" y2="600" stroke="#334155" stroke-width="1.6" marker-end="url(#aS)"/>
+<line x1="830" y1="546" x2="680" y2="600" stroke="#334155" stroke-width="1.6" marker-end="url(#aS)"/>
+
+<rect x="200" y="604" width="720" height="128" rx="8" fill="#f9eee2" stroke="#c2793a" stroke-width="1.2"/>
+<text x="216" y="632" font-size="15" font-weight="700" fill="#0f172a">Where both land: identity at issuance, a carrier at use</text>
+<text x="216" y="656" font-size="12.5" fill="#334155">A policy store decides who gets what, then mints a scoped, short-lived token.</text>
+<text x="216" y="676" font-size="12.5" fill="#334155">The token is checked offline until it expires or its registry entry is deleted.</text>
+<text x="216" y="710" font-size="11" fill="#64748b" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">OAuth access tokens, presigned S3 URLs, macaroons</text>
+
+<!-- object capabilities are outside this picture -->
+<rect x="40" y="752" width="1040" height="52" rx="6" fill="#e3f1f3" stroke="#0f7d8c" stroke-width="1.2"/>
+<text x="56" y="774" font-size="13" font-weight="700" fill="#0f172a">Object capabilities are not on this picture.</text>
+<text x="56" y="794" font-size="12.5" fill="#334155">Their authority stays in the enforcer's table, and passing one runs only over a channel already held. Revocation is a forwarder its issuer owns.</text>
+</svg>

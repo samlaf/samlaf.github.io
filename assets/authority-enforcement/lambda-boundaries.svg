@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 560" width="1120" height="560" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+<defs><marker id="aS" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#334155"/></marker></defs>
+<rect width="1120" height="560" fill="#fdfdfc"/>
+<text x="40" y="40" font-size="21" font-weight="700" fill="#0f172a">One Lambda request to S3, four reference monitors</text>
+<text x="40" y="64" font-size="12.5" fill="#64748b">Each boundary enforces a different stage, in a different trust domain, and fails independently of the others.</text>
+
+<rect x="40" y="88" width="720" height="440" rx="10" fill="#f8fafc" stroke="#334155" stroke-width="1.2"/>
+<text x="56" y="112" font-size="14" font-weight="700" fill="#0f172a">Host kernel and KVM</text>
+
+<rect x="64" y="128" width="672" height="384" rx="10" fill="#fff" stroke="#334155" stroke-width="1.2"/>
+<text x="80" y="152" font-size="14" font-weight="700" fill="#0f172a">Jailer</text>
+<text x="132" y="152" font-size="12" fill="#64748b" font-style="italic">chroot, namespaces, cgroup, unprivileged uid: cuts down the enforcer's own authority</text>
+
+<rect x="88" y="168" width="624" height="328" rx="10" fill="#f8fafc" stroke="#334155" stroke-width="1.2"/>
+<text x="104" y="192" font-size="14" font-weight="700" fill="#0f172a">Firecracker VMM</text>
+<text x="226" y="192" font-size="12" fill="#64748b" font-style="italic">reach: every path out is its device model; seccomp on each thread</text>
+
+<rect x="112" y="208" width="576" height="272" rx="10" fill="#fff" stroke="#334155" stroke-width="1.2"/>
+<text x="128" y="232" font-size="14" font-weight="700" fill="#0f172a">Guest kernel</text>
+<text x="226" y="232" font-size="12" fill="#64748b" font-style="italic">designate and decide, for guest objects; host names mean nothing</text>
+
+<rect x="136" y="260" width="250" height="120" rx="8" fill="#fff" stroke="#334155" stroke-width="1.2"/>
+<text x="152" y="286" font-size="14" font-weight="700" fill="#0f172a">Function code</text>
+<text x="152" y="306" font-size="12" fill="#334155">ambient authority over a</text>
+<text x="152" y="322" font-size="12" fill="#334155">machine that holds nothing else</text>
+<rect x="152" y="340" width="190" height="22" rx="11" fill="#fbecec" stroke="#b54848"/>
+<text x="247" y="355" font-size="11" fill="#8f2f2f" text-anchor="middle">the role's temporary keys</text>
+
+<line x1="386" y1="320" x2="816" y2="320" stroke="#334155" stroke-width="1.6" marker-end="url(#aS)"/>
+<text x="400" y="310" font-size="11.5" fill="#334155" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">signed API request</text>
+<text x="400" y="342" font-size="11.5" fill="#64748b" font-style="italic">virtio-net, then a TAP device on the host</text>
+
+<rect x="820" y="240" width="260" height="160" rx="8" fill="#e3f1f3" stroke="#0f7d8c" stroke-width="1.6"/>
+<text x="836" y="266" font-size="14" font-weight="700" fill="#0f172a">S3, behind IAM</text>
+<text x="836" y="290" font-size="12" fill="#334155">decide, on the object side, in</text>
+<text x="836" y="308" font-size="12" fill="#334155">the vocabulary of API actions</text>
+<text x="836" y="340" font-size="12" font-weight="700" fill="#0f5f6b">Holds even if every layer</text>
+<text x="836" y="358" font-size="12" font-weight="700" fill="#0f5f6b">to the left fails.</text>
+
+<rect x="820" y="420" width="260" height="92" rx="8" fill="#fbecec" stroke="#b54848" stroke-width="1.2"/>
+<text x="836" y="444" font-size="13" font-weight="700" fill="#8f2f2f">The gap</text>
+<text x="836" y="464" font-size="12" fill="#334155">The function acquires the real keys,</text>
+<text x="836" y="482" font-size="12" fill="#334155">and nothing between it and S3</text>
+<text x="836" y="500" font-size="12" fill="#334155">attenuates them.</text>
+</svg>
