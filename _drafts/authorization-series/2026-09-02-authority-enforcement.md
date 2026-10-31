@@ -1,5 +1,5 @@
 ---
-title:  "How authority is enforced: reference monitors and sandboxes"
+title:  "How authority is enforced: reference monitors"
 series: "Authorization, Part 2"
 series_url: "/programming/authorization-series-intro.html"
 category: programming
@@ -13,7 +13,6 @@ date:   2026-09-02
 > - **[Part 3: Carriers](/programming/carriers.html)** — decisions that travel with the request.
 > - **[Part 4: Capabilities](/programming/capabilities.html)** — authority you hold, not authority you are.
 
-- [What is sandboxing](#what-is-sandboxing)
 - [Theory](#theory)
   - [The reference monitor](#the-reference-monitor)
   - [Decide vs. enforce](#decide-vs-enforce)
@@ -41,32 +40,9 @@ date:   2026-09-02
 - [Conclusion: what this does not solve](#conclusion-what-this-does-not-solve)
 - [References](#references)
 
-[Part 1](/programming/authorization-models.html) read the decision as a database: stored facts, rules that derive a view, and checks that query it.
+[Part 1](/programming/authorization-models.html) read the decision as a database: stored facts, rules that derive a view, and checks that query it. A database enforces its own answers. It never returns a row nobody selected. An authorization answer is about an effect somewhere else, such as a file opened or a packet sent, and nothing in the store makes it hold. This article is about what does.
 
-There are two ways. Something in the path of the effect applies the decision, or the path is not there at all. Sandboxes use both, so this article starts with them.
-
-## What is sandboxing
-
-Sandboxing discussions usually start with the wrong noun. They ask whether untrusted code should run in a container, a microVM, gVisor, WASI, or a language runtime. Those choices answer *where computation happens*, not *what that computation can do*.
-
-Start from the other end. What effects can the workload cause?
-
-- Can it read host files?
-- Can it mutate durable state?
-- Can it reach the internet, localhost, or a metadata service?
-- Can it exercise a credential?
-- Can it publish an artifact that will execute later?
-- Can it inspect or interfere with another workload?
-
-Every one of these can be controlled at several points. A write to a repository might be prevented because the host path is absent, denied by an LSM, rejected by a filesystem provider, blocked by a tool hook, or refused by server-side branch protection. Those mechanisms are not interchangeable. They see different vocabularies and they live in different trust domains.
-
-So a sandbox is best defined by what it constrains, not by how it is built:
-
-> **A sandbox is an execution environment that restricts the effects a computation can have on the rest of the system.**
-
-That definition is deliberately mechanism-free. It covers a VM, a seccomp filter, a WASI runtime, and a proxy, because all four exist to shrink the same set.
-
-Note what that set holds. Most security writing treats data as the asset. Here the asset is **the authority to cause an effect**: a repository that can be force-pushed, a credential that can be spent, a table that can be dropped, a package that can be published. Reading a secret is one of these effects, not the one that organizes the rest. List data, and you protect stores. List effects, and you list every path by which the workload can cause each one, which is what [non-bypassability](#non-bypassability-is-a-property-of-reach) needs.
+There are two ways. Something in the path of the effect applies the decision, or the path is not there at all.
 
 ## Theory
 
@@ -151,6 +127,8 @@ Applied per stage, Anderson's first property becomes a question about topology. 
 Stated as a condition to satisfy:
 
 > **For every effect the workload can attempt, either no path to the resource exists, or every path passes through a point that decides.**
+
+The condition counts effects, not data. Most security writing treats data as the asset. Here the asset is **the authority to cause an effect**: a repository that can be force-pushed, a credential that can be spent, a table that can be dropped, a package that can be published. Reading a secret is one of these effects, not the one that organizes the rest. List data, and you protect stores. List effects, and you can list every path to each one, which is what the condition asks for.
 
 The first half involves no enforcement point at all: a missing path is not a check that reliably says no, it is the absence of anything to check. So "is there a PEP?" is never the interesting question. A PEP is always a PEP for some class of effect, and what you have to establish is that the union of them leaves no path uncovered.
 

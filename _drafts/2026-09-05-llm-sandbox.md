@@ -51,7 +51,24 @@ date:   2026-09-05
   - [Agent frameworks and research](#agent-frameworks-and-research)
   - [Landscape and performance](#landscape-and-performance)
 
-[Part 2](/programming/authority-enforcement.html#what-is-sandboxing) defined a sandbox by the effects it constrains, not by where the computation runs. For agents that distinction decides everything. A choice of container, microVM, gVisor, WASI or language runtime answers only **where computation happens**. It does not answer **what authority that computation can exercise**.
+Sandboxing discussions usually start with the wrong noun. They ask whether untrusted code should run in a container, a microVM, gVisor, WASI, or a language runtime. Those choices answer **where computation happens**. They do not answer **what authority that computation can exercise**. For agents, that distinction decides everything.
+
+Start from the other end. What effects can the workload cause?
+
+- Can it read host files?
+- Can it mutate durable state?
+- Can it reach the internet, localhost, or a metadata service?
+- Can it exercise a credential?
+- Can it publish an artifact that will execute later?
+- Can it inspect or interfere with another workload?
+
+Every one of these can be controlled at several points. A write to a repository might be prevented because the host path is absent, denied by an LSM, rejected by a filesystem provider, blocked by a tool hook, or refused by server-side branch protection. Those mechanisms are not interchangeable. They see different vocabularies and they live in different trust domains.
+
+So a sandbox is best defined by what it constrains, not by how it is built:
+
+> **A sandbox is an execution environment that restricts the effects a computation can have on the rest of the system.**
+
+That definition is deliberately mechanism-free. It covers a VM, a seccomp filter, a WASI runtime, and a proxy, because all four exist to shrink the same set.
 
 A process inside a perfectly isolated VM can still exfiltrate source code through an allowed API, mutate a host-mounted repository, publish a poisoned artifact, spend cloud credentials, or invoke a token's full administrative authority. Compute isolation protects the host kernel and memory. It does not, by itself, protect resources deliberately exposed to the workload.
 
