@@ -24,8 +24,8 @@ date:   2026-09-02
   - [How to compare reference monitors](#how-to-compare-reference-monitors)
   - [What can change between check and use](#what-can-change-between-check-and-use)
   - [Composing reference monitors](#composing-reference-monitors)
-- [Practice](#practice)
   - [Granularity, and the routes down](#granularity-and-the-routes-down)
+- [Practice](#practice)
   - [Built security-first: construction](#built-security-first-construction)
     - [seL4 as the meeting point](#sel4-as-the-meeting-point)
     - [WASI and effect systems](#wasi-and-effect-systems)
@@ -70,8 +70,6 @@ XACML placed the split inside a larger system. This is how NIST draws it, in [SP
 ![PEP, PDP, PAP and PIP, with the policy repository, the attribute repository and environment conditions](/assets/authorization/nist-abac-functional-points.png)
 
 The two other boxes are the PAP, where policy is authored, and the PIP, where facts come from. XACML was built for ABAC, but [AuthZEN][authzen-api], the OpenID Foundation's Authorization API, now standardizes the PEP-to-PDP interface for every model. [Part 1](/programming/authorization-models.html) reads all four boxes as a database. The distinction is logical. All four can be one kernel function, or four services in different datacenters. What matters is that only the PEP has to satisfy Anderson's first two properties. The PDP must be *correct*; the PEP must be *unavoidable*. Conflating them is how people end up with an authorization system that is beautifully expressive and trivially routed around.
-
-The [Flask architecture][flask-security-architecture] is the cleanest instantiation, and the direct ancestor of SELinux. Flask separates **object managers**, which own resources and enforce decisions, from a **security server**, which evaluates policy. An object manager asks whether a subject may perform an operation on an object, caches the returned access vector, and, the part people forget, receives notifications when a policy change requires revoking what it cached. That revocation channel is the honest cost of caching a decision, and [Part 3](/programming/carriers.html#fresh-or-frozen) follows the trade through every kind of carrier.
 
 ### Every stage has its own enforcer
 
@@ -142,8 +140,6 @@ Almost every argument about sandboxing is an argument about which half of that c
 
 ![A grid of stages against strategies. Acquire is cut by absence when a WASI import is not supplied, after Capsicum's cap_enter(), or by an unguessable URL, and by judgment when an issuer refuses to mint. Designate is cut by absence with chroot, a mount namespace or a VM, and by judgment with a resolver that refuses names. Reach is cut by absence with an empty network namespace, a VM with no device or Wasm, and by judgment with seccomp or a firewall. Decide is cut only by judgment: an LSM or Landlock on the resolved object, setpriv credentials on the subject side, and an ACL or branch protection at the resource. From inside, the cuts look like no name to try, ENOENT, ENETUNREACH or EPERM, and EACCES or HTTP 403.](/assets/authority-enforcement/stage-cuts.svg)
 
-Seccomp is the one people misplace, and they misplace it twice. It is a judge: the call is expressible, it arrives at a filter, and a policy says no. And it judges reach, not the object. It sees which kernel entry point a process is trying and the call's scalar arguments, never the object the call would resolve to. That is the difference from an LSM, which judges after designate has run.
-
 #### Absence is a lookup that comes back empty
 
 Formally, the two strategies are one. Every function above is a lookup, and absence is a lookup that returns ⊥. A `chroot` is a resolver with fewer bindings in its table. A network namespace with no route is a routing table that returns ⊥ for every destination. Even an ACL check fits: [Part 1](/programming/authorization-models.html#one-function-one-relation) asks "is this row present?", so a deny is a missing row.
@@ -204,7 +200,7 @@ Check and use named the same string and reached different objects: designate ran
 
 **Subject binding.** The same indirection exists on the other side and gets far less attention. A pathname is an indirect reference to an object; an ambient credential is an indirect reference to authority, resolved at the moment of use. Check under one credential context and act under another, such as a dropped privilege, a changed EUID or a recycled thread pool, and you have the same bug with the roles swapped. Setting the credentials once, from outside, before the workload starts is what `setpriv` buys: the program never holds authority it would have had to remember to drop.
 
-**Authorization state.** Neither binding has to move for the answer to change. Remove Alice from a group and every decision derived from that membership is stale, with the same subject and the same object throughout. This is not a race inside the monitor. It is the monitor's inputs having a lifetime, which is why Flask needs its revocation channel.
+**Authorization state.** Neither binding has to move for the answer to change. Remove Alice from a group and every decision derived from that membership is stale, with the same subject and the same object throughout. This is not a race inside the monitor. It is the monitor's inputs having a lifetime, which is why a monitor that caches decisions needs a revocation channel.
 
 **Environment.** Device posture, time of day, risk score. Same shape as the others, least often modelled, and the usual reason a "zero trust" deployment is less continuous than its diagram.
 
@@ -227,8 +223,6 @@ At every boundary, ask the same questions, one per stage plus three more:
 7. Which inputs does this enforcer share with the others?
 
 Question four is Anderson's first property. Question six is the one people skip, and it is the one that decides how bad your worst day is. Question seven decides whether stacking monitors buys anything. Monitors that trust the same claim fail together: a gateway, a sandbox and an audit system can [all trust the same wrong tenant ID][ai-engineer-security].
-
-## Practice
 
 ### Granularity, and the routes down
 
@@ -266,6 +260,8 @@ Subtraction costs a policy artifact per descent, written in a vocabulary the pro
 The two inside routes both need the program's cooperation. It has to call the decision point, or accept a reference instead of opening a path. A program that forgets to ask still holds the authority, so the check was advisory. A program that was never handed a reference has nothing to misuse. [Part 4](/programming/capabilities.html#expressible-versus-unrepresentable) comes back to that asymmetry.
 
 Subtraction asks the program for nothing, which is why it is what you reach for when you did not write the binary. Systems designed security-first tend to start from construction: nothing is ambient, and authority grows only by passing references. Linux, Windows and the internet all started from ambient authority, and sandboxing them means taking authority away from code that was written to assume it. For each system below, ask which stages it cuts, who enforces each stage, and where that enforcer's trust sits.
+
+## Practice
 
 ### Built security-first: construction
 
@@ -321,7 +317,11 @@ Linux has no single sandbox primitive. It has a collection of mechanisms, each c
 
 ![](/assets/authority-enforcement/linux-security-mechanisms.png)
 
-The [stage diagram](#which-stage-do-you-cut) placed most of them. Namespaces cut designate or reach by absence, one kernel subsystem at a time. Seccomp cuts reach to kernel entry points by judgment. Credentials and LSMs both cut decide, from different ends, and deserve a closer look.
+The [stage diagram](#which-stage-do-you-cut) placed most of them. Namespaces cut designate or reach by absence, one kernel subsystem at a time.
+
+Seccomp is the one people misplace, and they misplace it twice. It is a judge: the call is expressible, it arrives at a filter, and a policy says no. And it judges reach, not the object. It sees which kernel entry point a process is trying and the call's scalar arguments, never the object the call would resolve to.
+
+Credentials and LSMs both cut decide, from different ends, and deserve a closer look.
 
 ##### Credentials: one stage, moving alone
 
@@ -332,6 +332,8 @@ The [stage diagram](#which-stage-do-you-cut) placed most of them. Namespaces cut
 Credentials are also the cleanest case of one stage moving alone. They are ambient authority and nothing else.[^ambient-caps] Shrink them and every name still resolves, so `open("/etc/shadow")` stays a perfectly expressible request, and only the answer changes. Decide is cut while acquire, designate and reach stay exactly as ambient as they were.
 
 ##### LSMs: decide on the resolved object
+
+The [Flask architecture][flask-security-architecture] is the cleanest instantiation of the [decide/enforce split](#decide-vs-enforce), and the direct ancestor of SELinux. Flask separates **object managers**, which own resources and enforce decisions, from a **security server**, which evaluates policy. An object manager asks whether a subject may perform an operation on an object, caches the returned access vector, and, the part people forget, receives notifications when a policy change requires revoking what it cached. That revocation channel is the honest cost of caching a decision, and [Part 3](/programming/carriers.html#fresh-or-frozen) follows the trade through every kind of carrier.
 
 The LSM framework is Flask brought into Linux, and it sits at a specific and well-chosen place. Rather than interposing at syscall entry, the kernel first resolves user-supplied names and handles into internal objects, *then* calls the hook immediately before the security-relevant operation. The question it asks is explicit:
 
