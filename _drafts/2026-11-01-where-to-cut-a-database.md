@@ -76,6 +76,8 @@ The coupling layer is one of two cuts through the stack. The other is where the 
 
 ![Seven designs on one stack: where each couples nodes, where each copies data, and where concurrency control sits](/assets/db-cuts/03-two-cuts.svg)
 
+CockroachDB and DSQL cut in the same place. They differ in where concurrency control sits: CockroachDB's range owners lock rows as a transaction runs, and DSQL checks for conflicts only at commit. Whether the layers below the cut share machines with SQL is a deployment choice. A CockroachDB node runs both, TiDB runs its SQL servers apart from its TiKV storage nodes, and DSQL splits even conflict checks, the log, and storage into separate fleets.
+
 The two cuts are independent. Oracle RAC couples at its buffer pools and its disk, and copies at the disk by mirroring its shared volumes. A single primary with read replicas never couples writers at all, but it still copies its log. That is the starting point for [Aurora](#aurora-the-log-is-the-database).
 
 The kind of log a design copies sets the height of its copy cut. A physical log, such as Postgres's WAL or Aurora's redo, describes changes to pages. It copies below the buffer pool, and each replica's pages mirror the primary's. A logical log describes changes to rows or keys: MySQL's binlog, CockroachDB's Raft log, or DSQL's journal. It copies above the access methods, so each replica runs its own access methods and builds its own pages.
