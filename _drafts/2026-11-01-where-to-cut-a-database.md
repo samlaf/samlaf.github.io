@@ -46,7 +46,7 @@ This post has two parts:
 1. [Cutting the engine](#cutting-the-engine): where nodes couple, where data is copied, and who may write a row. Aurora and DSQL are the worked examples.
 2. [The cache inside the engine](#the-cache-inside-the-engine): the buffer pool, and the log that makes it safe.
 
-A follow-up post, [Database caches](/programming/db-caches.html), uses the same stack for the copies that sit beside the engine: replicas, caches, and indexes.
+A follow-up post, [Database caches](/programming/db-caches.html), uses the same stack to place the caches that sit beside the engine.
 
 ## Cutting the engine
 
