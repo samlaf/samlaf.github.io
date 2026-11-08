@@ -205,7 +205,7 @@ No design removes the cost of coordination; each chooses where to pay it.
 | Aurora | Cheap durability, fast failover, read replicas sharing one volume | One writer; a cold cache costs page round trips |
 | DSQL | Any query processor writes; every layer scales on its own | Contention becomes aborts; every read and commit crosses the network |
 
-Two questions sort almost any new system quickly. Where is the engine cut, and what crosses the wire? And where does concurrency control sit, and so who may write a row? [Database caches](/programming/db-caches.html) asks the next one: for every copy of the data, what happens on a miss, and who keeps it fresh?
+Two questions sort almost any new system quickly. Where is the engine cut, and what crosses the wire? And where does concurrency control sit, and so who may write a row? [Database caches](/programming/db-caches.html) asks the next one: for every cache, what happens on a miss, and who keeps it fresh?
 
 ## Appendix: every system in one table
 
