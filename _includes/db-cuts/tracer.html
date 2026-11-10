@@ -1,0 +1,358 @@
+{% comment %}
+  Request tracer for the "Carving a database at its joints" post.
+  Steps one write or one read through six designs, drawing where it
+  crosses the coupling point (blue) and the copy point (orange).
+  Everything is scoped under .dbt so it does not touch the theme's styles.
+{% endcomment %}
+
+<div class="dbt" id="dbt">
+  <style>
+  .dbt{
+    --dbt-bg:#ffffff; --dbt-fg:#1f1e1d; --dbt-dim:#6b6a66; --dbt-line:#b8b5ae; --dbt-rule:#e6e4df;
+    --dbt-store:#ecebe7; --dbt-blue:#2f6fd6; --dbt-orange:#c25e00; --dbt-on:#fff4e0;
+    color:var(--dbt-fg); background:var(--dbt-bg); color-scheme:light dark;
+    font-family:inherit; font-size:15px; line-height:1.55;
+    margin:2rem 0; padding:16px; border:1px solid var(--dbt-rule); border-radius:12px;
+  }
+  @media (prefers-color-scheme: dark){
+    .dbt{
+      --dbt-bg:#1a1a18; --dbt-fg:#e8e6df; --dbt-dim:#a8a69e; --dbt-line:#5c5b55; --dbt-rule:#33322e;
+      --dbt-store:#2a2926; --dbt-blue:#6fa0f0; --dbt-orange:#f0913a; --dbt-on:#3a2f1c;
+    }
+  }
+  .dbt *{box-sizing:border-box}
+  .dbt-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .dbt-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+  .dbt-btn{font:inherit;font-size:14px;padding:5px 12px;border:1px solid var(--dbt-line);
+    background:transparent;color:var(--dbt-fg);border-radius:8px;cursor:pointer}
+  .dbt-btn:hover:not(:disabled){border-color:var(--dbt-fg)}
+  .dbt-btn:disabled{opacity:.35;cursor:default}
+  .dbt-btn[aria-pressed="true"]{background:var(--dbt-fg);color:var(--dbt-bg);border-color:var(--dbt-fg)}
+  .dbt-btn:focus-visible{outline:2px solid var(--dbt-blue);outline-offset:2px}
+  .dbt-gap{flex:0 0 12px}
+  .dbt-count{font-size:14px;color:var(--dbt-dim)}
+  .dbt-sum{font-size:13px;color:var(--dbt-dim);margin:0 0 6px}
+  .dbt-desc{min-height:4.8em;margin:0 0 10px}
+  .dbt-fig{overflow-x:auto}
+  .dbt-fig svg{display:block;width:100%;min-width:560px;height:auto;font-family:inherit}
+  .dbt-box{fill:var(--dbt-bg);stroke:var(--dbt-line);stroke-width:1.25}
+  .dbt-box.store{fill:var(--dbt-store)}
+  .dbt-box.cc{fill:var(--dbt-store);stroke-dasharray:4 3}
+  .dbt-box.on{fill:var(--dbt-on);stroke:var(--dbt-fg);stroke-width:2}
+  .dbt-lbl{fill:var(--dbt-fg);font-size:11.5px}
+  .dbt-sub{fill:var(--dbt-dim);font-size:9.5px}
+  .dbt-cut{stroke-width:2.5}
+  .dbt-cut.b{stroke:var(--dbt-blue)}
+  .dbt-cut.o{stroke:var(--dbt-orange);stroke-dasharray:5 3}
+  .dbt-cutlbl{font-size:10px}
+  .dbt-cutlbl.b{fill:var(--dbt-blue)}
+  .dbt-cutlbl.o{fill:var(--dbt-orange)}
+  .dbt-ar{fill:none;stroke-width:1.75}
+  .dbt-ar.f{stroke:var(--dbt-fg)}
+  .dbt-ar.b{stroke:var(--dbt-blue)}
+  .dbt-ar.o{stroke:var(--dbt-orange)}
+  .dbt-ar.old{opacity:.22}
+  .dbt-mk.f{fill:var(--dbt-fg)} .dbt-mk.b{fill:var(--dbt-blue)} .dbt-mk.o{fill:var(--dbt-orange)}
+  .dbt-key{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--dbt-dim);margin-top:8px}
+  .dbt-key i{display:inline-block;width:22px;height:0;border-top:2.5px solid;vertical-align:middle;margin-right:6px}
+  </style>
+
+  <p class="dbt-sr">Interactive step-through of one write and one read in six database designs, showing where each request crosses between nodes and where it is copied to replicas.</p>
+
+  <div class="dbt-bar" id="dbt-presets" role="group" aria-label="Design"></div>
+  <div class="dbt-bar">
+    <span role="group" aria-label="Request" id="dbt-kinds" style="display:flex;gap:8px"></span>
+    <span class="dbt-gap"></span>
+    <button class="dbt-btn" id="dbt-prev" aria-label="Back">&lt;</button>
+    <button class="dbt-btn" id="dbt-next" aria-label="Step">&gt;</button>
+    <span class="dbt-count" id="dbt-count"></span>
+  </div>
+  <p class="dbt-sum" id="dbt-sum"></p>
+  <p class="dbt-desc" id="dbt-desc" aria-live="polite"></p>
+  <div class="dbt-fig" id="dbt-fig"></div>
+  <div class="dbt-key">
+    <span><i style="color:var(--dbt-blue)"></i>coupling point: crosses between nodes</span>
+    <span><i style="color:var(--dbt-orange);border-top-style:dashed"></i>copy point: ships to replicas</span>
+    <span><i style="color:var(--dbt-fg)"></i>within one node</span>
+  </div>
+</div>
+
+<script>
+(function(){
+  var root = document.getElementById('dbt');
+  if (!root || root.dataset.ready) return;
+  root.dataset.ready = '1';
+
+  var NS = 'http://www.w3.org/2000/svg';
+  var W = 680, M = 10, PAD = 11, TOP = 12, RH = 74, BH = 34;
+
+  // Box: [id, label, col, row, span, sub, style]. Columns may be fractional.
+  function stack(prefix, col, sub, rows){
+    return rows.map(function(r){ return [prefix + '.' + r[0], r[1], col, r[2], 1, r[3] || (r[0] === 'sql' ? sub : ''), r[4] || '']; });
+  }
+  var STD = [['sql','SQL',1],['am','Access methods',2],['bp','Buffer pool',3],['disk','Disk',4,'','store']];
+
+  var PRESETS = [
+    {
+      name: 'Postgres + replicas', cols: 3,
+      sum: 'Couples: nowhere. Copies: below the buffer pool (WAL). Concurrency control: on the primary.',
+      boxes: [['app','Application',0,0,3]]
+        .concat(stack('P',0,'primary',STD), stack('A',1,'replica',STD), stack('B',2,'replica',STD)),
+      cuts: [{k:'o', after:3, label:'WAL: page changes'}],
+      write: [
+        {d:'The app sends an UPDATE to the primary. Only the primary takes writes; the replicas reject them.', on:['P.sql'], a:[['app','P.sql','f']]},
+        {d:'The primary takes row locks and runs the update. The access methods change heap and index pages in its buffer pool.', on:['P.sql','P.am','P.bp'], a:[['P.sql','P.am','f'],['P.am','P.bp','f']]},
+        {d:'At commit, the primary flushes the WAL to its own disk. The write is now durable on this node. Dirty pages go to disk later.', on:['P.disk'], a:[['P.bp','P.disk','f']]},
+        {d:'The WAL streams to each replica. This is the copy point: a physical log of page changes, cut below the buffer pool.', on:['A.disk','B.disk'], a:[['P.bp','A.disk','o','o'],['P.bp','B.disk','o','o']]},
+        {d:'Each replica replays the WAL into its own pages. By default the primary commits without waiting for them. With synchronous replication, it waits until a replica confirms it has the WAL.', on:['A.disk','B.disk'], a:[]}
+      ],
+      read: [
+        {d:'The app sends a SELECT to replica 2. Any node can serve reads.', on:['B.sql'], a:[['app','B.sql','f']]},
+        {d:'The replica runs the query through its own SQL engine, access methods, and buffer pool. None of this involves the primary.', on:['B.sql','B.am','B.bp'], a:[['B.sql','B.am','f'],['B.am','B.bp','f']]},
+        {d:'The replica answers from what it has replayed so far, up to some log position (LSN). If it lags, the read is stale. To read its own write, the app waits until the replica has replayed past that commit’s LSN, or asks the primary.', on:['B.bp'], a:[]}
+      ]
+    },
+    {
+      name: 'Vitess', cols: 4,
+      sum: 'Couples: above SQL (statements). Copies: below SQL, per shard (binlog). Concurrency control: per shard primary.',
+      boxes: [['app','App + router (VTGate)',0,0,4]]
+        .concat(stack('S1',0,'shard 1 primary',STD), stack('R1',1,'shard 1 replica',STD),
+                stack('S2',2,'shard 2 primary',STD), stack('R2',3,'shard 2 replica',STD)),
+      cuts: [{k:'b', after:0, label:'SQL statements'}, {k:'o', after:1, label:'binlog: row changes'}],
+      write: [
+        {d:'The app sends UPDATE … WHERE user_id = 42 to the router.', on:['app'], a:[]},
+        {d:'The router hashes the shard key and forwards the statement to shard 1’s primary. This is the coupling point: SQL statements cross between nodes.', on:['S1.sql'], a:[['app','S1.sql','b']]},
+        {d:'Shard 1’s primary locks the row and runs the update, exactly as a standalone MySQL would. Shard 2 never hears about it.', on:['S1.sql','S1.am','S1.bp','S1.disk'], a:[['S1.sql','S1.am','f'],['S1.am','S1.bp','f'],['S1.bp','S1.disk','f']]},
+        {d:'At commit, the primary writes the binlog: the committed row changes. It streams to shard 1’s replica. This is the copy point: a logical log, cut below SQL.', on:['R1.am'], a:[['S1.sql','R1.am','o','o']]},
+        {d:'The replica applies the row changes through its own access methods and builds its own pages. With semi-synchronous replication, the primary waits until the replica has received the change before it confirms the commit. A transaction across both shards is the application’s problem.', on:['R1.am','R1.bp','R1.disk'], a:[['R1.am','R1.bp','f'],['R1.bp','R1.disk','f']]}
+      ],
+      read: [
+        {d:'The app sends SELECT … WHERE user_id = 42 to the router, and asks for a replica read.', on:['app'], a:[]},
+        {d:'The router sends it to shard 1’s replica.', on:['R1.sql'], a:[['app','R1.sql','b']]},
+        {d:'The replica runs the query against its own copy of shard 1. Like a Postgres replica, it may lag behind its primary.', on:['R1.sql','R1.am','R1.bp'], a:[['R1.sql','R1.am','f'],['R1.am','R1.bp','f']]}
+      ]
+    },
+    {
+      name: 'CockroachDB', cols: 3,
+      sum: 'Couples: below SQL (key-value reads and writes). Copies: at the same joint, per range (Raft log). Concurrency control: at each range’s leaseholder.',
+      boxes: [['app','Application',0,0,3]]
+        .concat(stack('N1',0,'node 1',[['sql','SQL',1],['am','Range a–m',2,'leaseholder'],['bp','Cache',3],['disk','Disk',4,'','store']]),
+                stack('N2',1,'node 2',[['sql','SQL',1],['am','Range a–m',2,'follower'],['bp','Cache',3],['disk','Disk',4,'','store']]),
+                stack('N3',2,'node 3',[['sql','SQL',1],['am','Range a–m',2,'follower'],['bp','Cache',3],['disk','Disk',4,'','store']])),
+      cuts: [{k:'b', after:1, label:'KV reads and writes', off:-3}, {k:'o', after:1, label:'Raft log', off:3}],
+      write: [
+        {d:'The app sends UPDATE … WHERE id = ‘k’ to any node, here node 3. Every node runs SQL over the whole database.', on:['N3.sql'], a:[['app','N3.sql','f']]},
+        {d:'Node 3 plans the query and sends a key-value write for k to the leaseholder of range a–m, on node 1. This is the coupling point.', on:['N1.am'], a:[['N3.sql','N1.am','b','b']]},
+        {d:'The leaseholder writes an intent on k: a provisional value that blocks other writers. Concurrency control runs here, at the owner of the key, so every writer meets the same check.', on:['N1.am'], sub:{'N1.am':'leaseholder · intent on k'}, a:[]},
+        {d:'The leaseholder proposes the intent to the range’s Raft group, and the Raft log ships it to the followers. The copy point sits at the same joint as the coupling point.', on:['N2.am','N3.am'], a:[['N1.am','N2.am','o','o'],['N1.am','N3.am','o','o']]},
+        {d:'Once a majority, two of three, has the entry, it is durable. Each replica applies it to its own storage engine. At commit, the transaction record is marked committed and the intent becomes a plain value.', on:['N1.am','N2.am','N3.am','N1.disk','N2.disk','N3.disk'], sub:{'N1.am':'leaseholder'}, a:[['N1.am','N1.bp','f'],['N2.am','N2.bp','f'],['N3.am','N3.bp','f'],['N1.bp','N1.disk','f'],['N2.bp','N2.disk','f'],['N3.bp','N3.disk','f']]}
+      ],
+      read: [
+        {d:'The app sends SELECT … WHERE id = ‘k’ to node 2.', on:['N2.sql'], a:[['app','N2.sql','f']]},
+        {d:'Node 2 sends a key-value read to the leaseholder on node 1. Every write to the range passed through the leaseholder, so it can serve a consistent read.', on:['N1.am'], a:[['N2.sql','N1.am','b','b']]},
+        {d:'The leaseholder reads k from its cache, or from disk on a miss.', on:['N1.bp'], a:[['N1.am','N1.bp','f']]},
+        {d:'Alternatively, a follower read at a timestamp a few seconds old can stay on node 2. Node 2’s replica answers once it knows it has applied every write up to that timestamp.', on:['N2.am'], a:[['N2.sql','N2.am','f']]}
+      ]
+    },
+    {
+      name: 'DSQL', cols: 5,
+      sum: 'Couples: below SQL (row reads; write sets at commit). Copies: below the journal (write sets). Concurrency control: adjudicators, at commit.',
+      boxes: [
+        ['app','Application',0,0,4],
+        ['Q1','Query processor 1',0,1,2],['Q2','Query processor 2',2,1,2],
+        ['adj','Adjudicators',4,2,1,'own key ranges','cc'],['jr','Journal',4,3,1,'across zones','store'],
+        ['Sa1','Storage a–m',0,4,1,'replica 1','store'],['Sa2','Storage a–m',1,4,1,'replica 2','store'],
+        ['Sn1','Storage n–z',2,4,1,'replica 1','store'],['Sn2','Storage n–z',3,4,1,'replica 2','store']
+      ],
+      cuts: [{k:'b', after:1, label:'row reads; write sets'}, {k:'o', after:3, label:'journal: write sets'}],
+      write: [
+        {d:'The app starts a transaction on query processor 1 and updates k.', on:['Q1'], a:[['app','Q1','f']]},
+        {d:'To run the update, query processor 1 reads k straight from storage, as of the transaction’s start time. No lock is taken anywhere.', on:['Sa1'], a:[['Q1','Sa1','b','b']]},
+        {d:'Query processor 1 keeps the new value in memory. Nothing leaves it until commit.', on:['Q1'], sub:{'Q1':'write set: k'}, a:[]},
+        {d:'At commit, it sends the write set to the adjudicator for k’s range, which asks: has anyone committed a write to k since this transaction started? If so, it aborts. Concurrency control sits below the coupling point, so any query processor can write.', on:['adj'], a:[['Q1','adj','b','b']]},
+        {d:'The adjudicator approves, and the write set goes to the journal. Appending to the journal is the commit.', on:['jr'], sub:{'Q1':''}, a:[['adj','jr','f']]},
+        {d:'Both storage replicas for a–m read the journal and apply the write set. This is the copy point: a logical log of committed write sets.', on:['Sa1','Sa2'], a:[['jr','Sa1','o','o'],['jr','Sa2','o','o']]}
+      ],
+      read: [
+        {d:'The app runs a SELECT on query processor 2, which picks a read timestamp: now.', on:['Q2'], a:[['app','Q2','f']]},
+        {d:'Query processor 2 asks a storage replica of a–m for rows as of that timestamp. Storage can run filters next to the data.', on:['Sa2'], a:[['Q2','Sa2','b','b']]},
+        {d:'The replica answers once it has applied the journal up to that timestamp. If it is behind, it waits. Reads take no locks and never reach the adjudicators.', on:['Sa2'], a:[]}
+      ]
+    },
+    {
+      name: 'Aurora', cols: 2,
+      sum: 'Couples: below the buffer pool (redo down, pages up). Copies: at the same joint (redo, 4 of 6). Concurrency control: on the one writer.',
+      boxes: [['app','Application',0,0,2]]
+        .concat(stack('W',0,'writer',STD.slice(0,3)), stack('R',1,'read replica',STD.slice(0,3)),
+                [['za','Storage',0,4,2/3,'zone a: 2 copies','store'],['zb','Storage',2/3,4,2/3,'zone b: 2 copies','store'],['zc','Storage',4/3,4,2/3,'zone c: 2 copies','store']]),
+      cuts: [{k:'b', after:3, label:'redo down, pages up', off:-3}, {k:'o', after:3, label:'redo, 4 of 6', off:3}],
+      write: [
+        {d:'The app sends an UPDATE to the writer. Read replicas don’t take writes.', on:['W.sql'], a:[['app','W.sql','f']]},
+        {d:'The writer takes row locks and runs the update. Pages change in its buffer pool.', on:['W.sql','W.am','W.bp'], a:[['W.sql','W.am','f'],['W.am','W.bp','f']]},
+        {d:'The writer sends redo records, never pages, to six storage copies across three zones. Coupling point and copy point fall at the same joint.', on:['za','zb','zc'], a:[['W.bp','za','o','o'],['W.bp','zb','o','o'],['W.bp','zc','o','o']]},
+        {d:'The commit is durable once four of six copies acknowledge. Storage builds new page versions from the redo on its own, so the writer never writes a page.', on:['za','zb','zc'], a:[]},
+        {d:'The writer also streams redo to each read replica, which applies it to pages already in its cache and drops the rest. This keeps the cache fresh. It is not a copy of the data.', on:['R.bp'], a:[['W.bp','R.bp','b']]}
+      ],
+      read: [
+        {d:'The app sends a SELECT to the read replica.', on:['R.sql'], a:[['app','R.sql','f']]},
+        {d:'On a cache hit, the replica answers from its buffer pool, with no storage traffic.', on:['R.sql','R.am','R.bp'], a:[['R.sql','R.am','f'],['R.am','R.bp','f']]},
+        {d:'On a miss, it asks shared storage for the page as of the log position (LSN) it has applied, so the page matches the rest of its cache. The replica holds no data of its own.', on:['zb'], a:[['R.bp','zb','b','b']]}
+      ]
+    },
+    {
+      name: 'Calvin', cols: 4,
+      sum: 'Copies: above SQL (input log of transactions). Couples: below that, within each replica. Concurrency control: deterministic locks, in log order.',
+      boxes: [
+        ['app','Application',0,0,4],
+        ['Q1','Sequencer',0.5,1,1,'replica 1'],['Q2','Sequencer',2.5,1,1,'replica 2'],
+        ['L11','Scheduler',0,2,1,'locks, partition 1','cc'],['L12','Scheduler',1,2,1,'locks, partition 2','cc'],
+        ['L21','Scheduler',2,2,1,'locks, partition 1','cc'],['L22','Scheduler',3,2,1,'locks, partition 2','cc'],
+        ['E11','Executor',0,3,1,'partition 1'],['E12','Executor',1,3,1,'partition 2'],
+        ['E21','Executor',2,3,1,'partition 1'],['E22','Executor',3,3,1,'partition 2'],
+        ['D11','Storage',0,4,1,'x','store'],['D12','Storage',1,4,1,'y','store'],
+        ['D21','Storage',2,4,1,'x','store'],['D22','Storage',3,4,1,'y','store']
+      ],
+      cuts: [{k:'o', after:1, label:'input log: transactions', off:-3}, {k:'b', after:1, label:'transactions, by partition', off:3}],
+      write: [
+        {d:'The app sends a transaction to replica 1’s sequencer: move 10 from x, on partition 1, to y, on partition 2. The transaction must declare up front which keys it touches.', on:['Q1'], a:[['app','Q1','f']]},
+        {d:'The sequencer adds it to the current 10 ms batch and replicates the batch to replica 2. This is the copy point, above SQL. Once replicated, the transaction is committed: it will run, though nothing has run yet.', on:['Q2'], a:[['Q1','Q2','o']]},
+        {d:'In each replica, the batch goes to the partitions the transaction touches. Each scheduler locks its key in log order. Every replica takes the same locks in the same order.', on:['L11','L12','L21','L22'], a:[['Q1','L11','b','b'],['Q1','L12','b','b'],['Q2','L21','b','b'],['Q2','L22','b','b']]},
+        {d:'Each partition reads its own key and sends it to the other, so both have every input. This exchange is where partitions couple.', on:['E11','E12','E21','E22'], a:[['L11','E11','f'],['L12','E12','f'],['L21','E21','f'],['L22','E22','f'],['E11','E12','b',null,true],['E21','E22','b',null,true]]},
+        {d:'Each partition computes the same result and writes its own key. Replica 2 did all the same work: every replica runs every transaction. That only works because execution is deterministic.', on:['D11','D12','D21','D22'], a:[['E11','D11','f'],['E12','D12','f'],['E21','D21','f'],['E22','D22','f']]}
+      ],
+      read: [
+        {d:'In Calvin’s basic design, a read-only transaction goes through the sequencer like any other, so it gets a place in the log.', on:['Q1'], a:[['app','Q1','f']]},
+        {d:'Its batch is replicated, and the scheduler for x takes a read lock in log order, after every earlier transaction that writes x.', on:['Q2','L11'], a:[['Q1','Q2','o'],['Q1','L11','b','b']]},
+        {d:'The executor reads x. Every replica has applied the same log prefix, so any replica gives the same answer at the same point in the log.', on:['E11','D11'], a:[['L11','E11','f'],['E11','D11','f']]}
+      ]
+    }
+  ];
+
+  var $ = function(id){ return document.getElementById(id); };
+  var fig = $('dbt-fig'), desc = $('dbt-desc'), sum = $('dbt-sum'), count = $('dbt-count');
+  var prev = $('dbt-prev'), next = $('dbt-next');
+  var cur = 0, kind = 'write', step = 0, geo = null;
+
+  function el(name, attrs, parent){
+    var e = document.createElementNS(NS, name);
+    for (var k in attrs) if (attrs[k] !== null && attrs[k] !== undefined) e.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(e);
+    return e;
+  }
+  function txt(parent, x, y, s, cls, anchor){
+    var t = el('text', {x:x, y:y, 'class':cls, 'text-anchor':anchor || 'middle'}, parent);
+    t.textContent = s;
+    return t;
+  }
+
+  function cutY(p, c){
+    return TOP + c.after * RH + BH + (RH - BH) / 2 + (c.off || 0);
+  }
+
+  function layout(p){
+    var colW = (W - 2 * M) / p.cols, boxes = {};
+    p.boxes.forEach(function(b){
+      var x = M + b[2] * colW + PAD, y = TOP + b[3] * RH;
+      boxes[b[0]] = {x:x, y:y, w:b[4] * colW - 2 * PAD, h:BH, label:b[1], sub:b[5] || '', style:b[6] || ''};
+    });
+    return {boxes:boxes, h:TOP + 4 * RH + BH + 12};
+  }
+
+  function center(b){ return [b.x + b.w / 2, b.y + b.h / 2]; }
+  function clip(b, dx, dy){
+    var t = Math.min(dx ? (b.w / 2) / Math.abs(dx) : Infinity, dy ? (b.h / 2) / Math.abs(dy) : Infinity);
+    var c = center(b);
+    return [c[0] + dx * t, c[1] + dy * t];
+  }
+
+  function path(a){
+    var f = geo.boxes[a[0]], t = geo.boxes[a[1]], bus = a[3];
+    if (bus){
+      // Drop through the cut lines, then run sideways just above the target, so the arrow
+      // visibly crosses the cut and its horizontal leg never hides behind a line or a box.
+      var y = t.y - 12, fx = center(f)[0], tx = center(t)[0];
+      var fy = y > f.y ? f.y + f.h : f.y;
+      return 'M' + fx + ' ' + fy + 'V' + y + 'H' + tx + 'V' + (t.y - 2);
+    }
+    var cf = center(f), ct = center(t), dx = ct[0] - cf[0], dy = ct[1] - cf[1];
+    var s = clip(f, dx, dy), e = clip(t, -dx, -dy), n = Math.hypot(dx, dy);
+    return 'M' + s[0] + ' ' + s[1] + 'L' + (e[0] - 2 * dx / n) + ' ' + (e[1] - 2 * dy / n);
+  }
+
+  function steps(){ return PRESETS[cur][kind]; }
+
+  function render(){
+    var p = PRESETS[cur], S = steps();
+    geo = layout(p);
+    count.textContent = 'Step ' + step + ' of ' + S.length;
+    sum.textContent = p.sum;
+    desc.textContent = step === 0
+      ? 'Press >, or the right arrow key, to follow ' + (kind === 'write' ? 'a read-write' : 'a read-only') + ' transaction through ' + p.name + '.'
+      : S[step - 1].d;
+    prev.disabled = step === 0;
+    next.disabled = step === S.length;
+
+    var subs = {}, on = step ? S[step - 1].on : [];
+    for (var i = 0; i < step; i++) for (var k in (S[i].sub || {})) subs[k] = S[i].sub[k];
+
+    fig.textContent = '';
+    var svg = el('svg', {viewBox:'0 0 ' + W + ' ' + geo.h, role:'img', 'aria-label':p.name + ': ' + p.sum}, fig);
+    var defs = el('defs', {}, svg);
+    ['f','b','o'].forEach(function(c){
+      var m = el('marker', {id:'dbt-m-' + c, viewBox:'0 0 10 10', refX:8, refY:5, markerWidth:6, markerHeight:6, orient:'auto-start-reverse'}, defs);
+      el('path', {d:'M0 0L10 5L0 10z', 'class':'dbt-mk ' + c}, m);
+    });
+
+    p.cuts.forEach(function(c){
+      var y = cutY(p, c);
+      el('line', {x1:M, y1:y, x2:W - M, y2:y, 'class':'dbt-cut ' + c.k}, svg);
+      var ly = Math.min.apply(null, p.cuts.filter(function(o){ return o.after === c.after; }).map(function(o){ return cutY(p, o); })) - 5;
+      txt(svg, c.k === 'b' ? M + 2 : W - M - 2, ly, c.label, 'dbt-cutlbl ' + c.k, c.k === 'b' ? 'start' : 'end');
+    });
+
+    Object.keys(geo.boxes).forEach(function(id){
+      var b = geo.boxes[id], sub = id in subs ? subs[id] : b.sub;
+      el('rect', {x:b.x, y:b.y, width:b.w, height:b.h, rx:4, 'class':'dbt-box ' + b.style + (on.indexOf(id) >= 0 ? ' on' : '')}, svg);
+      txt(svg, b.x + b.w / 2, b.y + (sub ? 15 : 21), b.label, 'dbt-lbl');
+      if (sub) txt(svg, b.x + b.w / 2, b.y + 28, sub, 'dbt-sub');
+    });
+
+    for (var j = 0; j < step; j++){
+      S[j].a.forEach(function(a){
+        el('path', {d:path(a), 'class':'dbt-ar ' + a[2] + (j < step - 1 ? ' old' : ''),
+          'marker-end':'url(#dbt-m-' + a[2] + ')', 'marker-start':a[4] ? 'url(#dbt-m-' + a[2] + ')' : null}, svg);
+      });
+    }
+  }
+
+  function buttons(container, items, isOn, onClick){
+    container.textContent = '';
+    items.forEach(function(it, n){
+      var b = document.createElement('button');
+      b.className = 'dbt-btn';
+      b.textContent = it;
+      b.setAttribute('aria-pressed', isOn(n) ? 'true' : 'false');
+      b.onclick = function(){ onClick(n); };
+      container.appendChild(b);
+    });
+  }
+  function controls(){
+    buttons($('dbt-presets'), PRESETS.map(function(p){ return p.name; }), function(n){ return n === cur; },
+      function(n){ cur = n; step = 0; controls(); });
+    buttons($('dbt-kinds'), ['Read-write tx', 'Read-only tx'], function(n){ return (n === 0) === (kind === 'write'); },
+      function(n){ kind = n === 0 ? 'write' : 'read'; step = 0; controls(); });
+    render();
+  }
+
+  function go(n){ if (n >= 0 && n <= steps().length){ step = n; render(); } }
+  prev.onclick = function(){ go(step - 1); };
+  next.onclick = function(){ go(step + 1); };
+  root.tabIndex = 0;
+  root.addEventListener('keydown', function(e){
+    if (e.key === 'ArrowRight'){ go(step + 1); e.preventDefault(); }
+    if (e.key === 'ArrowLeft'){ go(step - 1); e.preventDefault(); }
+  });
+
+  controls();
+})();
+</script>
