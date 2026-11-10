@@ -9,30 +9,32 @@ date:   2026-11-01
   - [1. Distribution: where nodes couple](#1-distribution-where-nodes-couple)
   - [2. Concurrency control: who may write a row](#2-concurrency-control-who-may-write-a-row)
   - [3. Replication: where data is copied](#3-replication-where-data-is-copied)
-- [Disaggregation up close](#disaggregation-up-close)
+- [Three designs up close](#three-designs-up-close)
   - [Aurora: the log is the database](#aurora-the-log-is-the-database)
   - [DSQL: every layer its own fleet](#dsql-every-layer-its-own-fleet)
+  - [Calvin: the log comes first](#calvin-the-log-comes-first)
 - [What no cut removes](#what-no-cut-removes)
 - [References](#references)
 - [Appendix: every system in one table](#appendix-every-system-in-one-table)
 
 ## The engine and its joints
 
-Plato's advice for dividing anything was to carve it at its joints, where it already comes apart. A database engine has a few such joints, and every way of scaling a relational database cuts at them. Stack the engine's parts by what crosses each interface, from SQL statements at the top to disk blocks at the bottom:
-
-- **SQL:** parse, plan, and execute queries. The executor asks for rows.
-- **Access methods:** tables and indexes, stored as heaps, B-trees, or LSM trees. They turn a request for a row or a key into reads and writes of pages, and each change to a page also produces a log record.
-- **Buffer pool:** hot pages in RAM, the buffer manager's cache.
-- **Log:** the recovery log, kept beside the buffer pool. A commit is durable once its records are on disk. What the log holds depends on the design; [Database caches](/programming/db-caches.html#when-the-cache-holds-writes) covers it.
-- **Disk:** blocks that hold the data files and the log files.
-
-Below the access methods, the stack splits into two paths. A read takes only the page path: the buffer pool serves the page, or reads it from the data files on a miss. A write takes both. The access method changes the page in the buffer pool and appends a record of the change to the log at the same time. Each then reaches disk on its own schedule: the log at commit, and the page later, when the buffer pool evicts it or a checkpoint writes it out. The two paths meet at one rule, write-ahead logging. Before the buffer pool writes a dirty page, it asks the log to flush up to the page's log sequence number (LSN). So the log never sits between the buffer pool and the disk, but it is the truth. After a crash, recovery rebuilds pages from the last checkpoint plus the log, so the data files are a copy derived from it. [Aurora](#aurora-the-log-is-the-database) takes this literally: it drops the page path and never writes data pages at all.
-
-Concurrency control doesn't fit on either path. The executor and the access methods both call the lock manager, the access methods keep MVCC versions inside pages, and a commit goes through the log. So the figure draws it beside the stack, linked to those three.
+Plato's advice for dividing anything was to carve it at its joints, where it already comes apart. A database engine has a few such joints, and every way of scaling a relational database cuts at them.
 
 ![One engine: the buffer pool and the log side by side above the disk, with what crosses each interface](/assets/db-cuts/01-engine-stack.svg)
 
-Each interface is a joint: a place to cut the engine. Once it is cut, what crosses the joint is what each network call carries. Few designs cut between the access methods and the buffer pool, because a B-tree lookup touches several pages one after another, and each would cost a round trip. Research systems such as FaRM and ScaleStore cut there anyway, over fast RDMA networks.
+The figure stacks the engine's parts by what crosses each interface, from SQL statements at the top to disk blocks at the bottom:[^hellerstein]
+
+- **SQL:** parse, plan, and execute queries. The executor asks for rows.
+- **Access methods:** tables and indexes, stored as heaps, B-trees, or LSM trees. They turn a request for a row or a key into reads and writes of pages. Each change to a page also produces a log record.
+- **Buffer pool:** hot pages in RAM. Reads stop here, or go to the data files on a miss. Before it writes a dirty page back, the buffer pool flushes the log up to that page's log sequence number (LSN). This rule is write-ahead logging.
+- **Log:** the recovery log, kept beside the buffer pool. A commit is durable once its records are on disk. After a crash, recovery rebuilds pages from the log, so the log is the truth and the data files are a copy. [Aurora](#aurora-the-log-is-the-database) takes this literally and never writes data pages at all. Depending on the design, the log holds redo records, undo records, or both.
+- **Disk:** blocks that hold the data files and the log files.
+- **Concurrency control:** locks, MVCC versions, and the commit. It sits beside the stack because the executor, the access methods, and the log all take part in it.
+
+[^hellerstein]: Hellerstein, Stonebraker, and Hamilton's [Architecture of a Database System][hellerstein-arch] (2007) draws the main components as blocks, not as a stack. Its Figure 1.1 puts the access methods, buffer manager, lock manager, and log manager side by side in one transactional storage manager, next to a process manager and shared utilities. This post orders the parts in a line for simplicity, so that each interface is one place to cut. Process management and the shared utilities don't change where a design cuts, so the figure leaves them out.
+
+Each interface is a joint: a place to cut the engine. Once it is cut, what crosses the joint is what each network call carries. Few designs cut between the access methods and the buffer pool, because a B-tree lookup touches several pages one after another, and each would cost a round trip. Research systems such as NAM-DB and Sherman cut there anyway, over fast RDMA networks.
 
 Designs scale out in one of two styles. Most run the whole engine on many nodes and connect them at one joint. Others pull the layers below a joint out into shared services that scale on their own, which is called disaggregation. Aurora pulls out the log and the disk. DSQL pulls out everything below SQL, and concurrency control with it.
 
@@ -48,7 +50,7 @@ What crosses each chosen joint decides what the design pays. The map below draws
 
 ![Seven designs in four families, as side-by-side node stacks: where each couples nodes, where each copies data, and where concurrency control sits](/assets/db-cuts/03-couple-and-copy.svg)
 
-The subsections below take the decisions in order. [Disaggregation up close](#disaggregation-up-close) then applies all three to Aurora and DSQL.
+The subsections below take the decisions in order. [Three designs up close](#three-designs-up-close) then applies all three to Aurora, DSQL, and Calvin.
 
 ### 1. Distribution: where nodes couple
 
@@ -72,7 +74,7 @@ The classic names for coupling points are shared memory, shared disk, and shared
 
 **Shared disk** cuts below the buffer pool and the log. The two designs differ in what crosses the joint, and so in how many writers there can be.
 
-- **Coherent caches.** The buffer pools also talk to each other. Every node runs SQL, access methods, a buffer pool, and its own log over the whole database, and all of them read and write one set of shared volumes. The hard part is keeping the buffer pools coherent and the locks global. This is data shipping: pages and lock messages cross between nodes. Oracle RAC (Cache Fusion) and Db2 pureScale are the long-lived examples.
+- **Coherent caches.** The buffer pools also talk to each other. Every node runs SQL, access methods, a buffer pool, and its own log over the whole database, and all of them read and write one set of shared volumes. The hard part is keeping the buffer pools coherent and the locks global. This is data shipping: pages and lock messages cross between nodes. Oracle RAC (Cache Fusion) and Db2 pureScale are the long-lived examples. ScaleStore, a research system, keeps buffer pools coherent the same way, over RDMA and without shared disk.
 - **Log-based storage.** The log is the interface. The writer sends redo records to a storage service, and storage sends pages back on a miss. Aurora, Neon, Azure SQL Hyperscale, and AlloyDB work this way, each with one writer. [Aurora](#aurora-the-log-is-the-database) shows why.
 
 No design removes the cost of coordination; each chooses where to pay it.
@@ -110,7 +112,7 @@ DSQL and CockroachDB share a column: both cut at the same joint, below SQL, and 
 
 The copy point is where the data is copied, so it survives a lost machine. Below it, every layer exists once per replica. Layers above it can run on each replica too, as a Postgres standby runs its own buffer pool and SQL engine, but nothing is copied into them: each replica rebuilds them from the layers below. Only the log and the data files need a copy point. A cache that dies with its machine costs speed, not data.
 
-The coupling point and the copy point are independent. Oracle RAC couples at its buffer pools and its disk, and copies at the disk by mirroring its shared volumes. A single primary with read replicas never couples writers at all, but it still copies its log.
+The coupling point and the copy point are independent. Oracle RAC couples at its buffer pools and its disk, and copies at the disk by mirroring its shared volumes. A single primary with read replicas never couples writers at all, but it still copies its log. Most designs copy at or below where they couple, because a replica can only copy what one owner has already decided. Above the coupling point, no single node decides the result: it depends on data that other nodes hold. [Calvin][calvin] copies there anyway. It copies its input log above SQL, while its partitions couple lower down, by sending each other the rows a transaction reads. That works only because every replica reaches the same result on its own, as the command log below explains.
 
 The kind of log a design copies sets the height of its copy point. A physical log describes changes to pages. It copies below the buffer pool, and each replica's pages mirror the primary's. A logical log describes changes to rows or keys. It copies above the access methods, so each replica runs its own access methods and builds its own pages. A command log describes the transactions themselves, before they run. It copies above SQL, so each replica executes every transaction again.
 
@@ -125,17 +127,25 @@ The kind of log a design copies sets the height of its copy point. A physical lo
 
 A command log ties the copy point back to [concurrency control](#2-concurrency-control-who-may-write-a-row). Replicas that each execute the same transactions must reach the same result. So concurrency control must be deterministic: replicas agree on an order first, then execute in that order. Row-level locks and MVCC let each replica decide on its own, so they don't fit.
 
-## Disaggregation up close
+[Alex Miller][miller-decomposing] gives another way to see this. He splits every transaction into four steps: execute, order, validate, and persist. Systems differ in the order they run them. This post asks where each step runs instead. Distribution places execution, concurrency control places ordering and validation, and replication places persistence. The two views meet at the copy point. Every step that comes after persist runs again on each replica, so where persist falls in time sets how high the copy point sits in the stack. Aurora persists after execution, so its replicas only build pages. Calvin persists before execution, so every replica runs every transaction.
 
-Aurora and DSQL are the two designs here that pull layers out of the engine into shared services. Aurora pulls out the log and the disk, and keeps one writer. DSQL pulls out everything below SQL, and lets any node write. Why each ends up where it does says what disaggregation can and cannot remove.
+## Three designs up close
 
-I picked these two because I know them best, but neither is alone. Azure SQL Hyperscale ([Socrates][socrates]), Google's AlloyDB, and Neon have Aurora's shape: one writer over shared, log-based storage. Socrates and Neon go one step further and split the log service from the page servers. FoundationDB has DSQL's shape, as a key-value store without SQL on top.
+Aurora, DSQL, and Calvin each pull layers out of the engine into services of their own. They differ most in where they put the log:
+
+- **Aurora** puts it at the bottom: redo records, written after the writer runs the transaction. It keeps one writer.
+- **DSQL** puts it in the middle: write sets, written once the adjudicators approve them. Any node may write.
+- **Calvin** puts it at the top: transaction inputs, written before anything runs. Any node may write, and conflicts make transactions wait instead of abort.
+
+Each design gets a chart that shows both views from [replication](#3-replication-where-data-is-copied). Across is time: Miller's four steps, in that design's order. Down is space: the layer that runs each step. The orange line is the copy point, and the shaded area holds the steps that every replica repeats.
+
+I picked Aurora and DSQL because I know them best, and Calvin because no other design here puts the log above execution. None of them is alone. Azure SQL Hyperscale ([Socrates][socrates]), Google's AlloyDB, and Neon have Aurora's shape: one writer over shared, log-based storage. Socrates and Neon go one step further and split the log service from the page servers. FoundationDB has DSQL's shape, as a key-value store without SQL on top. VoltDB, like Calvin, replicates transactions rather than their results.
 
 ### Aurora: the log is the database
 
 Aurora keeps a single writer running the full SQL and transaction engine, but moves logging and page storage into a shared, quorum-replicated service. The writer sends storage only redo records, never pages.
 
-![Aurora: one writer, shared log-structured storage, caches on the boundary](/assets/db-cuts/05-aurora.svg)
+![Aurora's steps over time and across layers: the one writer executes and orders; storage persists redo below the buffer pools and builds pages; read replicas apply the redo stream to their caches](/assets/db-cuts/05-aurora.svg)
 
 In [Werner Vogels' description][aurora-ascendant] (2019), Aurora treated caching and logging as the layers ripe for reinvention. The storage service builds page images from the log on demand, so instances never flush dirty pages. Every write goes to six copies across three AZs and succeeds once four acknowledge. Up to 15 read replicas share the same volume.
 
@@ -161,7 +171,7 @@ Limitless cuts above SQL, like [independent shards](#1-distribution-where-nodes-
 
 Aurora DSQL keeps Postgres's SQL engine but replaces everything beneath it with separately scaled services. Marc Brooker's walkthrough ([Reads and Compute][dsql-reads], [Transactions and Durability][dsql-writes]) describes each piece.
 
-![Aurora DSQL: four fleets; the accent marks where transactions coordinate](/assets/db-cuts/06-dsql-fleets.svg)
+![DSQL's steps over time and across layers: query processors execute, adjudicators validate and order, the journal persists, and each storage replica applies the write sets](/assets/db-cuts/06-dsql.svg)
 
 - **Query processors** run a customized Postgres engine. They never talk to each other, and they cache no table data, only rarely-changing metadata such as table definitions.
 - **Adjudicators** own key ranges and check each write set at commit. A transaction aborts if another one has written its keys since it started. Isolation is snapshot isolation, so write skew is possible.
@@ -169,6 +179,21 @@ Aurora DSQL keeps Postgres's SQL engine but replaces everything beneath it with 
 - **Storage** is sharded, and serves rows as of a timestamp rather than pages.
 
 **How it gets many writers.** Aurora avoids Stonebraker's three shared-disk problems by having one writer. DSQL removes each one instead. Concurrency control lives in the adjudicators, so no query processor keeps a lock table. Query processors cache no data, so there are no buffer pools to keep coherent. And the journal is the log that many writers share, built as a service that scales. The [cost table](#1-distribution-where-nodes-couple) shows the price: contention becomes aborts, and every read and commit crosses the network.
+
+### Calvin: the log comes first
+
+[Calvin][calvin] runs the steps in the opposite order from Aurora and DSQL. It agrees on the order of transactions first, makes that order durable, and only then runs them. It began as a research system, and FaunaDB later built a commercial database on its design.
+
+![Calvin's four steps over time and across layers: order and persist in the sequencer, above execution; then every replica locks, executes, and writes its own storage](/assets/db-cuts/07-calvin.svg)
+
+- **Sequencers** collect transaction requests into 10 ms batches, called epochs, and replicate each batch, by Paxos or asynchronously. Once the batch is replicated, the transaction will run: this is the commit.
+- **Schedulers**, one per partition, take the locks each transaction needs, in log order. Replicas that read the same log take the same locks in the same order.
+- **Executors** run the transaction. When it spans partitions, each partition reads its own rows and sends them to the partitions that write. Each writing partition then has every input, and computes the same result.
+- **Storage** can be any store that reads and writes by key.
+
+**How it gets many writers without aborts.** Every partition, on every replica, sees the same order. Nothing that happens after the order is fixed can change the outcome, so no partition needs to vote: there is no two-phase commit. A crashed node recovers by replaying the input log. And because locks follow the log order, contention makes transactions wait, not abort.
+
+**What it pays.** A transaction must be deterministic, and the scheduler must know which keys it will touch before it runs. When those keys depend on data, Calvin first runs a read-only query to find them, then restarts the transaction if that data has changed. This is the one case where contention costs a retry. And one slow transaction holds its locks while every later transaction that needs them waits.
 
 ## What no cut removes
 
@@ -189,6 +214,8 @@ Every design in this post pays for coordination somewhere, as the [cost table](#
 11. [The Case for Shared Nothing][stonebraker-sn] — Stonebraker, HPTS 1985; shared memory, shared disk, and shared nothing, compared on twelve points
 12. [Calvin: Fast Distributed Transactions for Partitioned Database Systems][calvin] — Thomson et al., SIGMOD 2012; deterministic ordering before execution
 13. [Socrates: The New SQL Server in the Cloud][socrates] — Antonopoulos et al., SIGMOD 2019; Azure SQL Hyperscale, with the log service apart from the page servers
+14. [Architecture of a Database System][hellerstein-arch] — Hellerstein, Stonebraker, Hamilton, Foundations and Trends in Databases, 2007; the components of a relational engine
+15. [Decomposing Transactional Systems][miller-decomposing] — Miller, 2025; execute, order, validate, and persist, and the orders systems run them in
 
 [aurora-ascendant]: https://www.allthingsdistributed.com/2019/03/amazon-aurora-design-cloud-native-relational-database.html "Amazon Aurora ascendant: How we designed a cloud-native relational database"
 [aurora-paper]: https://www.allthingsdistributed.com/files/p1041-verbitski.pdf "Amazon Aurora: Design Considerations for High Throughput Cloud-Native Relational Databases"
@@ -203,6 +230,8 @@ Every design in this post pays for coordination somewhere, as the [cost table](#
 [stonebraker-sn]: https://dsf.berkeley.edu/papers/hpts85-nothing.pdf "The Case for Shared Nothing"
 [calvin]: http://cs.yale.edu/homes/thomson/publications/calvin-sigmod12.pdf "Calvin: Fast Distributed Transactions for Partitioned Database Systems"
 [socrates]: https://www.microsoft.com/en-us/research/wp-content/uploads/2019/05/socrates.pdf "Socrates: The New SQL Server in the Cloud"
+[hellerstein-arch]: https://dsf.berkeley.edu/papers/fntdb07-architecture.pdf "Architecture of a Database System"
+[miller-decomposing]: https://transactional.blog/blog/2025-decomposing-transactional-systems "Decomposing Transactional Systems"
 
 ## Appendix: every system in one table
 
@@ -228,3 +257,5 @@ This table extends [the map](#2-concurrency-control-who-may-write-a-row) with th
 | FoundationDB | Shared-Writer, no coherent cache (my classification) | Below the client: key reads; write sets at commit | Transaction logs, synchronously | Any client | OCC at resolvers; serializable | Storage servers |
 
 The RDS row follows AWS's [Multi-AZ DB cluster documentation][rds-multi-az-cluster]. Archetypes, and the PolarDB and Aurora Multi-Master details, come from Ziegler et al. Other details are summarized from public descriptions.
+
+## Footnotes <!-- omit in toc -->
