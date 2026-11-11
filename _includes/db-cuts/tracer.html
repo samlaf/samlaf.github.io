@@ -1,6 +1,6 @@
 {% comment %}
   Request tracer for the "Carving a database at its joints" post.
-  Steps one write or one read through six designs, drawing where it
+  Steps one write or one read through seven designs, drawing where it
   crosses the coupling point (blue) and the copy point (orange).
   Everything is scoped under .dbt so it does not touch the theme's styles.
 {% endcomment %}
@@ -57,7 +57,7 @@
   .dbt-key i{display:inline-block;width:22px;height:0;border-top:2.5px solid;vertical-align:middle;margin-right:6px}
   </style>
 
-  <p class="dbt-sr">Interactive step-through of one write and one read in six database designs, showing where each request crosses between nodes and where it is copied to replicas.</p>
+  <p class="dbt-sr">Interactive step-through of one write and one read in seven database designs, showing where each request crosses between nodes and where it is copied to replicas.</p>
 
   <div class="dbt-bar" id="dbt-presets" role="group" aria-label="Design"></div>
   <div class="dbt-bar">
@@ -177,6 +177,33 @@
         {d:'The app runs a SELECT on query processor 2, which picks a read timestamp: now.', on:['Q2'], a:[['app','Q2','f']]},
         {d:'Query processor 2 asks a storage replica of a–m for rows as of that timestamp. Storage can run filters next to the data.', on:['Sa2'], a:[['Q2','Sa2','b','b']]},
         {d:'The replica answers once it has applied the journal up to that timestamp. If it is behind, it waits. Reads take no locks and never reach the adjudicators.', on:['Sa2'], a:[]}
+      ]
+    },
+    {
+      name: 'NAM-DB', cols: 4,
+      sum: 'Couples: below the access methods (records over one-sided RDMA). Copies: above SQL (a statement log, replayed only after a crash). Concurrency control: compare-and-swap on record headers, in remote memory.',
+      boxes: [
+        ['app','Application',0,0,4],
+        ['C1','Compute server 1',0,1,2,'SQL, access methods'],['C2','Compute server 2',2,1,2,'SQL, access methods'],
+        ['ts','Timestamp vector',1.5,2,1,'one counter per thread','store'],
+        ['M1','Records a–m',0,3,1,'memory server 1','store'],['L1','Log',1,3,1,'memory server 1','store'],
+        ['M2','Records n–z',2,3,1,'memory server 2','store'],['L2','Log',3,3,1,'memory server 2','store'],
+        ['D1','Disk',0,4,2,'checkpoints','store'],['D2','Disk',2,4,2,'checkpoints','store']
+      ],
+      cuts: [{k:'o', after:0, label:'statement log, replayed after a crash'}, {k:'b', after:1, label:'one-sided RDMA: reads, writes, atomics'}],
+      write: [
+        {d:'The app sends a transaction that updates k to compute server 1. Compute servers hold no data, so any of them will do.', on:['C1'], a:[['app','C1','f']]},
+        {d:'Compute server 1 reads the timestamp vector with one RDMA read. The vector holds one commit counter per transaction thread, and it serves as the read timestamp.', on:['ts'], a:[['C1','ts','b','b']]},
+        {d:'It reads k’s record, header included, straight from memory server 1 with a one-sided RDMA read. The memory server’s CPU never sees the request. This is the coupling point. The new value stays on compute server 1 for now.', on:['M1'], sub:{'C1':'write set: k'}, a:[['C1','M1','b','b']]},
+        {d:'Compute server 1 writes the statement and its read timestamp to a log on two memory servers. This must happen before it installs anything, so recovery can replay the transaction. This log is the only copy: no replica applies it while the system runs.', on:['L1','L2'], a:[['C1','L1','o','o'],['C1','L2','o','o']]},
+        {d:'It locks k with one RDMA compare-and-swap on the record’s header: if the version is still the one it read and the lock bit is clear, set the lock bit. If the swap fails, another transaction wrote k first, and this one aborts. The check lives in remote memory, below the coupling point, so any compute server can write.', on:['M1'], sub:{'M1':'k locked'}, a:[['C1','M1','b','b']]},
+        {d:'It installs the new version of k with an RDMA write, which also clears the lock bit. The old version moves to a version buffer, for readers with older snapshots.', on:['M1'], sub:{'M1':'memory server 1','C1':'SQL, access methods'}, a:[['C1','M1','b','b']]},
+        {d:'Finally, it bumps its own counter in the timestamp vector with an RDMA write. Now the commit is visible. No atomic operation is needed, because each thread owns its counter.', on:['ts'], a:[['C1','ts','b','b']]}
+      ],
+      read: [
+        {d:'The app sends a SELECT for k to compute server 2.', on:['C2'], a:[['app','C2','f']]},
+        {d:'Compute server 2 reads the timestamp vector with one RDMA read. That is its snapshot.', on:['ts'], a:[['C2','ts','b','b']]},
+        {d:'It reads k’s record and header from memory server 1 with a one-sided RDMA read. The version is visible if the writer’s counter in the snapshot has reached it. If not, it reads an older version from the version buffer: another round trip. No locks are taken, and compute server 2 caches nothing, so the next read of k crosses the network again.', on:['M1'], a:[['C2','M1','b','b']]}
       ]
     },
     {
