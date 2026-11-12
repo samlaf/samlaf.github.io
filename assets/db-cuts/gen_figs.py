@@ -52,7 +52,7 @@ def joints_map():
         ("Shared buffer pool", "FaRM, NAM-DB", "Object log", "FaRM"),
         ("Shared disk", "Oracle RAC, Aurora", "Physical log or blocks", "Citus, Oracle RAC, Aurora"),
     ]
-    x0, x1, top, rh, bh = 255, 505, 120, 66, 32
+    x0, x1, top, rh, bh = 255, 505, 44, 66, 32
     mid = (x0 + x1) / 2
     h = top + (len(layers) - 1) * rh + bh + 24
     svg = Svg(760, h, "One engine stack: application, SQL, access methods, buffer pool, disk. "
@@ -61,9 +61,6 @@ def joints_map():
               "shared buffer pool below the access methods, shared disk below the buffer pool. On the right, "
               "what a design ships when it copies data at that joint: a command log, a logical log, "
               "an object log, or a physical log or blocks. Each design on the left also appears on the right.")
-    svg.header("Every joint can host either point",
-               ["Each line is a joint between two layers. On the left, the family that splits the data there.",
-                "On the right, what a design ships when it copies data there."])
     svg.text(x0 - 15, top - 14, "Split point", 12, 600, BLUE, "end")
     svg.text(x1 + 15, top - 14, "Copy point", 12, 600, ORANGE, "start")
     for i, (name, store) in enumerate(layers):
@@ -166,17 +163,14 @@ def who_couples():
 
 def two_orders():
     pw, gap_g, gap_b = 350, 12, 6
-    r0, l1, r1, l2, r2, bh = 150, 216, 228, 296, 308, 40
-    svg = Svg(760, 420,
+    r0, l1, r1, l2, r2, bh = 68, 134, 146, 214, 226, 40
+    svg = Svg(760, r2 + bh + 72,
               "Two panels. Left, split then copy, as in Vitess and most designs: the application and router "
               "sit on top; a blue line splits the data into two shards, keys a to m and n to z, each with its "
               "own SQL engine; an orange line below copies each shard three times through its binlog. Right, "
               "copy then split, as in Calvin: an orange line first copies the input log of transactions to "
               "three replicas; a blue line then splits each replica into two partitions, which execute every "
               "transaction. Both end with six pieces, but in Calvin each copy repeats far more of the work.")
-    svg.header("Split, then copy, or copy, then split",
-               ["Both designs end with the same six pieces: two key ranges, three copies of each.",
-                "The order decides how much of the work each copy repeats. Shaded: the work every copy repeats."])
 
     def groups(px, n_groups, n_boxes):
         gw = (pw - gap_g * (n_groups - 1)) / n_groups
@@ -198,8 +192,8 @@ def two_orders():
     # Left: split, then copy.
     px = 20
     shade(px, l2)
-    svg.text(px, 110, "Split, then copy", 13, 600, anchor="start")
-    svg.text(px, 127, "Vitess, and most designs", 11, fill=DIM, anchor="start")
+    svg.text(px, r0 - 40, "Split, then copy", 13, 600, anchor="start")
+    svg.text(px, r0 - 23, "Vitess, and most designs", 11, fill=DIM, anchor="start")
     two_line_box(px, r0, pw, "Application + router", "every query enters here")
     point(px, l1, BLUE, False, "split: the router sends each statement to its shard")
     point(px, l2, ORANGE, True, "copy: each shard ships its binlog")
@@ -208,14 +202,14 @@ def two_orders():
         for b in range(3):
             two_line_box(gx + b * (bw + gap_b), r2, bw, key, "storage", STORE)
         svg.text(gx + gw / 2, r2 + bh + 17, f"three copies of {key}", 10.5, fill=DIM)
-    svg.text(px, 392, "Each copy only applies row changes.", 11, anchor="start")
-    svg.text(px, 408, "The shard's primary already ran the transaction.", 11, fill=DIM, anchor="start")
+    svg.text(px, r2 + bh + 44, "Each copy only applies row changes.", 11, anchor="start")
+    svg.text(px, r2 + bh + 60, "The shard's primary already ran the transaction.", 11, fill=DIM, anchor="start")
 
     # Right: copy, then split.
     px = 390
     shade(px, l1)
-    svg.text(px, 110, "Copy, then split", 13, 600, anchor="start")
-    svg.text(px, 127, "Calvin", 11, fill=DIM, anchor="start")
+    svg.text(px, r0 - 40, "Copy, then split", 13, 600, anchor="start")
+    svg.text(px, r0 - 23, "Calvin", 11, fill=DIM, anchor="start")
     two_line_box(px, r0, pw, "Application", "every transaction enters here")
     point(px, l1, ORANGE, True, "copy: the input log of transactions")
     point(px, l2, BLUE, False, "split: each copy partitions the log by key")
@@ -224,8 +218,8 @@ def two_orders():
         for b, key in enumerate(["a–m", "n–z"]):
             two_line_box(gx + b * (bw + gap_b), r2, bw, key, "execute", STORE)
         svg.text(gx + gw / 2, r2 + bh + 17, f"copy {n}", 10.5, fill=DIM)
-    svg.text(px, 392, "Each copy runs every transaction.", 11, anchor="start")
-    svg.text(px, 408, "That works only because execution is deterministic.", 11, fill=DIM, anchor="start")
+    svg.text(px, r2 + bh + 44, "Each copy runs every transaction.", 11, anchor="start")
+    svg.text(px, r2 + bh + 60, "That works only because execution is deterministic.", 11, fill=DIM, anchor="start")
     return svg.render()
 
 

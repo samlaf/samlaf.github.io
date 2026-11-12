@@ -8,7 +8,7 @@ date:   2026-11-01
 > -- Plato, *Phaedrus* 265e
 
 - [Database engine and its interfaces](#database-engine-and-its-interfaces)
-- [Three choices: split, copy, couple](#three-choices-split-copy-couple)
+- [Three choices: copy, split, couple](#three-choices-copy-split-couple)
 - [Replication: where data is copied](#replication-where-data-is-copied)
 - [Sharding: where data splits](#sharding-where-data-splits)
   - [Five families](#five-families)
@@ -38,30 +38,30 @@ The joints are the interfaces that connect components, from SQL statements at th
 
 [^log-truth]: Which copy is the source of truth depends on the design. Without `force`, a commit may reach only the log, so the log is the truth and the data files are a copy. The log then holds redo records, plus undo records if uncommitted changes can reach the data files, as in ARIES. With `force`, every commit is already in the data files, so they are the truth, and the log holds only undo records, as in SQLite's rollback journal.
 
-## Three choices: split, copy, couple
+## Three choices: copy, split, couple
 
 Past one machine, a design makes three choices:
 
-- **Replication** copies the data onto other nodes.
+- **Copying** *replicates* the data onto other nodes.
   - Benefits: durability, scalable reads, and lower-latency reads (via geo-replication).
-- **Sharding** splits the data across several nodes.
+- **Splitting** *shards* the data across several nodes.
   - Benefits: scalable writes, and a database larger than one storage device can hold.
-- **Coupling** decides where writes get their order.
-  - It decides whether sharding really scales writes: only when each slice orders its own writes.
+- **Coupling** *orders* conflicting writes.
+  - It sets whether sharding scales writes: only when each slice orders its own writes.
 
-Postgres and MySQL show the first two. They replicate differently: Postgres ships its write-ahead log (WAL), a log of page changes, and MySQL ships its binlog, a log of row changes. But the sharding layers built on top of them work much alike. Vitess (sharded MySQL) and Citus (sharded Postgres) both add a router above SQL that knows how the data is partitioned.[^citus] Each shard holds a fraction of the data but otherwise works like an ordinary Postgres or MySQL, with its own replication.
+Each choice sits at one of the engine's joints. Sharding splits the data at the **split point**: the interface where each request is routed to the node that owns its slice of the data. Above it, every node sees the whole database. Below it, each slice has one owner. Replication copies at the **copy point**: the interface where a write leaves the node that decides it, for the nodes that copy it. Coupling happens at the **coupling point**: the interface where the decisions of different writers meet, and conflicting writes get their final order.
+
+Most people know the classic sharded database. A router above SQL sends each query to the shards that hold its rows. Each shard is an ordinary database: it orders its own writes and has its own replicas. Vitess (sharded MySQL) and Citus (sharded Postgres) both work this way.[^citus] The engines under them still differ in how they copy. Postgres ships its write-ahead log (WAL), a log of page changes. MySQL ships its binlog, a log of row changes.
 
 [^citus]: Citus is a Postgres extension, not a fork. Postgres lets an extension take over query planning and add its own plan nodes. Citus uses these hooks to rewrite a query into SQL on the shard tables, which are ordinary Postgres tables on the workers. It sends that SQL to the workers over ordinary client connections. When repartition joins are turned on, workers also swap rows with each other, to join on a column other than the shard key. Each worker writes its rows to files, split by the new key, and the other workers fetch them with `COPY`. Commits that span shards use Postgres's own two-phase commit (`PREPARE TRANSACTION`). MySQL has plugins, but none can take over the planner, so Vitess runs as a separate proxy in front of MySQL.
 
-Each choice sits at one of the engine's joints. Sharding splits the data at the **split point**: the interface where each request is routed to the node that owns its slice of the data. Above it, every node sees the whole database. Below it, each slice has one owner. Replication copies at the **copy point**: the interface where a write leaves the node that decides it, for the nodes that copy it. Coupling happens at the **coupling point**: the interface where the decisions of different writers meet, and conflicting writes get their final order. In the classic picture, the router above SQL is both the split point and the coupling point, and the engine fixes the copy point. Newer designs move all three points. Every joint can host a split point or a copy point:
-
-![One engine stack from the application down to disk. At each of the four joints, the left half of the line names the family that splits the data there, and the right half names what a design ships when it copies data there](/assets/db-cuts/02a-joints-map.svg)
-
-Going down the stack, the data splits into slices at one line and multiplies into copies at the other. The order of the two lines decides how much work each copy repeats. Most designs split first, then copy each slice. Calvin copies first, then splits:
+Most designs similarly split first, then copy each slice. [Calvin](#calvin-the-log-comes-first) copies first, then splits.
 
 ![Two panels. Left, split then copy, as in Vitess: a router splits the data into two shards, and each shard ships its binlog to three copies. Right, copy then split, as in Calvin: the input log goes to three copies, and each copy splits into two partitions that execute every transaction](/assets/db-cuts/02b-two-orders.svg)
 
-The three points are separate choices, though not quite free ones. A replica can copy only what has already been decided, so the copy point sits at or below the coupling point, or, with one writer, below the writer. [Coupling](#coupling-where-writes-meet) gets its own section, after the other two. Replication is the simplest of the three, and most databases do it in much the same way, so this post starts there. The rest of the post is about splitting and coupling, where designs differ most.
+This only shows the ordering, but ultimately every joint can host a split point or a copy point, and as we'll see later a coupling point. We will also explore why the 3 points are not fully orthogonal. For example, a design can copy only what it has already decided.
+
+![One engine stack from the application down to disk. At each of the four joints, the left half of the line names the family that splits the data there, and the right half names what a design ships when it copies data there](/assets/db-cuts/02a-joints-map.svg)
 
 ## Replication: where data is copied
 
@@ -71,12 +71,12 @@ A replicated database ships each write from the node that decides it to the node
 
 ![One write runs down the primary's stack and leaves for the replicas at four heights: a physical log below the buffer pool, an object log below the access methods, a logical log below SQL, and a command log above SQL. Each replica runs every layer below the point where the write left](/assets/db-cuts/03c-copy-paths.svg)
 
-A higher copy point means more repeated work, but it's also more flexible, enabling a lot of useful properties:
+A higher copy point repeats more work on each replica, but it ties the replicas less tightly to the primary's internals. Each step up buys something:
 
-1. Postgres ships its WAL, a physical log, so its replicas only rebuild pages
-2. FaRM ships an object log, one level higher. At commit, each object's backups receive the new values of the objects the transaction wrote. FaRM builds its indexes out of objects too, so a backup only copies the new values into its memory and never runs the access methods.
-3. Like Postgres, MySQL uses a physical WAL for durability on each node, but ships a logical "binlog" for replication. Its replicas run their own access methods, so they can run another MySQL version or storage engine, keep their own indexes, or replicate only some tables. Outside consumers can also read the binlog for change data capture.[^engine-log]
-4. Calvin ships command logs (just like blockchains), which forces every replica to execute every transaction independently. In order to reach the same result, the entire database must thus be deterministic, which has a lot of [benefits][deterministic-overview], but also some costs: transactions can no longer race for locks, as they do in Postgres or MySQL, because the winner of each race could differ between replicas. Each replica must take its locks in the order the log fixes.
+1. **Physical log.** Postgres ships its WAL, so its replicas only rebuild pages. This is the cheapest copy, but each replica must match the primary byte for byte: same version, same indexes, every table.
+2. **Object log.** FaRM ships the new value of each object a transaction wrote, to that object's backups. Its indexes are objects too, so a backup only copies values into memory and never runs the access methods.
+3. **Logical log.** MySQL keeps a physical WAL for durability on each node, like Postgres, but ships its binlog to replicas. Its replicas run their own access methods, so they can run another version or storage engine, keep their own indexes, or copy only some tables. Outside consumers can also read the binlog for change data capture.[^engine-log]
+4. **Command log.** Calvin ships the inputs of each transaction, as blockchains do. The log is small, and no replica depends on another to run a transaction. But every replica runs every transaction on its own, and all of them must reach the same result. So execution must be deterministic. That has [benefits][deterministic-overview], and one main cost: transactions can't race for locks, as they do in Postgres or MySQL, because each race could have a different winner on each replica. Instead, every replica takes its locks in the order the log fixes.
 
 [^engine-log]: The engine sets the usual choice, not a hard limit. Postgres also offers logical replication, and Aurora MySQL ships physical redo to its storage instead of the binlog.
 
@@ -90,7 +90,7 @@ Designs also differ in who must acknowledge a write before it commits:[^ack]
 
 ## Sharding: where data splits
 
-In the [classic picture](#three-choices-split-copy-couple), sharding is a router above SQL. Newer designs split the data lower down. Aurora has one writer and no visible shards, yet its log and pages live in a storage service that is sharded and replicated underneath. Spanner and CockroachDB shard and replicate below SQL, one key range at a time. DSQL divides the engine into separately scaled fleets. Calvin replicates before it shards. To fit them all, this post generalizes sharding into the split point. "Sharding" suggests that each node owns a slice of the data. But a shared disk or a shared key-value store is sharded too, under the hood. What tells designs apart is the interface through which requests reach each slice's owner: SQL queries, key-value reads and writes, pages, or log records.
+In the [classic picture](#three-choices-copy-split-couple), sharding is a router above SQL. Newer designs split the data lower down. Aurora has one writer and no visible shards, yet its log and pages live in a storage service that is sharded and replicated underneath. Spanner and CockroachDB shard and replicate below SQL, one key range at a time. DSQL divides the engine into separately scaled fleets. Calvin replicates before it shards. To fit them all, this post generalizes sharding into the split point. "Sharding" suggests that each node owns a slice of the data. But a shared disk or a shared key-value store is sharded too, under the hood. What tells designs apart is the interface through which requests reach each slice's owner: SQL queries, key-value reads and writes, pages, or log records.
 
 ### Five families
 
@@ -226,7 +226,7 @@ Aurora DSQL keeps Postgres's SQL engine but replaces everything beneath it with 
 
 ![Calvin's four steps over time and across layers: order and persist in the sequencer, above execution; then every replica locks, executes, and writes its own storage](/assets/db-cuts/07-calvin.svg)
 
-- **Sequencers** collect transaction requests into 10 ms batches, called epochs, and replicate each batch, by Paxos or asynchronously. Once the batch is replicated, the transaction will run: this is the commit.
+- **Sequencers** collect transaction requests into 10 ms batches, called epochs, and replicate each batch by Paxos. Once the batch is replicated, the transaction will run: this is the commit. Calvin can also replicate batches asynchronously. That is faster, but a failed sequencer can then lose its last batches.
 - **Schedulers**, one per partition (Calvin's name for a shard of each replica), take the locks each transaction needs, in log order. Replicas that read the same log take the same locks in the same order.
 - **Executors** run the transaction. When it spans partitions, each partition reads its own rows and sends them to the partitions that write. Each writing partition then has every input, and computes the same result.
 - **Storage** can be any store that reads and writes by key.
