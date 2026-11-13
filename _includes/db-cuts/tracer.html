@@ -156,7 +156,7 @@
     },
     {
       name: 'DSQL', cols: 5,
-      sum: 'Splits: below SQL (row reads; write sets at commit). Replicates: below the journal (write sets). Orders: at the adjudicators, at commit.',
+      sum: 'Orders: at the adjudicators, at commit, below SQL. Replicates: at the same joint, right after (journal of write sets). Splits: at the same joint, last (row reads; write sets, by key).',
       boxes: [
         ['app','Application',0,0,4],
         ['Q1','Query processor 1',0,1,2],['Q2','Query processor 2',2,1,2],
@@ -164,12 +164,12 @@
         ['Sa1','Storage a–m',0,4,1,'replica 1','store'],['Sa2','Storage a–m',1,4,1,'replica 2','store'],
         ['Sn1','Storage n–z',2,4,1,'replica 1','store'],['Sn2','Storage n–z',3,4,1,'replica 2','store']
       ],
-      cuts: [{k:'b', after:1, label:'row reads; write sets'}, {k:'o', after:3, label:'journal: write sets'}],
+      cuts: [{k:'o', after:3, label:'journal: write sets', off:-3}, {k:'b', after:3, label:'row reads; write sets, by key', off:3}],
       write: [
         {d:'The app starts a transaction on query processor 1 and updates k.', on:['Q1'], a:[['app','Q1','f']]},
         {d:'To run the update, query processor 1 reads k straight from storage, as of the transaction’s start time. No lock is taken anywhere.', on:['Sa1'], a:[['Q1','Sa1','b','b']]},
         {d:'Query processor 1 keeps the new value in memory. Nothing leaves it until commit.', on:['Q1'], sub:{'Q1':'write set: k'}, a:[]},
-        {d:'At commit, it sends the write set to the adjudicator for k’s range, which asks: has anyone committed a write to k since this transaction started? If so, it aborts. This is the ordering point. It sits below the split point, on its own nodes, so any query processor can write.', on:['adj'], a:[['Q1','adj','b','b']]},
+        {d:'At commit, it sends the write set to the adjudicator for k’s range, which asks: has anyone committed a write to k since this transaction started? If so, it aborts. This is the ordering point. It sits at the same joint as the split, but on its own nodes, so any query processor can write.', on:['adj'], a:[['Q1','adj','b','b']]},
         {d:'The adjudicator approves, and the write set goes to the journal. Appending to the journal is the commit.', on:['jr'], sub:{'Q1':''}, a:[['adj','jr','f']]},
         {d:'Both storage replicas for a–m read the journal and apply the write set. This is the replication point: a logical log of committed write sets.', on:['Sa1','Sa2'], a:[['jr','Sa1','o','o'],['jr','Sa2','o','o']]}
       ],
@@ -181,7 +181,7 @@
     },
     {
       name: 'NAM-DB', cols: 4,
-      sum: 'Splits: below the access methods (records over one-sided RDMA). Replicates: above SQL (a statement log, replayed only after a crash). Orders: by compare-and-swap on record headers, in remote memory.',
+      sum: 'Splits: below the access methods (records over one-sided RDMA). Replicates: nowhere (a statement log on two memory servers, for recovery only). Orders: by compare-and-swap on record headers, in remote memory.',
       boxes: [
         ['app','Application',0,0,4],
         ['C1','Compute server 1',0,1,2,'SQL, access methods'],['C2','Compute server 2',2,1,2,'SQL, access methods'],
@@ -190,13 +190,13 @@
         ['M2','Records n–z',2,3,1,'memory server 2','store'],['L2','Log',3,3,1,'memory server 2','store'],
         ['D1','Disk',0,4,2,'checkpoints','store'],['D2','Disk',2,4,2,'checkpoints','store']
       ],
-      cuts: [{k:'o', after:0, label:'statement log, replayed after a crash'}, {k:'b', after:1, label:'one-sided RDMA: reads, writes, atomics'}],
+      cuts: [{k:'b', after:1, label:'one-sided RDMA: reads, writes, atomics'}],
       write: [
         {d:'The app sends a transaction that updates k to compute server 1. Compute servers hold no data, so any of them will do.', on:['C1'], a:[['app','C1','f']]},
         {d:'Compute server 1 reads the timestamp vector with one RDMA read. The vector holds one commit counter per transaction thread, and it serves as the read timestamp.', on:['ts'], a:[['C1','ts','b','b']]},
         {d:'It reads k’s record, header included, straight from memory server 1 with a one-sided RDMA read. The memory server’s CPU never sees the request. This is the split point. The new value stays on compute server 1 for now.', on:['M1'], sub:{'C1':'write set: k'}, a:[['C1','M1','b','b']]},
-        {d:'Compute server 1 writes the statement and its read timestamp to a log on two memory servers. This must happen before it installs anything, so recovery can replay the transaction. This log is the only copy: no replica applies it while the system runs.', on:['L1','L2'], a:[['C1','L1','o','o'],['C1','L2','o','o']]},
-        {d:'It locks k with one RDMA compare-and-swap on the record’s header: if the version is still the one it read and the lock bit is clear, set the lock bit. If the swap fails, another transaction wrote k first, and this one aborts. This is the ordering point: the check lives in remote memory, below the split point, so any compute server can write.', on:['M1'], sub:{'M1':'k locked'}, a:[['C1','M1','b','b']]},
+        {d:'Compute server 1 writes the statement and its read timestamp to a log on two memory servers. This must happen before it installs anything, so recovery can replay the transaction. This log is for durability, not replication: no replica applies it while the system runs.', on:['L1','L2'], a:[['C1','L1','f'],['C1','L2','f']]},
+        {d:'It locks k with one RDMA compare-and-swap on the record’s header: if the version is still the one it read and the lock bit is clear, set the lock bit. If the swap fails, another transaction wrote k first, and this one aborts. This is the ordering point: the compute server runs the check at the split joint, through an atomic in remote memory, so any compute server can write.', on:['M1'], sub:{'M1':'k locked'}, a:[['C1','M1','b','b']]},
         {d:'It installs the new version of k with an RDMA write, which also clears the lock bit. The old version moves to a version buffer, for readers with older snapshots.', on:['M1'], sub:{'M1':'memory server 1','C1':'SQL, access methods'}, a:[['C1','M1','b','b']]},
         {d:'Finally, it bumps its own counter in the timestamp vector with an RDMA write. Now the commit is visible. No atomic operation is needed, because each thread owns its counter.', on:['ts'], a:[['C1','ts','b','b']]}
       ],

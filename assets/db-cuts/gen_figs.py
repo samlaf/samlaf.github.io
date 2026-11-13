@@ -1,4 +1,4 @@
-"""Generate figures 02a, 02b, 03c, 03d, and 03e for the "Carving a database at its joints" post.
+"""Generate figures 02a, 02b, 03c, 03d, 03e, 04, and 04b for the "Carving a database at its joints" post.
 
 Run `python3 assets/db-cuts/gen_figs.py`; it writes the SVGs next to itself.
 The other SVGs in this folder are drawn by hand or elsewhere.
@@ -370,7 +370,254 @@ def replication_paths():
     return svg.render()
 
 
+def decision_tree():
+    lw, lh, gap = 232, 204, 12
+    lx = [20, 20 + lw + gap, 20 + 2 * (lw + gap)]
+    lc = [x + lw / 2 for x in lx]
+    q2c = (lc[1] + lc[2]) / 2
+    q1c = (lc[0] + q2c) / 2
+    r0, dy = 96, 64  # the root question, and how far it pushes the rest of the tree down
+    ly = 300 + dy
+    h = ly + lh + 24
+    svg = Svg(760, h,
+              "A decision tree. The split point picks the family. First: is each write ordered before it is "
+              "replicated? If not, replicas settle writes later, as in Dynamo, Cassandra, and CRDTs; they replicate "
+              "before they order, and this post leaves them aside. If so: how many nodes may write? With one writer, "
+              "the writer decides, inside itself, at no joint; shards, if any, stay hidden, and replication may come "
+              "before or after the split. Aurora and Neon run order, split, replicate; read replicas run order, "
+              "replicate. With many writers, the locks, cache, and log must be split or kept coherent. Then: which "
+              "nodes decide? If the data owners decide, they order at the split, in each slice, and each slice "
+              "replicates itself; shards show to whoever coordinates commits, the application or the engine. Vitess, "
+              "CockroachDB, and FaRM run split, order, replicate. If something else decides, it orders at the split "
+              "on other nodes, or above it; the data shards stay hidden, the deciders coordinate, and replication may "
+              "come before the split. Calvin and DSQL run order, replicate, split; Oracle RAC runs order, split, "
+              "replicate.")
+    svg.header("Three questions fix the sequence",
+               ["The split point picks the family. Three questions then fix the sequence of split, order, and",
+                "replicate."])
+
+    def wire(d):
+        svg.add(f'<path d="{d}" fill="none" stroke="{LINE}" stroke-width="1.5"/>')
+
+    def question(cx, y, label, w=220):
+        svg.rect(cx - w / 2, y, w, 32, WHITE, FG)
+        svg.text(cx, y + 20.5, label, 12, 600)
+
+    def branch(x, y, label):
+        svg.text(x + 6, y, label, 10.5, fill=DIM, anchor="start")
+
+    color = {"split": BLUE, "order": FG, "replicate": ORANGE}
+
+    def sequence(x, y, steps, opacity=1):
+        parts = []
+        for i, st in enumerate(steps):
+            gap = ' dx="5"' if i else ""
+            if i:
+                parts.append(f'<tspan fill="{DIM}" font-weight="400"{gap}>→</tspan>')
+            parts.append(f'<tspan fill="{color[st]}"{gap}>{st}</tspan>')
+        svg.add(f'<text x="{x}" y="{y}" text-anchor="start" font-size="11.5" font-weight="600" '
+                f'opacity="{opacity}">{"".join(parts)}</text>')
+
+    question(q1c, r0, "Is each write ordered before it is replicated?", 300)
+    wire(f"M{q1c} {r0 + 32}V{r0 + dy}")
+    branch(q1c, r0 + 50, "yes")
+    # Leaderless designs: the one branch the post leaves aside.
+    ox = q1c + 150
+    wire(f"M{ox} {r0 + 16}H{ox + 40}")
+    svg.text(ox + 6, r0 + 10, "no", 10.5, fill=DIM, anchor="start")
+    svg.rect(ox + 40, r0 - 14, 760 - 20 - (ox + 40), 60, STORE, None, 6)
+    bx = ox + 52
+    svg.text(bx, r0 + 3, "Replicas settle writes later.", 10.5, fill=DIM, anchor="start")
+    sequence(bx, r0 + 20, ["replicate", "order"], 0.6)
+    svg.text(bx, r0 + 37, "Dynamo, Cassandra, CRDTs: out of scope", 10.5, fill=DIM, anchor="start")
+
+    y1 = r0 + dy
+    question(q1c, y1, "How many nodes may write?")
+    wire(f"M{q1c} {y1 + 32}V{y1 + 50}H{lc[0]}V{ly}")
+    wire(f"M{q1c} {y1 + 50}H{q2c}V{y1 + 74}")
+    branch(lc[0], y1 + 70, "one")
+    branch(q2c, y1 + 66, "many")
+    svg.rect(q2c - 130, y1 + 74, 260, 38, STORE, None)
+    svg.text(q2c, y1 + 89, "Split the locks, cache, and log,", 10.5, fill=DIM)
+    svg.text(q2c, y1 + 103, "or keep them coherent across nodes", 10.5, fill=DIM)
+    wire(f"M{q2c} {y1 + 112}V{y1 + 126}")
+    question(q2c, y1 + 126, "Which nodes decide?")
+    wire(f"M{q2c} {y1 + 158}V{y1 + 174}H{lc[1]}V{ly}")
+    wire(f"M{q2c} {y1 + 174}H{lc[2]}V{ly}")
+    branch(lc[1], y1 + 192, "the data owners")
+    branch(lc[2], y1 + 192, "something else")
+
+    leaves = [
+        ("The one writer decides",
+         ["Orders inside the writer, at no joint.", "Shards, if any, stay hidden.",
+          "Replication may come before", "or after the split."],
+         [("Aurora, Neon", ["order", "split", "replicate"]), ("Read replicas", ["order", "replicate"])]),
+        ("The data owners decide",
+         ["Orders at the split, in each slice.", "Each slice replicates itself.",
+          "Shards show to whoever coordinates", "commits: the app, or the engine."],
+         [("Vitess, CockroachDB, FaRM", ["split", "order", "replicate"])]),
+        ("Something else decides",
+         ["Orders at the split on other nodes,", "or above it.", "Data shards stay hidden;",
+          "the deciders coordinate.", "Replication may come before the split."],
+         [("Calvin, DSQL", ["order", "replicate", "split"]), ("Oracle RAC", ["order", "split", "replicate"])]),
+    ]
+    for x, (title, facts, seqs) in zip(lx, leaves):
+        svg.rect(x, ly, lw, lh, WHITE, LINE, 6)
+        svg.text(x + 12, ly + 22, title, 12.5, 600, anchor="start")
+        for i, f in enumerate(facts):
+            svg.text(x + 12, ly + 42 + 14 * i, f, 10.5, fill=DIM, anchor="start")
+        svg.add(f'<line x1="{x + 12}" y1="{ly + 118}" x2="{x + lw - 12}" y2="{ly + 118}" stroke="{STORE}" stroke-width="1.5"/>')
+        for i, (names, steps) in enumerate(seqs):
+            svg.text(x + 12, ly + 138 + 36 * i, names, 10.5, fill=DIM, anchor="start")
+            sequence(x + 12, ly + 154 + 36 * i, steps)
+    return svg.render()
+
+
+
+# Places a step can happen, top to bottom; a design's markers sit on these tracks.
+PLACES = ["in a node", "above SQL", "below SQL", "below access methods", "below the buffer pool"]
+N, TOP, SQL, AM, BP = range(5)
+EXEC_FILL = "#e6f0e1"
+
+
+def space_time_grid(rows, n_cols, aria, title):
+    """Draw one small grid per design, in the family-by-decider layout of figure 03d.
+
+    Each design is (name, steps, execute span). A step is (kind, place, column), plus True when it is
+    only an alternative. The execute span, when given, is the (first, last) column the transaction runs in.
+    """
+    pw, rh, head_h, title_h = 192, 13, 20, 18
+    gh = rh * len(PLACES)
+    cw = pw / n_cols
+    cols = [128, 128 + pw + 26, 128 + 2 * pw + 38]
+    row_h = head_h + title_h + gh + 16
+    lg = 50  # top of the legend
+    hy = lg + 128  # top of the column heads
+    y0 = hy + 42
+    svg = Svg(760, y0 + row_h * len(rows) + 10, aria)
+    svg.header(title, [])
+    fills = {"S": BLUE, "R": ORANGE}
+
+    def marker(cx, cy, kind, hollow):
+        if kind == "O":
+            svg.rect(cx - 8, cy - 6, 16, 12, STORE, DIM, 3, ' stroke-dasharray="3 2"')
+            svg.text(cx, cy + 3.5, "O", 9, 600)
+        elif hollow:
+            svg.rect(cx - 8, cy - 6, 16, 12, WHITE, fills[kind], 6, ' stroke-dasharray="3 2"')
+            svg.text(cx, cy + 3.5, kind, 9, 600, fills[kind])
+        else:
+            svg.rect(cx - 8, cy - 6, 16, 12, fills[kind], None, 6)
+            svg.text(cx, cy + 3.5, kind, 9, 600, WHITE)
+
+    def panel(x, y, name, steps, span, faded):
+        svg.add(f'<g{" opacity=\"0.45\"" if faded else ""}>')
+        svg.text(x + 2, y + 13, name, 11, 600, anchor="start")
+        gy = y + title_h
+        if steps is None:
+            svg.rect(x, gy, pw, gh, STORE, None, 4)
+            svg.text(x + pw / 2, gy + gh / 2 - 2, "no replicas: a statement log", 10.5, fill=DIM)
+            svg.text(x + pw / 2, gy + gh / 2 + 12, "for recovery only", 10.5, fill=DIM)
+            svg.add("</g>")
+            return
+        svg.rect(x, gy, pw, gh, WHITE, LINE, 4)
+        if span:
+            first, last = span
+            svg.rect(x + first * cw + 3, gy + 2, (last - first + 1) * cw - 6, gh - 4, EXEC_FILL, None, 3)
+        for k in range(1, len(PLACES)):
+            svg.add(f'<line x1="{x}" y1="{gy + k * rh}" x2="{x + pw}" y2="{gy + k * rh}" stroke="{STORE}" stroke-width="1"/>')
+        pos = lambda pl, i: (x + (i + 0.5) * cw, gy + (pl + 0.5) * rh)
+        main = sorted([st for st in steps if len(st) == 3], key=lambda st: st[2])
+        path = " ".join(f"{'M' if k == 0 else 'L'}{pos(pl, i)[0]} {pos(pl, i)[1]}" for k, (_, pl, i) in enumerate(main))
+        svg.add(f'<path d="{path}" fill="none" stroke="{DIM}" stroke-width="1.25"/>')
+        for kind, pl, i, *alt in steps:
+            if alt:
+                prev = [st for st in main if st[2] < i][-1]
+                ax, ay = pos(prev[1], prev[2])
+                bx, by = pos(pl, i)
+                svg.add(f'<path d="M{ax} {ay}L{bx} {by}" fill="none" stroke="{DIM}" stroke-width="1" stroke-dasharray="2 2"/>')
+        for kind, pl, i, *alt in steps:
+            marker(*pos(pl, i), kind, bool(alt))
+        svg.add("</g>")
+
+    def legend_item(x, y, draw, name, desc):
+        draw(x + 10, y + 6)
+        svg.text(x + 28, y + 10, name, 11, 600, anchor="start")
+        svg.text(x + 28, y + 24, desc, 10.5, fill=DIM, anchor="start")
+
+    def swatch(cx, cy):
+        svg.rect(cx - 10, cy - 7, 20, 14, EXEC_FILL, None, 3)
+
+    def link(cx, cy):
+        svg.add(f'<path d="M{cx - 10} {cy}H{cx + 10}" stroke="{DIM}" stroke-width="1.25"/>')
+
+    svg.rect(20, lg, 720, 100, WHITE, STORE, 6)
+    items = [
+        [(lambda x, y: marker(x, y, "S", False), "Split point", "requests reach the owner of each slice"),
+         (lambda x, y: marker(x, y, "O", False), "Ordering point", "conflicting writes are checked"),
+         (lambda x, y: marker(x, y, "R", False), "Replication point", "copies leave for the replicas")],
+        [(swatch, "Execution", "the transaction runs: no fixed place"),
+         (lambda x, y: marker(x, y, "R", True), "Alternative", "Postgres's WAL instead of MySQL's binlog"),
+         (link, "Sequence", "rows: where; columns: in what order")],
+    ]
+    for r, row in enumerate(items):
+        for k, item in enumerate(row):
+            legend_item(34 + 240 * k, lg + 14 + 42 * r, *item)
+
+    for x, (t, sub) in zip(cols[:2], [("Orders on the data owners", "the nodes that hold the data decide"),
+                                      ("Orders elsewhere", "one writer, or something else decides")]):
+        svg.text(x, hy, t, 12, 600, DIM, "start")
+        svg.text(x, hy + 16, sub, 10.5, fill=DIM, anchor="start")
+    for c in cols:
+        for k in range(n_cols):
+            svg.text(c + (k + 0.5) * cw, hy + 34, ["1st", "2nd", "3rd", "4th"][k], 10, fill=DIM)
+
+    for r, (fam, owners, elsewhere) in enumerate(rows):
+        faded = fam.startswith("Leaderless")
+        svg.add(f'<line x1="20" y1="{y0 + r * row_h}" x2="740" y2="{y0 + r * row_h}" stroke="{STORE}" stroke-width="1.5"/>')
+        svg.text(20, y0 + r * row_h + 15, fam, 12, 600, DIM if faded else FG, "start")
+        y = y0 + r * row_h + head_h
+        for k, pl in enumerate(PLACES):
+            svg.text(cols[0] - 8, y + title_h + (k + 0.5) * rh + 3, pl, 8.5, fill=DIM, anchor="end")
+        for design, x in zip(owners, cols[:1]):
+            panel(x, y, *design, faded)
+        for design, x in zip(elsewhere, cols[1:]):
+            panel(x, y, *design, faded)
+    return svg.render()
+
+
+def space_time():
+    # The commit path of one write. O is where conflicts are checked (Miller's validate): inside the
+    # execute band for lock-based designs, after it for commit-time checks, before it for Calvin.
+    rows = [
+        ("Shared memory", [], [("Read replicas", [("O", N, 1), ("R", SQL, 2), ("R", BP, 2, True)], (0, 1))]),
+        ("Shared nothing",
+         [("Vitess, Citus", [("S", TOP, 0), ("O", TOP, 2), ("R", SQL, 3), ("R", BP, 3, True)], (1, 2))],
+         [("Calvin", [("O", TOP, 0), ("R", TOP, 1), ("S", TOP, 2)], (3, 3))]),
+        ("Shared key-value store", [("CockroachDB, Spanner", [("S", SQL, 1), ("O", SQL, 2), ("R", SQL, 3)], (0, 3))],
+         [("DSQL, FoundationDB", [("O", SQL, 1), ("R", SQL, 2), ("S", SQL, 3)], (0, 0))]),
+        ("Shared buffer pool", [("FaRM", [("S", AM, 1), ("O", AM, 2), ("R", AM, 3)], (0, 0))],
+         [("NAM-DB", None, None)]),
+        ("Shared disk", [("Aurora Multi-Master", [("S", BP, 1), ("O", BP, 2), ("R", BP, 3)], (0, 3))],
+         [("Aurora, Neon", [("O", N, 1), ("S", BP, 2), ("R", BP, 3)], (0, 3)),
+          ("Oracle RAC", [("O", AM, 1), ("S", BP, 2), ("R", BP, 3)], (0, 1))]),
+        ("Leaderless, out of scope: replicas settle writes later",
+         [("Dynamo, Cassandra", [("S", SQL, 0), ("R", SQL, 1), ("O", SQL, 2)], None)], []),
+    ]
+    return space_time_grid(
+        rows, 4,
+        "Every design placed in space and time. Each panel is one design. Its rows are places: in a node, above "
+        "SQL, below SQL, below the access methods, below the buffer pool. Its columns are four steps in sequence. "
+        "S is the split point, O the ordering point, R the replication point, and a green band marks when the "
+        "transaction executes, which has no fixed place. Calvin orders, replicates, and splits before it executes. DSQL and FaRM execute "
+        "first, then order, replicate, and split or split, order, and replicate. Lock-based designs order while "
+        "they execute: read replicas, Vitess, Oracle RAC, and Aurora; CockroachDB and Aurora also split and "
+        "replicate each write while the transaction runs. Vitess splits before it executes and replicates after.",
+        "Every design in space and time")
+
+
 out = sys.argv[1] if len(sys.argv) > 1 else os.path.dirname(os.path.abspath(__file__))
+open(f"{out}/04-decision-tree.svg", "w").write(decision_tree())
+open(f"{out}/04b-space-time.svg", "w").write(space_time())
 open(f"{out}/02b-two-sequences.svg", "w").write(two_sequences())
 open(f"{out}/03c-replication-paths.svg", "w").write(replication_paths())
 open(f"{out}/02a-joints-map.svg", "w").write(joints_map())
