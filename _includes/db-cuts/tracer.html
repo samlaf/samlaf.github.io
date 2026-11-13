@@ -1,7 +1,7 @@
 {% comment %}
   Request tracer for the "Carving a database at its joints" post.
   Steps one write or one read through seven designs, drawing where it
-  crosses the split point (blue) and the copy point (orange).
+  crosses the split point (blue) and the replication point (orange).
   Everything is scoped under .dbt so it does not touch the theme's styles.
 {% endcomment %}
 
@@ -57,7 +57,7 @@
   .dbt-key i{display:inline-block;width:22px;height:0;border-top:2.5px solid;vertical-align:middle;margin-right:6px}
   </style>
 
-  <p class="dbt-sr">Interactive step-through of one write and one read in seven database designs, showing where each request crosses between nodes and where it is copied to replicas.</p>
+  <p class="dbt-sr">Interactive step-through of one write and one read in seven database designs, showing where each request crosses between nodes and where it is replicated.</p>
 
   <div class="dbt-bar" id="dbt-presets" role="group" aria-label="Design"></div>
   <div class="dbt-bar">
@@ -72,7 +72,7 @@
   <div class="dbt-fig" id="dbt-fig"></div>
   <div class="dbt-key">
     <span><i style="color:var(--dbt-blue)"></i>split point: crosses to each slice’s owner</span>
-    <span><i style="color:var(--dbt-orange);border-top-style:dashed"></i>copy point: ships to replicas</span>
+    <span><i style="color:var(--dbt-orange);border-top-style:dashed"></i>replication point: ships to replicas</span>
     <span><i style="color:var(--dbt-fg)"></i>within one node</span>
   </div>
 </div>
@@ -95,7 +95,7 @@
   var PRESETS = [
     {
       name: 'Postgres + replicas', cols: 3,
-      sum: 'Splits: nowhere. Copies: below the buffer pool (WAL). Couples: nowhere, since the primary is the one writer.',
+      sum: 'Splits: nowhere. Replicates: below the buffer pool (WAL). Orders: at the primary, the one writer.',
       boxes: [['app','Application',0,0,3]]
         .concat(stack('P',0,'primary',STD), stack('A',1,'replica',STD), stack('B',2,'replica',STD)),
       cuts: [{k:'o', after:3, label:'WAL: page changes'}],
@@ -103,7 +103,7 @@
         {d:'The app sends an UPDATE to the primary. Only the primary takes writes; the replicas reject them.', on:['P.sql'], a:[['app','P.sql','f']]},
         {d:'The primary takes row locks and runs the update. The access methods change heap and index pages in its buffer pool.', on:['P.sql','P.am','P.bp'], a:[['P.sql','P.am','f'],['P.am','P.bp','f']]},
         {d:'At commit, the primary flushes the WAL to its own disk. The write is now durable on this node. Dirty pages go to disk later.', on:['P.disk'], a:[['P.bp','P.disk','f']]},
-        {d:'The WAL streams to each replica. This is the copy point: a physical log of page changes, leaving below the buffer pool.', on:['A.disk','B.disk'], a:[['P.bp','A.disk','o','o'],['P.bp','B.disk','o','o']]},
+        {d:'The WAL streams to each replica. This is the replication point: a physical log of page changes, leaving below the buffer pool.', on:['A.disk','B.disk'], a:[['P.bp','A.disk','o','o'],['P.bp','B.disk','o','o']]},
         {d:'Each replica replays the WAL into its own pages. By default the primary commits without waiting for them. With synchronous replication, it waits until a replica confirms it has the WAL.', on:['A.disk','B.disk'], a:[]}
       ],
       read: [
@@ -114,7 +114,7 @@
     },
     {
       name: 'Vitess', cols: 4,
-      sum: 'Splits: above SQL (statements). Copies: below SQL, per shard (binlog). Couples: at each shard’s primary, and through 2PC across shards.',
+      sum: 'Splits: above SQL (statements). Replicates: below SQL, per shard (binlog). Orders: at each shard’s primary, and through 2PC across shards.',
       boxes: [['app','App + router (VTGate)',0,0,4]]
         .concat(stack('S1',0,'shard 1 primary',STD), stack('R1',1,'shard 1 replica',STD),
                 stack('S2',2,'shard 2 primary',STD), stack('R2',3,'shard 2 replica',STD)),
@@ -123,7 +123,7 @@
         {d:'The app sends UPDATE … WHERE user_id = 42 to the router.', on:['app'], a:[]},
         {d:'The router hashes the shard key and forwards the statement to shard 1’s primary. This is the split point: SQL statements cross between nodes.', on:['S1.sql'], a:[['app','S1.sql','b']]},
         {d:'Shard 1’s primary locks the row and runs the update, exactly as a standalone MySQL would. Shard 2 never hears about it.', on:['S1.sql','S1.am','S1.bp','S1.disk'], a:[['S1.sql','S1.am','f'],['S1.am','S1.bp','f'],['S1.bp','S1.disk','f']]},
-        {d:'At commit, the primary writes the binlog: the committed row changes. It streams to shard 1’s replica. This is the copy point: a logical log, leaving below SQL.', on:['R1.am'], a:[['S1.sql','R1.am','o','o']]},
+        {d:'At commit, the primary writes the binlog: the committed row changes. It streams to shard 1’s replica. This is the replication point: a logical log, leaving below SQL.', on:['R1.am'], a:[['S1.sql','R1.am','o','o']]},
         {d:'The replica applies the row changes through its own access methods and builds its own pages. With semi-synchronous replication, the primary waits until the replica has received the change before it confirms the commit. A transaction across both shards is the application’s problem.', on:['R1.am','R1.bp','R1.disk'], a:[['R1.am','R1.bp','f'],['R1.bp','R1.disk','f']]}
       ],
       read: [
@@ -134,7 +134,7 @@
     },
     {
       name: 'CockroachDB', cols: 3,
-      sum: 'Splits: below SQL (key-value reads and writes). Copies: at the same joint, per range (Raft log). Couples: at each range’s leaseholder.',
+      sum: 'Splits: below SQL (key-value reads and writes). Replicates: at the same joint, per range (Raft log). Orders: at each range’s leaseholder.',
       boxes: [['app','Application',0,0,3]]
         .concat(stack('N1',0,'node 1',[['sql','SQL',1],['am','Range a–m',2,'leaseholder'],['bp','Cache',3],['disk','Disk',4,'','store']]),
                 stack('N2',1,'node 2',[['sql','SQL',1],['am','Range a–m',2,'follower'],['bp','Cache',3],['disk','Disk',4,'','store']]),
@@ -144,7 +144,7 @@
         {d:'The app sends UPDATE … WHERE id = ‘k’ to any node, here node 3. Every node runs SQL over the whole database.', on:['N3.sql'], a:[['app','N3.sql','f']]},
         {d:'Node 3 plans the query and sends a key-value write for k to the leaseholder of range a–m, on node 1. This is the split point.', on:['N1.am'], a:[['N3.sql','N1.am','b','b']]},
         {d:'The leaseholder writes an intent on k: a provisional value that blocks other writers. Concurrency control runs here, at the owner of the key, so every writer meets the same check.', on:['N1.am'], sub:{'N1.am':'leaseholder · intent on k'}, a:[]},
-        {d:'The leaseholder proposes the intent to the range’s Raft group, and the Raft log ships it to the followers. The copy point sits at the same joint as the split point.', on:['N2.am','N3.am'], a:[['N1.am','N2.am','o','o'],['N1.am','N3.am','o','o']]},
+        {d:'The leaseholder proposes the intent to the range’s Raft group, and the Raft log ships it to the followers. The replication point sits at the same joint as the split point.', on:['N2.am','N3.am'], a:[['N1.am','N2.am','o','o'],['N1.am','N3.am','o','o']]},
         {d:'Once a majority, two of three, has the entry, it is durable. Each replica applies it to its own storage engine. At commit, the transaction record is marked committed and the intent becomes a plain value.', on:['N1.am','N2.am','N3.am','N1.disk','N2.disk','N3.disk'], sub:{'N1.am':'leaseholder'}, a:[['N1.am','N1.bp','f'],['N2.am','N2.bp','f'],['N3.am','N3.bp','f'],['N1.bp','N1.disk','f'],['N2.bp','N2.disk','f'],['N3.bp','N3.disk','f']]}
       ],
       read: [
@@ -156,7 +156,7 @@
     },
     {
       name: 'DSQL', cols: 5,
-      sum: 'Splits: below SQL (row reads; write sets at commit). Copies: below the journal (write sets). Couples: at the adjudicators, at commit.',
+      sum: 'Splits: below SQL (row reads; write sets at commit). Replicates: below the journal (write sets). Orders: at the adjudicators, at commit.',
       boxes: [
         ['app','Application',0,0,4],
         ['Q1','Query processor 1',0,1,2],['Q2','Query processor 2',2,1,2],
@@ -169,9 +169,9 @@
         {d:'The app starts a transaction on query processor 1 and updates k.', on:['Q1'], a:[['app','Q1','f']]},
         {d:'To run the update, query processor 1 reads k straight from storage, as of the transaction’s start time. No lock is taken anywhere.', on:['Sa1'], a:[['Q1','Sa1','b','b']]},
         {d:'Query processor 1 keeps the new value in memory. Nothing leaves it until commit.', on:['Q1'], sub:{'Q1':'write set: k'}, a:[]},
-        {d:'At commit, it sends the write set to the adjudicator for k’s range, which asks: has anyone committed a write to k since this transaction started? If so, it aborts. This is the coupling point. It sits below the split point, on its own nodes, so any query processor can write.', on:['adj'], a:[['Q1','adj','b','b']]},
+        {d:'At commit, it sends the write set to the adjudicator for k’s range, which asks: has anyone committed a write to k since this transaction started? If so, it aborts. This is the ordering point. It sits below the split point, on its own nodes, so any query processor can write.', on:['adj'], a:[['Q1','adj','b','b']]},
         {d:'The adjudicator approves, and the write set goes to the journal. Appending to the journal is the commit.', on:['jr'], sub:{'Q1':''}, a:[['adj','jr','f']]},
-        {d:'Both storage replicas for a–m read the journal and apply the write set. This is the copy point: a logical log of committed write sets.', on:['Sa1','Sa2'], a:[['jr','Sa1','o','o'],['jr','Sa2','o','o']]}
+        {d:'Both storage replicas for a–m read the journal and apply the write set. This is the replication point: a logical log of committed write sets.', on:['Sa1','Sa2'], a:[['jr','Sa1','o','o'],['jr','Sa2','o','o']]}
       ],
       read: [
         {d:'The app runs a SELECT on query processor 2, which picks a read timestamp: now.', on:['Q2'], a:[['app','Q2','f']]},
@@ -181,7 +181,7 @@
     },
     {
       name: 'NAM-DB', cols: 4,
-      sum: 'Splits: below the access methods (records over one-sided RDMA). Copies: above SQL (a statement log, replayed only after a crash). Couples: by compare-and-swap on record headers, in remote memory.',
+      sum: 'Splits: below the access methods (records over one-sided RDMA). Replicates: above SQL (a statement log, replayed only after a crash). Orders: by compare-and-swap on record headers, in remote memory.',
       boxes: [
         ['app','Application',0,0,4],
         ['C1','Compute server 1',0,1,2,'SQL, access methods'],['C2','Compute server 2',2,1,2,'SQL, access methods'],
@@ -196,7 +196,7 @@
         {d:'Compute server 1 reads the timestamp vector with one RDMA read. The vector holds one commit counter per transaction thread, and it serves as the read timestamp.', on:['ts'], a:[['C1','ts','b','b']]},
         {d:'It reads k’s record, header included, straight from memory server 1 with a one-sided RDMA read. The memory server’s CPU never sees the request. This is the split point. The new value stays on compute server 1 for now.', on:['M1'], sub:{'C1':'write set: k'}, a:[['C1','M1','b','b']]},
         {d:'Compute server 1 writes the statement and its read timestamp to a log on two memory servers. This must happen before it installs anything, so recovery can replay the transaction. This log is the only copy: no replica applies it while the system runs.', on:['L1','L2'], a:[['C1','L1','o','o'],['C1','L2','o','o']]},
-        {d:'It locks k with one RDMA compare-and-swap on the record’s header: if the version is still the one it read and the lock bit is clear, set the lock bit. If the swap fails, another transaction wrote k first, and this one aborts. This is the coupling point: the check lives in remote memory, below the split point, so any compute server can write.', on:['M1'], sub:{'M1':'k locked'}, a:[['C1','M1','b','b']]},
+        {d:'It locks k with one RDMA compare-and-swap on the record’s header: if the version is still the one it read and the lock bit is clear, set the lock bit. If the swap fails, another transaction wrote k first, and this one aborts. This is the ordering point: the check lives in remote memory, below the split point, so any compute server can write.', on:['M1'], sub:{'M1':'k locked'}, a:[['C1','M1','b','b']]},
         {d:'It installs the new version of k with an RDMA write, which also clears the lock bit. The old version moves to a version buffer, for readers with older snapshots.', on:['M1'], sub:{'M1':'memory server 1','C1':'SQL, access methods'}, a:[['C1','M1','b','b']]},
         {d:'Finally, it bumps its own counter in the timestamp vector with an RDMA write. Now the commit is visible. No atomic operation is needed, because each thread owns its counter.', on:['ts'], a:[['C1','ts','b','b']]}
       ],
@@ -208,7 +208,7 @@
     },
     {
       name: 'Aurora', cols: 2,
-      sum: 'Splits: below the buffer pool (redo down, pages up). Copies: at the same joint (redo, 4 of 6). Couples: nowhere, since there is one writer.',
+      sum: 'Splits: below the buffer pool (redo down, pages up). Replicates: at the same joint (redo, 4 of 6). Orders: in the one writer, above the split.',
       boxes: [['app','Application',0,0,2]]
         .concat(stack('W',0,'writer',STD.slice(0,3)), stack('R',1,'read replica',STD.slice(0,3)),
                 [['za','Storage',0,4,2/3,'zone a: 2 copies','store'],['zb','Storage',2/3,4,2/3,'zone b: 2 copies','store'],['zc','Storage',4/3,4,2/3,'zone c: 2 copies','store']]),
@@ -216,7 +216,7 @@
       write: [
         {d:'The app sends an UPDATE to the writer. Read replicas don’t take writes.', on:['W.sql'], a:[['app','W.sql','f']]},
         {d:'The writer takes row locks and runs the update. Pages change in its buffer pool.', on:['W.sql','W.am','W.bp'], a:[['W.sql','W.am','f'],['W.am','W.bp','f']]},
-        {d:'The writer sends redo records, never pages, to six storage copies across three zones. Split point and copy point fall at the same joint.', on:['za','zb','zc'], a:[['W.bp','za','o','o'],['W.bp','zb','o','o'],['W.bp','zc','o','o']]},
+        {d:'The writer sends redo records, never pages, to six storage copies across three zones. Split point and replication point fall at the same joint.', on:['za','zb','zc'], a:[['W.bp','za','o','o'],['W.bp','zb','o','o'],['W.bp','zc','o','o']]},
         {d:'The commit is durable once four of six copies acknowledge. Storage builds new page versions from the redo on its own, so the writer never writes a page.', on:['za','zb','zc'], a:[]},
         {d:'The writer also streams redo to each read replica, which applies it to pages already in its cache and drops the rest. This keeps the cache fresh. It is not a copy of the data.', on:['R.bp'], a:[['W.bp','R.bp','b']]}
       ],
@@ -228,7 +228,7 @@
     },
     {
       name: 'Calvin', cols: 4,
-      sum: 'Copies: above SQL (input log of transactions). Splits: below that, within each replica. Couples: at the very top, where the input log orders every write.',
+      sum: 'Replicates: above SQL (input log of transactions). Splits: below that, within each replica. Orders: at the very top, in the input log.',
       boxes: [
         ['app','Application',0,0,4],
         ['Q1','Sequencer',0.5,1,1,'replica 1'],['Q2','Sequencer',2.5,1,1,'replica 2'],
@@ -242,7 +242,7 @@
       cuts: [{k:'o', after:1, label:'input log: transactions', off:-3}, {k:'b', after:1, label:'transactions, by partition', off:3}],
       write: [
         {d:'The app sends a transaction to replica 1’s sequencer: move 10 from x, on partition 1, to y, on partition 2. The transaction must declare up front which keys it touches.', on:['Q1'], a:[['app','Q1','f']]},
-        {d:'The sequencer adds it to the current 10 ms batch and replicates the batch to replica 2. This is the copy point, above SQL. Once replicated, the transaction is committed: it will run, though nothing has run yet.', on:['Q2'], a:[['Q1','Q2','o']]},
+        {d:'The sequencer adds it to the current 10 ms batch and replicates the batch to replica 2. This is the replication point, above SQL. Once replicated, the transaction is committed: it will run, though nothing has run yet.', on:['Q2'], a:[['Q1','Q2','o']]},
         {d:'In each replica, the batch goes to the partitions the transaction touches. Each scheduler locks its key in log order. Every replica takes the same locks in the same order.', on:['L11','L12','L21','L22'], a:[['Q1','L11','b','b'],['Q1','L12','b','b'],['Q2','L21','b','b'],['Q2','L22','b','b']]},
         {d:'Each partition reads its own key and sends it to the other, so both have every input. This exchange crosses the split point.', on:['E11','E12','E21','E22'], a:[['L11','E11','f'],['L12','E12','f'],['L21','E21','f'],['L22','E22','f'],['E11','E12','b',null,true],['E21','E22','b',null,true]]},
         {d:'Each partition computes the same result and writes its own key. Replica 2 did all the same work: every replica runs every transaction. That only works because execution is deterministic.', on:['D11','D12','D21','D22'], a:[['E11','D11','f'],['E12','D12','f'],['E21','D21','f'],['E22','D22','f']]}

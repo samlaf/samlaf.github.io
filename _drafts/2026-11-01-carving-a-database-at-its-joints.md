@@ -8,11 +8,11 @@ date:   2026-11-01
 > -- Plato, *Phaedrus* 265e
 
 - [Database engine and its interfaces](#database-engine-and-its-interfaces)
-- [Three choices: copy, split, couple](#three-choices-copy-split-couple)
+- [Three choices: replicate, split, order](#three-choices-replicate-split-order)
 - [Replication: where data is copied](#replication-where-data-is-copied)
-- [Sharding: where data splits](#sharding-where-data-splits)
+- [Splitting: where data "shards"](#splitting-where-data-shards)
   - [Five families](#five-families)
-- [Coupling: where writes meet](#coupling-where-writes-meet)
+- [Ordering: where writes meet](#ordering-where-writes-meet)
 - [Three designs up close](#three-designs-up-close)
   - [Aurora: the log is the database](#aurora-the-log-is-the-database)
   - [DSQL: every layer its own fleet](#dsql-every-layer-its-own-fleet)
@@ -34,48 +34,50 @@ The joints are the interfaces that connect components, from SQL statements at th
 - **Disk:** blocks that hold the data files and the log files.
 - **Concurrency control:** locks, MVCC versions, and the commit. It sits beside the stack because the executor, the access methods, and the log all take part in it.
 
-[^hellerstein]: Hellerstein, Stonebraker, and Hamilton's [Architecture of a Database System][hellerstein-arch] (2007) draws the main components as blocks, not as a stack. Its Figure 1.1 puts the access methods, buffer manager, lock manager, and log manager side by side in one transactional storage manager, next to a process manager and shared utilities. This post orders the parts in a line for simplicity, so that each interface is one joint. Process management and the shared utilities don't change where a design splits or copies, so the figure leaves them out.
+[^hellerstein]: Hellerstein, Stonebraker, and Hamilton's [Architecture of a Database System][hellerstein-arch] (2007) draws the main components as blocks, not as a stack. Its Figure 1.1 puts the access methods, buffer manager, lock manager, and log manager side by side in one transactional storage manager, next to a process manager and shared utilities. This post puts the parts in a line for simplicity, so that each interface is one joint. Process management and the shared utilities don't change where a design splits or replicates, so the figure leaves them out.
 
 [^log-truth]: Which copy is the source of truth depends on the design. Without `force`, a commit may reach only the log, so the log is the truth and the data files are a copy. The log then holds redo records, plus undo records if uncommitted changes can reach the data files, as in ARIES. With `force`, every commit is already in the data files, so they are the truth, and the log holds only undo records, as in SQLite's rollback journal.
 
-## Three choices: copy, split, couple
+## Three choices: replicate, split, order
 
 Past one machine, a design makes three choices:
 
-- **Copying** *replicates* the data onto other nodes.
+- **Replicating** *copies* the data onto other nodes.
   - Benefits: durability, scalable reads, and lower-latency reads (via geo-replication).
 - **Splitting** *shards* the data across several nodes.
   - Benefits: scalable writes, and a database larger than one storage device can hold.
-- **Coupling** *orders* conflicting writes.
+- **Ordering** *decides* between conflicting writes.
   - It sets whether sharding scales writes: only when each slice orders its own writes.
 
-Each choice sits at one of the engine's joints. Sharding splits the data at the **split point**: the interface where each request is routed to the node that owns its slice of the data. Above it, every node sees the whole database. Below it, each slice has one owner. Replication copies at the **copy point**: the interface where a write leaves the node that decides it, for the nodes that copy it. Coupling happens at the **coupling point**: the interface where the decisions of different writers meet, and conflicting writes get their final order.
+Each choice sits at one of the engine's joints. Sharding splits the data at the **split point**: the interface where each request is routed to the node that owns its slice of the data. Above it, every node sees the whole database. Below it, each slice has one owner. Writes are replicated at the **replication point**: the interface where a write leaves the node that decides it, for its replicas. Writes are ordered at the **ordering point**: the interface where the decisions of different writers meet, and conflicting writes get their final order.
 
-Most people know the classic sharded database. A router above SQL sends each query to the shards that hold its rows. Each shard is an ordinary database: it orders its own writes and has its own replicas. Vitess (sharded MySQL) and Citus (sharded Postgres) both work this way.[^citus] The engines under them still differ in how they copy. Postgres ships its write-ahead log (WAL), a log of page changes. MySQL ships its binlog, a log of row changes.
+Most people know the classic sharded database. A router above SQL sends each query to the shards that hold its rows. Each shard is an ordinary database: it orders its own writes and has its own replicas. Vitess (sharded MySQL) and Citus (sharded Postgres) both work this way.[^citus] The engines under them still differ in how they replicate. Postgres ships its write-ahead log (WAL), a log of page changes. MySQL ships its binlog, a log of row changes.
 
 [^citus]: Citus is a Postgres extension, not a fork. Postgres lets an extension take over query planning and add its own plan nodes. Citus uses these hooks to rewrite a query into SQL on the shard tables, which are ordinary Postgres tables on the workers. It sends that SQL to the workers over ordinary client connections. When repartition joins are turned on, workers also swap rows with each other, to join on a column other than the shard key. Each worker writes its rows to files, split by the new key, and the other workers fetch them with `COPY`. Commits that span shards use Postgres's own two-phase commit (`PREPARE TRANSACTION`). MySQL has plugins, but none can take over the planner, so Vitess runs as a separate proxy in front of MySQL.
 
-Most designs similarly split first, then copy each slice. [Calvin](#calvin-the-log-comes-first) copies first, then splits.
+Most designs similarly split first, then replicate each slice. [Calvin](#calvin-the-log-comes-first) replicates first, then splits.
 
-![Two panels. Left, split then copy, as in Vitess: a router splits the data into two shards, and each shard ships its binlog to three copies. Right, copy then split, as in Calvin: the input log goes to three copies, and each copy splits into two partitions that execute every transaction](/assets/db-cuts/02b-two-orders.svg)
+![Two panels. Left, split then replicate, as in Vitess: a router splits the data into two shards, and each shard ships its binlog to three replicas. Right, replicate then split, as in Calvin: the input log goes to three replicas, and each replica splits into two partitions that execute every transaction](/assets/db-cuts/02b-two-sequences.svg)
 
-This only shows the ordering, but ultimately every joint can host a split point or a copy point, and as we'll see later a coupling point. We will also explore why the 3 points are not fully orthogonal. For example, a design can copy only what it has already decided.
+This only shows the sequence, but ultimately every joint can host a split point or a replication point, and as we'll see later an ordering point. We will also explore why the 3 points are not fully orthogonal. For example, a design can replicate only what it has already decided.
 
-![One engine stack from the application down to disk. At each of the four joints, the left half of the line names the family that splits the data there, and the right half names what a design ships when it copies data there](/assets/db-cuts/02a-joints-map.svg)
+![One engine stack from the application down to disk. At each of the four joints, the left half of the line names the family that splits the data there, and the right half names what a design ships when it replicates there](/assets/db-cuts/02a-joints-map.svg)
+
+All three points are places in the stack. Designs also differ in *when* they act: whether they replicate a write before or after it commits, and whether they order writes before, during, or after execution. [The three designs up close](#three-designs-up-close) chart both at once.
 
 ## Replication: where data is copied
 
-A replicated database ships each write from the node that decides it to the nodes that copy it, almost always as a log.[^not-a-log] Layers above the copy point handle each write once, on the node that decides it. Layers below it handle each write on every replica: each one receives the stream and applies it. That is why copies never scale writes.
+A replicated database ships each write from the node that decides it to its replicas, almost always as a log.[^not-a-log] Layers above the replication point handle each write once, on the node that decides it. Layers below it handle each write on every replica: each one receives the stream and applies it. That is why replication never scales writes.
 
 [^not-a-log]: Three exceptions. Leaderless systems, such as Dynamo and Cassandra, have no node that orders writes: a coordinator sends each write to a quorum of replicas, and replicas that miss one catch up by comparing state, not by replaying a log. State-based CRDTs ship their state, or a delta of it, and merge it. And a new replica first copies a snapshot of the data files, then switches to the log to keep up. This post leaves leaderless systems and CRDTs aside, and covers only designs where one node orders the writes to each piece of data.
 
-![One write runs down the primary's stack and leaves for the replicas at four heights: a physical log below the buffer pool, an object log below the access methods, a logical log below SQL, and a command log above SQL. Each replica runs every layer below the point where the write left](/assets/db-cuts/03c-copy-paths.svg)
+![One write runs down the primary's stack and leaves for the replicas at four heights: a physical log below the buffer pool, an object log below the access methods, a logical log below SQL, and a command log above SQL. Each replica runs every layer below the point where the write left](/assets/db-cuts/03c-replication-paths.svg)
 
-A higher copy point repeats more work on each replica, but it ties the replicas less tightly to the primary's internals. Each step up buys something:
+A higher replication point repeats more work on each replica, but it ties the replicas less tightly to the primary's internals. Each step up buys something:
 
-1. **Physical log.** Postgres ships its WAL, so its replicas only rebuild pages. This is the cheapest copy, but each replica must match the primary byte for byte: same version, same indexes, every table.
+1. **Physical log.** Postgres ships its WAL, so its replicas only rebuild pages. This is the cheapest way to replicate, but each replica must match the primary byte for byte: same version, same indexes, every table.
 2. **Object log.** FaRM ships the new value of each object a transaction wrote, to that object's backups. Its indexes are objects too, so a backup only copies values into memory and never runs the access methods.
-3. **Logical log.** MySQL keeps a physical WAL for durability on each node, like Postgres, but ships its binlog to replicas. Its replicas run their own access methods, so they can run another version or storage engine, keep their own indexes, or copy only some tables. Outside consumers can also read the binlog for change data capture.[^engine-log]
+3. **Logical log.** MySQL keeps a physical WAL for durability on each node, like Postgres, but ships its binlog to replicas. Its replicas run their own access methods, so they can run another version or storage engine, keep their own indexes, or replicate only some tables. Outside consumers can also read the binlog for change data capture.[^engine-log]
 4. **Command log.** Calvin ships the inputs of each transaction, as blockchains do. The log is small, and no replica depends on another to run a transaction. But every replica runs every transaction on its own, and all of them must reach the same result. So execution must be deterministic. That has [benefits][deterministic-overview], and one main cost: transactions can't race for locks, as they do in Postgres or MySQL, because each race could have a different winner on each replica. Instead, every replica takes its locks in the order the log fixes.
 
 [^engine-log]: The engine sets the usual choice, not a hard limit. Postgres also offers logical replication, and Aurora MySQL ships physical redo to its storage instead of the binlog.
@@ -84,19 +86,25 @@ Designs also differ in who must acknowledge a write before it commits:[^ack]
 
 - **Asynchronous:** the primary commits alone. This is the default in Postgres and MySQL. A failover can lose the last few commits.
 - **Semi-synchronous:** the primary waits for at least one replica. Examples are MySQL's semi-sync and a Postgres primary with one synchronous standby.
-- **Quorum:** the primary waits for a majority, or for k of n copies. CockroachDB waits for a Raft majority, and Aurora for four of six storage copies.
+- **Quorum:** the primary waits for a majority, or for k of n replicas. CockroachDB waits for a Raft majority, and Aurora for four of six storage copies.
 
 [^ack]: Designs also differ in what a replica acknowledges: that it received the write, flushed it to disk, or applied it. Postgres lets you choose with `synchronous_commit` (`remote_write`, `on`, or `remote_apply`). Only an applied write is visible to a client that reads from the replica.
 
-## Sharding: where data splits
+Unless it acknowledges only applied writes, a replica can lag the primary. So replicas scale only the reads that can tolerate some lag. A read that must see the latest write either asks the node that decides writes, or waits until its replica has caught up.
 
-In the [classic picture](#three-choices-copy-split-couple), sharding is a router above SQL. Newer designs split the data lower down. Aurora has one writer and no visible shards, yet its log and pages live in a storage service that is sharded and replicated underneath. Spanner and CockroachDB shard and replicate below SQL, one key range at a time. DSQL divides the engine into separately scaled fleets. Calvin replicates before it shards. To fit them all, this post generalizes sharding into the split point. "Sharding" suggests that each node owns a slice of the data. But a shared disk or a shared key-value store is sharded too, under the hood. What tells designs apart is the interface through which requests reach each slice's owner: SQL queries, key-value reads and writes, pages, or log records.
+## Splitting: where data "shards"
+
+In the [classic picture](#three-choices-replicate-split-order), sharding is a router above SQL. Each shard is a whole database, and the router knows which shard holds each row. Newer designs split the data lower down, and the interface there may hide the pieces or show them. A shared disk looks like one address space to every node, but storage splits it into segments that no node sees. A shared key-value store shows its pieces to the engine: each node knows which range owns a key, and sends the request there.
+
+![Two panels. Left, a shared disk: every node sends page requests by address to one shared storage, which splits the data into segments no node sees. Right, a shared key-value store: each node keeps a map of range owners and sends each request to the range that holds the key](/assets/db-cuts/01c-hide-or-show-shards.svg)
+
+So every design here is sharded somewhere, even when no node sees the shards. What tells designs apart is the interface through which requests reach each slice's owner: SQL queries, key-value reads and writes, pages, or log records. That interface is the split point, and the designs in this post place it at every joint. Aurora has one writer and no visible shards, yet its storage service is sharded and replicated underneath. Spanner and CockroachDB shard below SQL, one key range at a time. DSQL divides the engine into separately scaled fleets. Calvin replicates before it shards.
 
 ### Five families
 
-The classic names for split points have the same problem as "sharding." They are shared memory, shared disk, and shared nothing, and they describe hardware: what the processors physically share. By that measure, almost every cloud database today is shared nothing, so the labels stop telling designs apart. [Ziegler, Bernstein, Leis and Binnig][ziegler-cidr23] (CIDR 2023) make the same point: shared nothing versus shared disk no longer predicts how a system scales. This post reads "shared X" as the name of a split point instead: X is the highest layer that all nodes share, and above it each node has its own instance. Seen from above, every node shares X. Seen from below, X is split among the nodes that hold it, whether the nodes above see the pieces or not. The family name and the split point name the same line from its two sides. Read this way, the three names grow into five families. Apart from shared memory, each holds two designs that share a split point and differ in their coupling point: on the nodes that own the data, or somewhere else. [Coupling](#coupling-where-writes-meet) shows why that matters.
+The classic names for split points have the same problem as "sharding." They are shared memory, shared disk, and shared nothing, and they describe hardware: what the processors physically share. By that measure, almost every cloud database today is shared nothing, so the labels stop telling designs apart. [Ziegler, Bernstein, Leis and Binnig][ziegler-cidr23] (CIDR 2023) make the same point: shared nothing versus shared disk no longer predicts how a system scales. This post reads "shared X" as the name of a split point instead: X is the highest layer that all nodes share, and above it each node has its own instance. Seen from above, every node shares X. Seen from below, X is split among the nodes that hold it, whether the nodes above see the pieces or not. The family name and the split point name the same line from its two sides. Read this way, the three names grow into five families. Apart from shared memory, each holds two designs that share a split point and differ in their ordering point: on the nodes that own the data, or somewhere else. [Ordering](#ordering-where-writes-meet) shows why that matters.
 
-**Shared memory** is one machine. Its threads couple in RAM, through one buffer pool and one lock table.[^per-core] Scaling it up means buying a bigger machine. **Read replicas** add machines for reads, but nothing couples writers.
+**Shared memory** is one machine. Its threads order their writes in RAM, through one buffer pool and one lock table.[^per-core] Scaling it up means buying a bigger machine. **Read replicas** add machines for reads, but every write still goes through one primary.
 
 [^per-core]: One machine need not share its memory. VoltDB runs one single-threaded partition per core, and ScyllaDB, built on the Seastar framework, gives each core its own slice of the data and its own memory. Cores talk by passing messages, so inside the box these designs are shared nothing. Across machines, ScyllaDB is leaderless, like Cassandra, so this post leaves it aside.
 
@@ -108,16 +116,16 @@ The classic names for split points have the same problem as "sharding." They are
 **Shared key-value store** splits between SQL and the access methods. Every node runs SQL over the whole database and reads and writes rows through one key-value interface. Below the joint, keys are split into ranges, and each range has an owner. The two designs differ in who decides: each range's owner, while the transaction runs, or a separate service, at commit.
 
 - **Range owners.** Each range's owner, its leaseholder, receives key-value reads and writes as a transaction runs, and enforces the locks for its range. Each owner runs its own access methods. Spanner, CockroachDB, TiDB, and YugabyteDB work this way.
-- **Unbundled.**[^unbundled] No owner enforces locks while a transaction runs. Concurrency control becomes a service of its own. In DSQL, query processors ask storage for rows directly and keep their writes until commit. Storage can also run the bottom of each query plan, such as filters and projections, next to the data. Then a commit check by the adjudicators, which own key ranges too, decides which writes win. [FoundationDB][foundationdb] has the same shape. [DSQL](#dsql-every-layer-its-own-fleet) covers the details.
+- **Unbundled.**[^unbundled] No owner enforces locks while a transaction runs. Concurrency control becomes a service of its own. In DSQL, query processors ask storage for rows directly[^dsql-rows] and keep their writes until commit. Storage can also run the bottom of each query plan, such as filters and projections, next to the data. Then a commit check by the adjudicators, which own key ranges too, decides which writes win. [FoundationDB][foundationdb] has the same shape. [DSQL](#dsql-every-layer-its-own-fleet) covers the details.
 
 [^unbundled]: The name comes from Lomet, Fekete, Weikum, and Zwilling's [Unbundling Transaction Services in the Cloud][lomet-unbundling] (CIDR 2009). It means something narrower than splitting compute from storage. They split the storage engine itself in two: a transactional component that runs concurrency control and recovery over logical records, and a data component that stores the records and knows nothing about transactions. The [FoundationDB paper][foundationdb] uses the word in the same sense. In Lomet's design, the transactional component still takes locks while a transaction runs. DSQL and FoundationDB check for conflicts only at commit.
+
+[^dsql-rows]: DSQL can look as if it belongs one joint lower, in the [shared buffer pool](#five-families) family, because its query processors keep no cache. But in [Brooker's words][dsql-reads], "the QP doesn't ask for pages, it asks for rows." The access methods moved to storage along with the cache, so storage walks the index, and a lookup costs one round trip.
 
 **Shared buffer pool** splits between the access methods and the buffer pool. Each node runs the access methods itself, and reads records or index nodes straight from other machines' memory. A B-tree lookup touches several nodes one after another, and across this joint each one can cost a round trip. So designs here need fast RDMA networks, where a read skips the remote CPU, and they still work hard to save round trips. The two designs differ in who decides: each object's primary, or the compute server that writes it.
 
 - **Object owners.** Every machine holds part of the data and runs transactions over all of it. Each object has one primary, which locks it at commit, and other machines read it with one-sided RDMA. [FaRM][farm] works this way, and it is the one production example: it runs under [A1][a1], a graph database in Microsoft's Bing.
 - **Disaggregated memory.** Compute servers hold no data. Memory servers hold the tables, the indexes, and the logs, and compute servers read and write them directly. In [NAM-DB][nam-db], a research system, any compute server may write: it locks a record by a compare-and-swap on the record's header in remote memory.[^nam-db-durability] Even NAM-DB avoids walking a B-tree across the joint. It sends B-tree lookups to the memory server as messages. [Sherman][sherman], a research B-tree, does walk the tree over RDMA, but caches the upper levels on each compute server.
-
-DSQL can look as if it splits here, because its query processors keep no cache. But in [Brooker's words][dsql-reads], "the QP doesn't ask for pages, it asks for rows." The access methods moved to storage along with the cache, so storage walks the index, and a lookup costs one round trip.
 
 [^nam-db-durability]: NAM-DB keeps its data in memory. On a power failure, a UPS lets each memory server write a snapshot to disk. Against hardware failure, each compute thread writes a log of the statements it ran, with their read timestamps, to two or more memory servers before it installs its writes. When a memory server fails, NAM-DB halts, restores the last checkpoint, and replays the merged logs. The authors state that high availability is not a design goal.
 
@@ -126,28 +134,24 @@ DSQL can look as if it splits here, because its query processors keep no cache. 
 - **Coherent caches.** The buffer pools also talk to each other. Every node runs SQL, access methods, a buffer pool, and its own log over the whole database, and all of them read and write one set of shared volumes. The hard part is keeping the buffer pools coherent and the locks global. This is data shipping: pages and lock messages cross between nodes. Oracle RAC (Cache Fusion) and Db2 pureScale are the long-lived examples. ScaleStore, a research system, keeps buffer pools coherent the same way, over RDMA and without shared disk.
 - **Log-based storage.** The log is the interface. The writer sends redo records to a storage service, and storage sends pages back on a miss. Aurora, Neon, Azure SQL Hyperscale, and AlloyDB work this way, each with one writer. [Aurora](#aurora-the-log-is-the-database) shows why.
 
-A SQL query compiles to a tree of operators, so the families above can be drawn as lines through one query plan:
+## Ordering: where writes meet
 
-![One query plan for a filtered sum by region, split at each family's joint: shared nothing between the final and partial sums, the shared key-value store above the access methods, the shared buffer pool above the buffer pool, and shared disk above storage. A dashed arrow shows that reads can push the filter and partial sum below the key-value line](/assets/db-cuts/03a-plan-cuts.svg)
+The split point says where the data divides. The **ordering point** says where writes meet: where conflicting writes get their final order. Concurrency control runs there, and it settles two questions: who may write, and who decides which transactions commit. [Alex Miller][miller-decomposing] divides every transaction into four steps: execute, order, validate, and persist. In his terms, the ordering point is where a design orders and validates writes, and the replication point is where it persists them.
 
-Each line marks where a family's joint sits, not where every read must cross it. For reads, many designs push work down across their joint. DSQL runs filters next to the data, and CockroachDB and TiDB run partial sums there too. That moves read work below the line, but the joint stays where it is: writes and concurrency control still meet at the key-value interface.
+The ordering point is a place, not a time. A design can order writes before execution, as Calvin's input log does. It can order them during execution, with locks, as CockroachDB's leaseholders do. Or it can order them after execution, with a check at commit, as DSQL's adjudicators do. CockroachDB and DSQL order at the same joint, the key-value interface, but at different times. Optimistic or pessimistic concurrency control is a choice of time. This section is about the place.
 
-## Coupling: where writes meet
+The two points often sit at the same joint, but not always. Oracle RAC orders above its split point, through global locks and coherent buffer pools. Calvin orders at the very top, in its input log. DSQL orders at the same joint as its split, but on other nodes: the adjudicators. And Aurora orders in its one writer, above its split point.
 
-The split point says where the data divides. The **coupling point** says where writes meet: where conflicting writes get their final order. Concurrency control runs there, and it settles two questions: who may write, and who decides which transactions commit. [Alex Miller][miller-decomposing] divides every transaction into four steps: execute, order, validate, and persist. In his terms, the coupling point is where a design orders and validates writes, and the copy point is where it persists them.
+**Who may write.** Splitting adds write capacity only when each slice orders its own writes. That takes the state that orders writes: locks, cached pages, and the log. Below the split point, each piece of that state covers one slice. Above it, each node keeps its own private copy, over the whole database. [Stonebraker][stonebraker-sn] named these three as the problems of shared disk in 1985. Private state is safe only while one node writes. Two writers with private locks could lock the same row and never know it. Two writers with private caches could each update a stale copy of the same page. So a design with many writers must order their writes again, at every piece of state they keep, in one of two ways:[^multi-leader]
 
-The two points often sit at the same joint, but not always. Oracle RAC couples above its split point, through global locks and coherent buffer pools. Calvin couples at the very top, where its input log orders every write. DSQL couples at the same joint as its split, but on other nodes: the adjudicators. And Aurora, with one writer, has no coupling point at all.
-
-**Who may write.** Splitting adds write capacity only when each slice orders its own writes. That takes the state that orders writes: locks, cached pages, and the log. Below the split point, each piece of that state covers one slice. Above it, each node keeps its own private copy, over the whole database. [Stonebraker][stonebraker-sn] named these three as the problems of shared disk in 1985. Private state is safe only while one node writes. Two writers with private locks could lock the same row and never know it. Two writers with private caches could each update a stale copy of the same page. So a design with many writers must couple them again, at every piece of state they keep, in one of two ways:[^multi-leader]
-
-- **Share the state.** Oracle RAC keeps its locks global and its buffer pools coherent. Each node writes its own log, and recovery merges the logs in commit order. This is why a shared disk alone never gives you many writers: the nodes must also couple at their caches and locks.
+- **Share the state.** Oracle RAC keeps its locks global and its buffer pools coherent. Each node writes its own log, and recovery merges the logs in commit order. This is why a shared disk alone never gives you many writers: the nodes must also share their caches and locks.
 - **Move the state below the split point.** Routed shards get this for free: splitting above SQL puts the whole engine, with all three, below the split. Range owners move all three to each key's owner. DSQL moves its locks to the adjudicators, its cache into storage, and its log into the journal. NAM-DB keeps no cache, and puts its locks and its logs in the memory servers.
 
-A design that does neither keeps one writer. Aurora shares its storage but nothing above it, so it has [exactly one writer](#aurora-the-log-is-the-database).
+A design that does neither keeps one writer, and that writer is its ordering point. Aurora shares its storage but nothing above it, so it has [exactly one writer](#aurora-the-log-is-the-database).
 
-**Who decides.** The coupling point has a place and an owner. Within a family, the place rarely changes. The owner does: is it the node that holds the data, or something else? Only shared disk moves the place too, one joint up, because its storage cannot decide.
+**Who decides.** The ordering point has a place and an owner. Within a family, the place rarely changes. The owner does: is it the node that holds the data, or something else? Only shared disk moves the place too, one joint up, because its storage cannot decide.
 
-![Each row is a joint and the family that splits there, with two coupling columns: on the data owners, or elsewhere. Shared nothing: routed shards lock per shard and use 2PC; Calvin's input log fixes the order. Shared key-value store: leaseholders lock their ranges; DSQL's adjudicators check at commit. Shared buffer pool: FaRM's primaries lock at commit; NAM-DB's writer locks by compare-and-swap; Oracle RAC also couples here, one joint above its split. Shared disk: storage never decides, and Aurora has one writer](/assets/db-cuts/03d-who-couples.svg)
+![Each row is a joint and the family that splits there, with two ordering columns: on the data owners, or elsewhere. Shared nothing: routed shards lock per shard and use 2PC; Calvin's input log fixes the order. Shared key-value store: leaseholders lock their ranges; DSQL's adjudicators check at commit. Shared buffer pool: FaRM's primaries lock at commit; NAM-DB's writer locks by compare-and-swap; Oracle RAC also orders here, one joint above its split. Shared disk: storage never decides, and Aurora's one writer orders every write, above its split](/assets/db-cuts/03d-who-orders.svg)
 
 Calvin's partitions do take locks, but in an order the log has already fixed. So a partition never votes on whether a transaction commits.
 
@@ -157,15 +161,11 @@ Calvin's partitions do take locks, but in an order the log has already fixed. So
 - **Range owners** show their shards to the engine only. The engine runs the commit protocol across ranges, so the application writes ordinary SQL. It sees ranges only through speed: a transaction over many ranges is slower, and keys that only increase pile up on one range.
 - **Where something else decides,** no layer coordinates across the data shards, so they stay out of sight. Aurora's storage splits each volume into 10 GB segments that no SQL node thinks about. Calvin's partitions and DSQL's storage are split by key too, but a transaction pays no commit protocol to touch several of them. DSQL's adjudicators do own key ranges, so a commit that spans several of them still needs a protocol among them.
 
-The interface shows the difference. A shared disk looks like one address space to every node. In CockroachDB, each node knows which range owns a key, and sends the request there.
-
-![Two panels. Left, a shared disk: every node sends page requests by address to one shared storage, which splits the data into segments no node sees. Right, a shared key-value store: each node keeps a map of range owners and sends each request to the range that holds the key](/assets/db-cuts/01c-hide-or-show-shards.svg)
-
 This is also why designs below SQL split and move their data on their own. A range below SQL is small, and moving it changes only who serves it, never which queries are legal. A shard above SQL is a whole database. Citus and Vitess can move data between shards online, but an operator starts the move, and changing the shard key is a schema change.
 
-**Where copies go.** A replica can only copy what has already been decided. So a design copies at or below the point where its decisions become final: its coupling point, or, with one writer, the writer itself. Most designs shard first, then replicate each shard. Range owners decide at each range and copy there, through a Raft group per range. Vitess decides at each shard, and gives each shard its own primary and replicas. Aurora's one writer decides above its split point, and storage copies the redo below it. DSQL's adjudicators decide, and the journal copies their result. Above that point, a copy would not be safe: the outcome still depends on data or locks that other nodes hold. [Calvin][calvin] follows the same rule. Its coupling point is the input log, at the very top: the log fixes the order of transactions before anything runs. So Calvin can copy that log above SQL, and each replica then splits the data among its partitions. That works only because every replica reaches the same result on its own, as [replication](#replication-where-data-is-copied) explained.
+**Where replication happens.** A design can replicate only what it has already decided. So it replicates at or below the point where its decisions become final: its ordering point. Most designs shard first, then replicate each shard. Range owners decide at each range and replicate there, through a Raft group per range. Vitess decides at each shard, and gives each shard its own primary and replicas. Aurora's one writer decides above its split point, and storage replicates the redo below it. DSQL's adjudicators decide, and the journal replicates their result. Above that point, replicating would not be safe: the outcome still depends on data or locks that other nodes hold. [Calvin][calvin] follows the same rule. Its ordering point is the input log, at the very top: the log fixes the order of transactions before anything runs. So Calvin can replicate that log above SQL, and each replica then splits the data among its partitions. That works only because every replica reaches the same result on its own, as [replication](#replication-where-data-is-copied) explained.
 
-[The map at the end](#conclusion-the-whole-picture) draws the designs side by side, with where each splits, copies, and couples, and who may write.
+[The map at the end](#conclusion-the-whole-picture) draws the designs side by side, with where each splits, replicates, and orders, and who may write.
 
 [^multi-leader]: Many writers here does not mean multi-leader replication. Conflicting writes are still ordered before they commit, through shared locks or a check at commit.
 
@@ -177,7 +177,7 @@ Aurora, DSQL, and Calvin each divide the engine in a different way. They differ 
 - **DSQL** puts it in the middle: write sets, written once the adjudicators approve them. Any node may write.
 - **Calvin** puts it at the top: transaction inputs, written before anything runs. Each partition writes its own rows, and conflicts make transactions wait instead of abort.
 
-Each design gets a chart with two axes. Across is time: Miller's four steps, which systems run in different orders. Each chart shows that design's order. Down is space: the layer that runs each step. The orange line is the copy point, and the shaded area holds the steps that every replica repeats. Every step after persist runs again on each replica, so the later a design persists, the lower its copy point sits. Aurora persists after execution, so its replicas only build pages. Calvin persists before execution, so every replica runs every transaction.
+Each design gets a chart with two axes. Across is time: Miller's four steps, which systems run in different sequences. Each chart shows that design's sequence. Down is space: the layer that runs each step. The orange line is the replication point, and the shaded area holds the steps that every replica repeats. Every step after persist runs again on each replica, so the later a design persists, the lower its replication point sits. Aurora persists after execution, so its replicas only build pages. Calvin persists before execution, so every replica runs every transaction.
 
 I picked Aurora and DSQL because I know them best, and Calvin because no other design here puts the log above execution. None of them is alone. Azure SQL Hyperscale ([Socrates][socrates]), Google's AlloyDB, and Neon have Aurora's shape: one writer over shared, log-based storage. Socrates and Neon go one step further and separate the log service from the page servers. FoundationDB has DSQL's shape, as a key-value store without SQL on top. VoltDB, like Calvin, replicates transactions rather than their results.
 
@@ -195,7 +195,7 @@ In [Werner Vogels' description][aurora-ascendant] (2019), Aurora treated caching
 - **Eviction:** a dirty page can be dropped once its redo is durable, because storage can always rebuild it. There is no flush.
 - **Replicas:** a read replica gets no copy of the data, because it reads the writer's storage. The writer still streams its redo to each replica. Per the [Aurora paper][aurora-paper], the replica applies each record to a page it has cached and drops the rest. That stream keeps caches fresh: it is a cache-coherence protocol, not a durability one.
 
-**Why there is still exactly one writer.** The lock manager and the buffer pool are in-memory structures inside one process, and the writer assigns every LSN. Storage persists the log and replays it, but never decides its order. Aurora offloaded the log's durability and page construction, not its authorship. A second writer would need global locks and coherent caches, which brings back [Stonebraker's three shared-disk problems](#coupling-where-writes-meet). Aurora sits in the shared-disk family but avoids all three, because it has one writer.
+**Why there is still exactly one writer.** The lock manager and the buffer pool are in-memory structures inside one process, and the writer assigns every LSN. Storage persists the log and replays it, but never decides its order. Aurora offloaded the log's durability and page construction, not its authorship. A second writer would need global locks and coherent caches, which brings back [Stonebraker's three shared-disk problems](#ordering-where-writes-meet). Aurora sits in the shared-disk family but avoids all three, because it has one writer.
 
 **Getting more writers.** AWS has tried three ways. Only sharding adds real write capacity:
 
@@ -222,7 +222,7 @@ Aurora DSQL keeps Postgres's SQL engine but replaces everything beneath it with 
 
 ### Calvin: the log comes first
 
-[Calvin][calvin] runs the steps in the opposite order from Aurora and DSQL. It agrees on the order of transactions first, makes that order durable, and only then runs them. It began as a research system, and FaunaDB later built a commercial database on its design.
+[Calvin][calvin] runs the steps in the opposite sequence from Aurora and DSQL. It agrees on the order of transactions first, makes that order durable, and only then runs them. It began as a research system, and FaunaDB later built a commercial database on its design.
 
 ![Calvin's four steps over time and across layers: order and persist in the sequencer, above execution; then every replica locks, executes, and writes its own storage](/assets/db-cuts/07-calvin.svg)
 
@@ -237,9 +237,9 @@ Aurora DSQL keeps Postgres's SQL engine but replaces everything beneath it with 
 
 ## Conclusion: the whole picture
 
-Every design in this post comes down to three choices: [where it splits](#sharding-where-data-splits), [where it copies](#replication-where-data-is-copied), and [where it couples](#coupling-where-writes-meet).
+Every design in this post comes down to three choices: [where it splits](#splitting-where-data-shards), [where it replicates](#replication-where-data-is-copied), and [where it orders](#ordering-where-writes-meet).
 
-![Nine designs in five families, as side-by-side node stacks: where each splits the data, where it copies data, where writes couple, and who may write](/assets/db-cuts/03-split-copy-couple.svg)
+![Nine designs in five families, as side-by-side node stacks: where each splits the data, where it replicates data, where writes are ordered, and who may write](/assets/db-cuts/03-whole-picture.svg)
 
 Then follow one request through it: pick a design, and step a read-write or a read-only transaction through the joints.
 
@@ -261,13 +261,12 @@ Then follow one request through it: pick a design, and step a read-write or a re
 12. [Socrates: The New SQL Server in the Cloud][socrates] — Antonopoulos et al., SIGMOD 2019; Azure SQL Hyperscale, with the log service apart from the page servers
 13. [Architecture of a Database System][hellerstein-arch] — Hellerstein, Stonebraker, Hamilton, Foundations and Trends in Databases, 2007; the components of a relational engine
 14. [Decomposing Transactional Systems][miller-decomposing] — Miller, 2025; execute, order, validate, and persist, and the orders systems run them in
-15. [I Am SO Glad I'm Uncoordinated!][helland-uncoordinated] — Helland, 2021; hardware keeps getting cheaper, coordination does not
-16. [Unbundling Transaction Services in the Cloud][lomet-unbundling] — Lomet, Fekete, Weikum, Zwilling, CIDR 2009; a transactional component apart from a data component
-17. [An Overview of Deterministic Database Systems][deterministic-overview] — Abadi and Faleiro, CACM 2018; what deterministic execution buys and what it costs
-18. [No compromises: distributed transactions with consistency, availability, and performance][farm] — Dragojević et al., SOSP 2015; FaRM's one-sided RDMA reads, commit-time locks at primaries, and primary-backup replication
-19. [A1: A Distributed In-Memory Graph Database][a1] — Buragohain et al., SIGMOD 2020; Bing's graph database, built on FaRM and run in production
-20. [The End of a Myth: Distributed Transactions Can Scale][nam-db] — Zamanian, Binnig, Kraska, Harris, PVLDB 2017; NAM-DB, snapshot isolation over remote memory
-21. [Sherman: A Write-Optimized Distributed B+Tree Index on Disaggregated Memory][sherman] — Wang et al., SIGMOD 2022; a B-tree walked over RDMA, with upper levels cached on compute
+15. [Unbundling Transaction Services in the Cloud][lomet-unbundling] — Lomet, Fekete, Weikum, Zwilling, CIDR 2009; a transactional component apart from a data component
+16. [An Overview of Deterministic Database Systems][deterministic-overview] — Abadi and Faleiro, CACM 2018; what deterministic execution buys and what it costs
+17. [No compromises: distributed transactions with consistency, availability, and performance][farm] — Dragojević et al., SOSP 2015; FaRM's one-sided RDMA reads, commit-time locks at primaries, and primary-backup replication
+18. [A1: A Distributed In-Memory Graph Database][a1] — Buragohain et al., SIGMOD 2020; Bing's graph database, built on FaRM and run in production
+19. [The End of a Myth: Distributed Transactions Can Scale][nam-db] — Zamanian, Binnig, Kraska, Harris, PVLDB 2017; NAM-DB, snapshot isolation over remote memory
+20. [Sherman: A Write-Optimized Distributed B+Tree Index on Disaggregated Memory][sherman] — Wang et al., SIGMOD 2022; a B-tree walked over RDMA, with upper levels cached on compute
 
 [aurora-ascendant]: https://www.allthingsdistributed.com/2019/03/amazon-aurora-design-cloud-native-relational-database.html "Amazon Aurora ascendant: How we designed a cloud-native relational database"
 [aurora-paper]: https://www.allthingsdistributed.com/files/p1041-verbitski.pdf "Amazon Aurora: Design Considerations for High Throughput Cloud-Native Relational Databases"
@@ -283,7 +282,6 @@ Then follow one request through it: pick a design, and step a read-write or a re
 [socrates]: https://www.microsoft.com/en-us/research/wp-content/uploads/2019/05/socrates.pdf "Socrates: The New SQL Server in the Cloud"
 [hellerstein-arch]: https://dsf.berkeley.edu/papers/fntdb07-architecture.pdf "Architecture of a Database System"
 [miller-decomposing]: https://transactional.blog/blog/2025-decomposing-transactional-systems "Decomposing Transactional Systems"
-[helland-uncoordinated]: https://pathelland.substack.com/p/i-am-so-glad-im-uncoordinated "I Am SO Glad I'm Uncoordinated!"
 [lomet-unbundling]: https://arxiv.org/abs/0909.1768 "Unbundling Transaction Services in the Cloud"
 [deterministic-overview]: https://cacm.acm.org/research/an-overview-of-deterministic-database-systems/ "An Overview of Deterministic Database Systems"
 [farm]: https://pdos.csail.mit.edu/6.824/papers/farm-2015.pdf "No compromises: distributed transactions with consistency, availability, and performance"

@@ -59,10 +59,10 @@ def joints_map():
               "Each of the four joints between layers can host either point. On the left, the family "
               "that splits the data at that joint: shared nothing above SQL, shared key-value store below SQL, "
               "shared buffer pool below the access methods, shared disk below the buffer pool. On the right, "
-              "what a design ships when it copies data at that joint: a command log, a logical log, "
+              "what a design ships when it replicates at that joint: a command log, a logical log, "
               "an object log, or a physical log or blocks. Each design on the left also appears on the right.")
     svg.text(x0 - 15, top - 14, "Split point", 12, 600, BLUE, "end")
-    svg.text(x1 + 15, top - 14, "Copy point", 12, 600, ORANGE, "start")
+    svg.text(x1 + 15, top - 14, "Replication point", 12, 600, ORANGE, "start")
     for i, (name, store) in enumerate(layers):
         y = top + i * rh
         svg.rect(x0, y, x1 - x0, bh, STORE if store else WHITE)
@@ -78,12 +78,12 @@ def joints_map():
     return svg.render()
 
 
-def who_couples():
+def who_orders():
     layers = [("Application", False), ("SQL", False), ("Access methods", False),
               ("Buffer pool", False), ("Disk", True)]
-    # Per joint: split family, then (name, mechanism lines) entries for each coupling column.
+    # Per joint: split family, then (name, mechanism lines) entries for each ordering column.
     # An entry whose name is None is drawn faint: no design can sit there. On the shared disk
-    # row, no coupling point sits at the joint at all, so both coupling lines are faint.
+    # row, no ordering point sits at the joint itself, so both ordering lines are faint.
     rows = [
         ("Shared nothing",
          [("Routed shards", ["Vitess, Citus: each shard locks its", "rows, and 2PC joins shards"])],
@@ -97,7 +97,7 @@ def who_couples():
           ("Coherent caches", ["Oracle RAC: global locks; its split", "point sits one joint lower"])]),
         ("Shared disk",
          [(None, ["it only holds pages and logs"])],
-         [("Log-based storage", ["Aurora: one writer, so no", "coupling point"])]),
+         [("Log-based storage", ["Aurora: the one writer orders", "every write, one joint up"])]),
     ]
     sx, sw, bh = 20, 110, 30
     cols = [(150, 180), (340, 205), (555, 195)]
@@ -119,14 +119,14 @@ def who_couples():
               "between shards; Calvin's input log fixes the order before any partition runs. Shared key-value "
               "store: CockroachDB and Spanner let each leaseholder lock its range; DSQL's adjudicators check write "
               "sets at commit. Shared buffer pool: FaRM's primaries lock their objects at commit; NAM-DB's writer "
-              "locks records by compare-and-swap. Oracle RAC also couples at this joint, with global locks and "
+              "locks records by compare-and-swap. Oracle RAC also orders at this joint, with global locks and "
               "coherent caches, though it splits one joint lower. Shared disk: storage never decides, and Aurora "
-              "keeps one writer, so it has no coupling point.")
+              "has one writer, which orders every write one joint up.")
     svg.header("Who decides, at each joint",
                ["Each row is a joint, and the family that splits there. Within a family, the two designs differ in",
-                "who runs the coupling point. Storage never decides, and Oracle RAC couples one joint above its split."])
-    heads = [("Split point", "the family", BLUE), ("Couples on the data owners", "the nodes that hold the data decide", DIM),
-             ("Couples elsewhere", "something else decides", DIM)]
+                "who runs the ordering point. Storage never decides, and Oracle RAC orders one joint above its split."])
+    heads = [("Split point", "the family", BLUE), ("Orders on the data owners", "the nodes that hold the data decide", DIM),
+             ("Orders elsewhere", "something else decides", DIM)]
     for (cx, _), (t, sub, color) in zip(cols, heads):
         svg.text(cx + 6, 102, t, 12, 600, color, "start")
         svg.text(cx + 6, 118, sub, 10.5, fill=DIM, anchor="start")
@@ -161,16 +161,16 @@ def who_couples():
     return svg.render()
 
 
-def two_orders():
+def two_sequences():
     pw, gap_g, gap_b = 350, 12, 6
     r0, l1, r1, l2, r2, bh = 68, 134, 146, 214, 226, 40
     svg = Svg(760, r2 + bh + 72,
-              "Two panels. Left, split then copy, as in Vitess and most designs: the application and router "
+              "Two panels. Left, split then replicate, as in Vitess and most designs: the application and router "
               "sit on top; a blue line splits the data into two shards, keys a to m and n to z, each with its "
-              "own SQL engine; an orange line below copies each shard three times through its binlog. Right, "
-              "copy then split, as in Calvin: an orange line first copies the input log of transactions to "
+              "own SQL engine; an orange line below replicates each shard three times through its binlog. Right, "
+              "replicate then split, as in Calvin: an orange line first replicates the input log of transactions to "
               "three replicas; a blue line then splits each replica into two partitions, which execute every "
-              "transaction. Both end with six pieces, but in Calvin each copy repeats far more of the work.")
+              "transaction. Both end with six pieces, but in Calvin each replica repeats far more of the work.")
 
     def groups(px, n_groups, n_boxes):
         gw = (pw - gap_g * (n_groups - 1)) / n_groups
@@ -189,45 +189,45 @@ def two_orders():
     def shade(px, y):
         svg.rect(px - 6, y + 4, pw + 12, r2 + bh + 26 - (y + 4), ORANGE, None, 6, ' fill-opacity="0.07"')
 
-    # Left: split, then copy.
+    # Left: split, then replicate.
     px = 20
     shade(px, l2)
-    svg.text(px, r0 - 40, "Split, then copy", 13, 600, anchor="start")
+    svg.text(px, r0 - 40, "Split, then replicate", 13, 600, anchor="start")
     svg.text(px, r0 - 23, "Vitess, and most designs", 11, fill=DIM, anchor="start")
     two_line_box(px, r0, pw, "Application + router", "every query enters here")
     point(px, l1, BLUE, False, "split: the router sends each statement to its shard")
-    point(px, l2, ORANGE, True, "copy: each shard ships its binlog")
+    point(px, l2, ORANGE, True, "replicate: each shard ships its binlog")
     for (gx, gw, bw), key in zip(groups(px, 2, 3), ["a–m", "n–z"]):
         two_line_box(gx, r1, gw, "SQL", f"keys {key}, runs each write once")
         for b in range(3):
             two_line_box(gx + b * (bw + gap_b), r2, bw, key, "storage", STORE)
-        svg.text(gx + gw / 2, r2 + bh + 17, f"three copies of {key}", 10.5, fill=DIM)
-    svg.text(px, r2 + bh + 44, "Each copy only applies row changes.", 11, anchor="start")
+        svg.text(gx + gw / 2, r2 + bh + 17, f"three replicas of {key}", 10.5, fill=DIM)
+    svg.text(px, r2 + bh + 44, "Each replica only applies row changes.", 11, anchor="start")
     svg.text(px, r2 + bh + 60, "The shard's primary already ran the transaction.", 11, fill=DIM, anchor="start")
 
-    # Right: copy, then split.
+    # Right: replicate, then split.
     px = 390
     shade(px, l1)
-    svg.text(px, r0 - 40, "Copy, then split", 13, 600, anchor="start")
+    svg.text(px, r0 - 40, "Replicate, then split", 13, 600, anchor="start")
     svg.text(px, r0 - 23, "Calvin", 11, fill=DIM, anchor="start")
     two_line_box(px, r0, pw, "Application", "every transaction enters here")
-    point(px, l1, ORANGE, True, "copy: the input log of transactions")
-    point(px, l2, BLUE, False, "split: each copy partitions the log by key")
+    point(px, l1, ORANGE, True, "replicate: the input log of transactions")
+    point(px, l2, BLUE, False, "split: each replica partitions the log by key")
     for n, (gx, gw, bw) in enumerate(groups(px, 3, 2), 1):
         two_line_box(gx, r1, gw, "Input log", "all keys")
         for b, key in enumerate(["a–m", "n–z"]):
             two_line_box(gx + b * (bw + gap_b), r2, bw, key, "execute", STORE)
-        svg.text(gx + gw / 2, r2 + bh + 17, f"copy {n}", 10.5, fill=DIM)
-    svg.text(px, r2 + bh + 44, "Each copy runs every transaction.", 11, anchor="start")
+        svg.text(gx + gw / 2, r2 + bh + 17, f"replica {n}", 10.5, fill=DIM)
+    svg.text(px, r2 + bh + 44, "Each replica runs every transaction.", 11, anchor="start")
     svg.text(px, r2 + bh + 60, "That works only because execution is deterministic.", 11, fill=DIM, anchor="start")
     return svg.render()
 
 
-def copy_paths():
+def replication_paths():
     rows = ["SQL", "Access methods", "Buffer pool", "Disk"]
     row_y = {"Write request": 120, "SQL": 200, "Access methods": 280, "Buffer pool": 360, "Disk": 440}
     cw, ch, step = 120, 30, 145
-    # (first row the replica repeats, line label, log name, examples), lowest copy point first.
+    # (first row the replica repeats, line label, log name, examples), lowest replication point first.
     copies = [
         ("Disk", "page changes", "Physical log", "Postgres WAL, Aurora redo"),
         ("Buffer pool", "new object values", "Object log", "FaRM"),
@@ -245,8 +245,8 @@ def copy_paths():
         f'orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="{c}"/></marker>'
         for i, c in [("ar", LINE), ("ar-ink", FG), ("ar-or", ORANGE)]) + '</defs>')
     svg.header("Where each write leaves for the replicas",
-               ["A write runs down the primary's stack. At the copy point, it leaves as a log and continues down each replica.",
-                "Shaded: the layers every replica runs for every write. The higher the copy point, the more of the stack each replica repeats.",
+               ["A write runs down the primary's stack. At the replication point, it leaves as a log and continues down each replica.",
+                "Shaded: the layers every replica runs for every write. The higher the replication point, the more of the stack each replica repeats.",
                 "Replicas may also run the upper layers, but only to serve reads, so the figure leaves them out."])
 
     def column(x, names, arrow):
@@ -281,7 +281,7 @@ def copy_paths():
 
 
 out = sys.argv[1] if len(sys.argv) > 1 else os.path.dirname(os.path.abspath(__file__))
-open(f"{out}/02b-two-orders.svg", "w").write(two_orders())
-open(f"{out}/03c-copy-paths.svg", "w").write(copy_paths())
+open(f"{out}/02b-two-sequences.svg", "w").write(two_sequences())
+open(f"{out}/03c-replication-paths.svg", "w").write(replication_paths())
 open(f"{out}/02a-joints-map.svg", "w").write(joints_map())
-open(f"{out}/03d-who-couples.svg", "w").write(who_couples())
+open(f"{out}/03d-who-orders.svg", "w").write(who_orders())
