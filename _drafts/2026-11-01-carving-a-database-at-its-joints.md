@@ -9,10 +9,12 @@ date:   2026-11-01
 
 - [Database engine and its interfaces](#database-engine-and-its-interfaces)
 - [Three choices: replicate, split, order](#three-choices-replicate-split-order)
-- [Replication: where data is copied](#replication-where-data-is-copied)
-- [Splitting: where data "shards"](#splitting-where-data-shards)
-  - [Five families](#five-families)
-- [Ordering: where writes meet](#ordering-where-writes-meet)
+  - [Replication: where data is copied](#replication-where-data-is-copied)
+  - [Splitting: where data divides](#splitting-where-data-divides)
+  - [Ordering: where writes meet](#ordering-where-writes-meet)
+- [How the three points fit together](#how-the-three-points-fit-together)
+  - [Space: ordering sits highest](#space-ordering-sits-highest)
+  - [Time: persist after ordering](#time-persist-after-ordering)
 - [Three designs up close](#three-designs-up-close)
   - [Aurora: the log is the database](#aurora-the-log-is-the-database)
   - [DSQL: every layer its own fleet](#dsql-every-layer-its-own-fleet)
@@ -59,13 +61,13 @@ Most designs similarly split first, then replicate each slice. [Calvin](#calvin-
 
 ![Two panels. Left, split then replicate, as in Vitess: a router splits the data into two shards, and each shard ships its binlog to three replicas. Right, replicate then split, as in Calvin: the input log goes to three replicas, and each replica splits into two partitions that execute every transaction](/assets/db-cuts/02b-two-sequences.svg)
 
-This only shows the sequence, but ultimately every joint can host a split point or a replication point, and as we'll see later an ordering point. We will also explore why the 3 points are not fully orthogonal. For example, a design can replicate only what it has already decided.
+This figure shows only the sequence. Every joint can host a split point or a replication point, and, as we'll see, an ordering point. The three points are not fully independent, though. For example, a design can replicate only what it has already decided.
 
 ![One engine stack from the application down to disk. At each of the four joints, the left half of the line names the family that splits the data there, and the right half names what a design ships when it replicates there](/assets/db-cuts/02a-joints-map.svg)
 
-All three points are places in the stack. Designs also differ in *when* they act: whether they replicate a write before or after it commits, and whether they order writes before, during, or after execution. [The three designs up close](#three-designs-up-close) chart both at once.
+All three points are places in the stack. Designs also differ in *when* they act: whether they replicate a write before or after it commits, and whether they order writes before, during, or after execution. [How the three points fit together](#how-the-three-points-fit-together) works out how the points constrain each other, in place and in time.
 
-## Replication: where data is copied
+### Replication: where data is copied
 
 A replicated database ships each write from the node that decides it to its replicas, almost always as a log.[^not-a-log] Layers above the replication point handle each write once, on the node that decides it. Layers below it handle each write on every replica: each one receives the stream and applies it. That is why replication never scales writes.
 
@@ -92,17 +94,22 @@ Designs also differ in who must acknowledge a write before it commits:[^ack]
 
 Unless it acknowledges only applied writes, a replica can lag the primary. So replicas scale only the reads that can tolerate some lag. A read that must see the latest write either asks the node that decides writes, or waits until its replica has caught up.
 
-## Splitting: where data "shards"
+### Splitting: where data divides
 
-In the [classic picture](#three-choices-replicate-split-order), sharding is a router above SQL. Each shard is a whole database, and the router knows which shard holds each row. Newer designs split the data lower down, and the interface there may hide the pieces or show them. A shared disk looks like one address space to every node, but storage splits it into segments that no node sees. A shared key-value store shows its pieces to the engine: each node knows which range owns a key, and sends the request there.
+In the [classic picture](#three-choices-replicate-split-order), sharding is a router above SQL. Each shard is a whole engine that owns a horizontal slice of the database, and the router knows which shard holds each row. People call this design shared nothing. The classic alternatives are shared disk, where every compute node sees one address space, and shared memory, which is one machine.
+
+These names fit modern databases poorly, for two reasons:
+
+1. They describe hardware: what the processors physically share. Cloud databases run their parts as services on separate machines, so by that measure almost all of them are shared nothing, and the label stops telling them apart. Spanner and CockroachDB, for example, are shared nothing, yet every SQL node reads and writes one shared key-value store.[^ziegler]
+2. They suggest that only shared nothing splits the data. But storage splits a shared disk into segments too, by page address instead of by row. Aurora has no visible shards, yet its storage service is sharded underneath.
+
+[^ziegler]: [Ziegler, Bernstein, Leis and Binnig][ziegler-cidr23] (CIDR 2023) make a similar point: shared nothing versus shared disk no longer predicts how a system scales.
 
 ![Two panels. Left, a shared disk: every node sends page requests by address to one shared storage, which splits the data into segments no node sees. Right, a shared key-value store: each node keeps a map of range owners and sends each request to the range that holds the key](/assets/db-cuts/01c-hide-or-show-shards.svg)
 
-So every design here is sharded somewhere, even when no node sees the shards. What tells designs apart is the interface through which requests reach each slice's owner: SQL queries, key-value reads and writes, pages, or log records. That interface is the split point, and the designs in this post place it at every joint. Aurora has one writer and no visible shards, yet its storage service is sharded and replicated underneath. Spanner and CockroachDB shard below SQL, one key range at a time. DSQL divides the engine into separately scaled fleets. Calvin replicates before it shards.
+Every design that grows past one machine splits its data into slices somewhere. What tells designs apart is the interface through which requests reach each slice's owner: SQL queries, key-value reads and writes, reads of records in remote memory, or pages and log records. That interface is the split point.
 
-### Five families
-
-The classic names for split points have the same problem as "sharding." They are shared memory, shared disk, and shared nothing, and they describe hardware: what the processors physically share. By that measure, almost every cloud database today is shared nothing, so the labels stop telling designs apart. [Ziegler, Bernstein, Leis and Binnig][ziegler-cidr23] (CIDR 2023) make the same point: shared nothing versus shared disk no longer predicts how a system scales. This post reads "shared X" as the name of a split point instead: X is the highest layer that all nodes share, and above it each node has its own instance. Seen from above, every node shares X. Seen from below, X is split among the nodes that hold it, whether the nodes above see the pieces or not. The family name and the split point name the same line from its two sides. Read this way, the three names grow into five families. Apart from shared memory, each holds two designs that share a split point and differ in their ordering point: on the nodes that own the data, or somewhere else. [Ordering](#ordering-where-writes-meet) shows why that matters.
+So this post reads "shared X" as the name of a split point, not of hardware. Here, sharing means common access, not copies: any node above X can ask X for any part of the database, and no node holds a copy of the data X holds. Above X, each node runs its own instance of every layer. Below X, the data is split into slices, and each slice has one owner. Read this way, the three classic names grow into five families of "shared X": shared memory, shared nothing, shared key-value store, shared buffer pool, and shared disk. Whether the nodes above can see the slices, as with a key-value store, or not, as with a shared disk, does not change the family. It depends on who orders the writes, as [Ordering](#ordering-where-writes-meet) shows.
 
 **Shared memory** is one machine. Its threads order their writes in RAM, through one buffer pool and one lock table.[^per-core] Scaling it up means buying a bigger machine. **Read replicas** add machines for reads, but every write still goes through one primary.
 
@@ -120,7 +127,7 @@ The classic names for split points have the same problem as "sharding." They are
 
 [^unbundled]: The name comes from Lomet, Fekete, Weikum, and Zwilling's [Unbundling Transaction Services in the Cloud][lomet-unbundling] (CIDR 2009). It means something narrower than splitting compute from storage. They split the storage engine itself in two: a transactional component that runs concurrency control and recovery over logical records, and a data component that stores the records and knows nothing about transactions. The [FoundationDB paper][foundationdb] uses the word in the same sense. In Lomet's design, the transactional component still takes locks while a transaction runs. DSQL and FoundationDB check for conflicts only at commit.
 
-[^dsql-rows]: DSQL can look as if it belongs one joint lower, in the [shared buffer pool](#five-families) family, because its query processors keep no cache. But in [Brooker's words][dsql-reads], "the QP doesn't ask for pages, it asks for rows." The access methods moved to storage along with the cache, so storage walks the index, and a lookup costs one round trip.
+[^dsql-rows]: DSQL can look as if it belongs one joint lower, in the [shared buffer pool](#splitting-where-data-divides) family, because its query processors keep no cache. But in [Brooker's words][dsql-reads], "the QP doesn't ask for pages, it asks for rows." The access methods moved to storage along with the cache, so storage walks the index, and a lookup costs one round trip.
 
 **Shared buffer pool** splits between the access methods and the buffer pool. Each node runs the access methods itself, and reads records or index nodes straight from other machines' memory. A B-tree lookup touches several nodes one after another, and across this joint each one can cost a round trip. So designs here need fast RDMA networks, where a read skips the remote CPU, and they still work hard to save round trips. The two designs differ in who decides: each object's primary, or the compute server that writes it.
 
@@ -129,18 +136,16 @@ The classic names for split points have the same problem as "sharding." They are
 
 [^nam-db-durability]: NAM-DB keeps its data in memory. On a power failure, a UPS lets each memory server write a snapshot to disk. Against hardware failure, each compute thread writes a log of the statements it ran, with their read timestamps, to two or more memory servers before it installs its writes. When a memory server fails, NAM-DB halts, restores the last checkpoint, and replays the merged logs. The authors state that high availability is not a design goal.
 
-**Shared disk** puts its split point below the buffer pool and the log: every node shares one disk, and storage splits it into pieces that no node sees. Here storage never decides: it only holds pages and logs. The two designs differ in how many nodes decide: many, which must share their locks and caches, or one.
+**Shared disk** puts its split point below the buffer pool and the log: every node shares one disk, and storage splits it into slices that no node sees. Here storage never decides: it only holds pages and logs. The two designs differ in how many nodes decide: many, which must share their locks and caches, or one.
 
 - **Coherent caches.** The buffer pools also talk to each other. Every node runs SQL, access methods, a buffer pool, and its own log over the whole database, and all of them read and write one set of shared volumes. The hard part is keeping the buffer pools coherent and the locks global. This is data shipping: pages and lock messages cross between nodes. Oracle RAC (Cache Fusion) and Db2 pureScale are the long-lived examples. ScaleStore, a research system, keeps buffer pools coherent the same way, over RDMA and without shared disk.
 - **Log-based storage.** The log is the interface. The writer sends redo records to a storage service, and storage sends pages back on a miss. Aurora, Neon, Azure SQL Hyperscale, and AlloyDB work this way, each with one writer. [Aurora](#aurora-the-log-is-the-database) shows why.
 
-## Ordering: where writes meet
+### Ordering: where writes meet
 
-The split point says where the data divides. The **ordering point** says where writes meet: where conflicting writes get their final order. Concurrency control runs there, and it settles two questions: who may write, and who decides which transactions commit. [Alex Miller][miller-decomposing] divides every transaction into four steps: execute, order, validate, and persist. In his terms, the ordering point is where a design orders and validates writes, and the replication point is where it persists them.
+The **ordering point** says where writes meet: where conflicting writes get their final order. Concurrency control runs there, and it settles two questions: who may write, and who decides which transactions commit.
 
-The ordering point is a place, not a time. A design can order writes before execution, as Calvin's input log does. It can order them during execution, with locks, as CockroachDB's leaseholders do. Or it can order them after execution, with a check at commit, as DSQL's adjudicators do. CockroachDB and DSQL order at the same joint, the key-value interface, but at different times. Optimistic or pessimistic concurrency control is a choice of time. This section is about the place.
-
-The two points often sit at the same joint, but not always. Oracle RAC orders above its split point, through global locks and coherent buffer pools. Calvin orders at the very top, in its input log. DSQL orders at the same joint as its split, but on other nodes: the adjudicators. And Aurora orders in its one writer, above its split point.
+The ordering point often sits at the same joint as the split point, but not always. A conflict is two writes to the same item, and each item lives in one slice, so the slice's owner already sees every conflict on its data. The ordering point moves elsewhere when the owners can't decide, or when a design orders everything in one place so the slices never have to agree. Oracle RAC orders above its split point, through global locks and coherent buffer pools. Calvin orders at the very top, in its input log. DSQL orders at the same joint as its split, but on other nodes: the adjudicators. And Aurora orders in its one writer, above its split point.
 
 **Who may write.** Splitting adds write capacity only when each slice orders its own writes. That takes the state that orders writes: locks, cached pages, and the log. Below the split point, each piece of that state covers one slice. Above it, each node keeps its own private copy, over the whole database. [Stonebraker][stonebraker-sn] named these three as the problems of shared disk in 1985. Private state is safe only while one node writes. Two writers with private locks could lock the same row and never know it. Two writers with private caches could each update a stale copy of the same page. So a design with many writers must order their writes again, at every piece of state they keep, in one of two ways:[^multi-leader]
 
@@ -149,13 +154,13 @@ The two points often sit at the same joint, but not always. Oracle RAC orders ab
 
 A design that does neither keeps one writer, and that writer is its ordering point. Aurora shares its storage but nothing above it, so it has [exactly one writer](#aurora-the-log-is-the-database).
 
-**Who decides.** The ordering point has a place and an owner. Within a family, the place rarely changes. The owner does: is it the node that holds the data, or something else? Only shared disk moves the place too, one joint up, because its storage cannot decide.
+**Who decides.** The ordering point has a place and an owner. Within a family, the place rarely changes. The owner does: is it the node that holds the data, or something else? That is why [Splitting](#splitting-where-data-divides) gives each family two designs, one of each kind. Only shared disk moves the place too, one joint up, because its storage cannot decide. Its two designs differ instead in how many nodes decide.
 
 ![Each row is a joint and the family that splits there, with two ordering columns: on the data owners, or elsewhere. Shared nothing: routed shards lock per shard and use 2PC; Calvin's input log fixes the order. Shared key-value store: leaseholders lock their ranges; DSQL's adjudicators check at commit. Shared buffer pool: FaRM's primaries lock at commit; NAM-DB's writer locks by compare-and-swap; Oracle RAC also orders here, one joint above its split. Shared disk: storage never decides, and Aurora's one writer orders every write, above its split](/assets/db-cuts/03d-who-orders.svg)
 
 Calvin's partitions do take locks, but in an order the log has already fixed. So a partition never votes on whether a transaction commits.
 
-**Where the shards show.** A shard boundary shows at the layer that must coordinate decisions across it. Crossing it costs a commit protocol at that layer.
+**Where the shards show.** A slice boundary must show to whoever coordinates commits across it, and that coordinator pays for a commit protocol each time a transaction crosses the boundary. When the data owners decide, the coordinator is the layer just above the split. When something else decides, no one needs to coordinate across the slices, so they can stay hidden.
 
 - **Routed shards** show their shards to the schema. Each shard is a whole database, so a transaction that spans shards needs 2PC. Someone must pick a shard key for each table, and that choice decides which queries are cheap.
 - **Range owners** show their shards to the engine only. The engine runs the commit protocol across ranges, so the application writes ordinary SQL. It sees ranges only through speed: a transaction over many ranges is slower, and keys that only increase pile up on one range.
@@ -163,11 +168,29 @@ Calvin's partitions do take locks, but in an order the log has already fixed. So
 
 This is also why designs below SQL split and move their data on their own. A range below SQL is small, and moving it changes only who serves it, never which queries are legal. A shard above SQL is a whole database. Citus and Vitess can move data between shards online, but an operator starts the move, and changing the shard key is a schema change.
 
-**Where replication happens.** A design can replicate only what it has already decided. So it replicates at or below the point where its decisions become final: its ordering point. Most designs shard first, then replicate each shard. Range owners decide at each range and replicate there, through a Raft group per range. Vitess decides at each shard, and gives each shard its own primary and replicas. Aurora's one writer decides above its split point, and storage replicates the redo below it. DSQL's adjudicators decide, and the journal replicates their result. Above that point, replicating would not be safe: the outcome still depends on data or locks that other nodes hold. [Calvin][calvin] follows the same rule. Its ordering point is the input log, at the very top: the log fixes the order of transactions before anything runs. So Calvin can replicate that log above SQL, and each replica then splits the data among its partitions. That works only because every replica reaches the same result on its own, as [replication](#replication-where-data-is-copied) explained.
-
-[The map at the end](#conclusion-the-whole-picture) draws the designs side by side, with where each splits, replicates, and orders, and who may write.
-
 [^multi-leader]: Many writers here does not mean multi-leader replication. Conflicting writes are still ordered before they commit, through shared locks or a check at commit.
+
+## How the three points fit together
+
+The three points are not independent. One rule ties them together: the ordering point is never below the other two. The rule constrains where each point can sit in the stack, and the order in which a design runs its steps.
+
+### Space: ordering sits highest
+
+**Replication sits at or below ordering.** A design can replicate only what it has already decided. A replica that received an undecided write would have to decide it alone, and two replicas could decide differently. So a design replicates at or below the point where its decisions become final. Range owners decide at each range and replicate there, through a Raft group per range. Vitess decides at each shard, and gives each shard its own primary and replicas. Aurora's one writer decides above its split point, and storage replicates the redo below it. DSQL's adjudicators decide, and the journal replicates their result. [Calvin](#calvin-the-log-comes-first) replicates right at its ordering point: the input log fixes the order of transactions before anything runs, and every replica reaches the same result on its own, as [replication](#replication-where-data-is-copied) explained.
+
+**Ordering sits at or above the split.** Either the slice owners order their own writes, at the split, or something that sees every slice orders them, above it. Below the split, each node sees only its own slice, so ordering there still means the owners decide. [Ordering](#ordering-where-writes-meet) showed both kinds.
+
+**Splitting and replication are free only when ordering sits above the split.** If the slice owners decide, ordering sits at the split, so replication must sit at or below it: the design splits first, then replicates each slice. Most designs work this way. Only when something above the split orders the writes can replication sit above the split too. Calvin replicates its input log above SQL, and each replica then splits the data among its partitions. Aurora can go either way: its storage replicates redo below the split, and Aurora MySQL can also ship its binlog to another cluster, above it.
+
+### Time: persist after ordering
+
+[Alex Miller][miller-decomposing] divides every transaction into four steps: execute, order, validate, and persist. In his terms, the ordering point is where a design orders and validates writes, and the replication point is where it persists them. Systems run the steps in different sequences, but the rule above fixes one thing: a design persists only after it orders. Calvin persists before it executes, yet still after it orders.
+
+Ordering can come before, during, or after execution. A design can order writes before execution, as Calvin's input log does. That forces its ordering point above everything that executes, to the very top of the stack. It can order them during execution, with locks, as CockroachDB's leaseholders do. Or it can order them after execution, with a check at commit, as DSQL's adjudicators do. CockroachDB and DSQL order at the same joint, the key-value interface, but at different times. Optimistic or pessimistic concurrency control is a choice of time, not of place.
+
+When a design persists sets how high its replication point sits. Every step after persist runs again on each replica, so the later a design persists, the lower its replication point sits. Aurora persists after execution, so its replicas only build pages. Calvin persists before execution, so every replica runs every transaction.
+
+[Three designs up close](#three-designs-up-close) charts both axes for each design, and [the map at the end](#conclusion-the-whole-picture) draws all the designs side by side, with where each splits, replicates, and orders, and who may write.
 
 ## Three designs up close
 
@@ -177,9 +200,9 @@ Aurora, DSQL, and Calvin each divide the engine in a different way. They differ 
 - **DSQL** puts it in the middle: write sets, written once the adjudicators approve them. Any node may write.
 - **Calvin** puts it at the top: transaction inputs, written before anything runs. Each partition writes its own rows, and conflicts make transactions wait instead of abort.
 
-Each design gets a chart with two axes. Across is time: Miller's four steps, which systems run in different sequences. Each chart shows that design's sequence. Down is space: the layer that runs each step. The orange line is the replication point, and the shaded area holds the steps that every replica repeats. Every step after persist runs again on each replica, so the later a design persists, the lower its replication point sits. Aurora persists after execution, so its replicas only build pages. Calvin persists before execution, so every replica runs every transaction.
-
 I picked Aurora and DSQL because I know them best, and Calvin because no other design here puts the log above execution. None of them is alone. Azure SQL Hyperscale ([Socrates][socrates]), Google's AlloyDB, and Neon have Aurora's shape: one writer over shared, log-based storage. Socrates and Neon go one step further and separate the log service from the page servers. FoundationDB has DSQL's shape, as a key-value store without SQL on top. VoltDB, like Calvin, replicates transactions rather than their results.
+
+Each design below gets a chart with two axes. Across is time: that design's sequence of Miller's four steps. Down is space: the layer that runs each step. The orange line is the replication point, and the shaded area holds the steps that every replica repeats.
 
 ### Aurora: the log is the database
 
@@ -205,7 +228,7 @@ In [Werner Vogels' description][aurora-ascendant] (2019), Aurora treated caching
 | [Global Database write forwarding][aurora-write-forwarding] | Replicas in secondary regions accept writes and forward them to the one writer | No |
 | [Aurora Limitless Database][aurora-limitless] (PostgreSQL) | Tables sharded behind a router; each shard is a single-writer Aurora | Yes |
 
-Limitless splits above SQL, like [routed shards](#five-families): there are more writers in total, but every key range still has exactly one owner.
+Limitless splits above SQL, like [routed shards](#splitting-where-data-divides): there are more writers in total, but every key range still has exactly one owner.
 
 ### DSQL: every layer its own fleet
 
@@ -237,7 +260,7 @@ Aurora DSQL keeps Postgres's SQL engine but replaces everything beneath it with 
 
 ## Conclusion: the whole picture
 
-Every design in this post comes down to three choices: [where it splits](#splitting-where-data-shards), [where it replicates](#replication-where-data-is-copied), and [where it orders](#ordering-where-writes-meet).
+Every design in this post comes down to three choices: [where it splits](#splitting-where-data-divides), [where it replicates](#replication-where-data-is-copied), and [where it orders](#ordering-where-writes-meet).
 
 ![Nine designs in five families, as side-by-side node stacks: where each splits the data, where it replicates data, where writes are ordered, and who may write](/assets/db-cuts/03-whole-picture.svg)
 
