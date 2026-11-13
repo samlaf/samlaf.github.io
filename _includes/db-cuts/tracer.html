@@ -228,7 +228,7 @@
     },
     {
       name: 'Calvin', cols: 4,
-      sum: 'Replicates: above SQL (input log of transactions). Splits: below that, within each replica. Orders: at the very top, in the input log.',
+      sum: 'Orders: in the input log, above SQL. Replicates: at the same joint, right after (input log of transactions). Splits: at the same joint, last, within each replica.',
       boxes: [
         ['app','Application',0,0,4],
         ['Q1','Sequencer',0.5,1,1,'replica 1'],['Q2','Sequencer',2.5,1,1,'replica 2'],

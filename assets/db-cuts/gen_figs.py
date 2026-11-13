@@ -113,7 +113,7 @@ def who_orders():
         y = jy + max(depth(owners), depth(other)) + 16
     box_y.append(y)
     h = y + bh + 20
-    svg = Svg(760, h, "Who decides, at each joint. Each row is a joint and the family that splits the data there. "
+    svg = Svg(760, h, "Which nodes decide, at each joint. Each row is a joint and the family that splits the data there. "
               "Shared nothing: routed shards, such as Vitess and Citus, let each shard lock its rows, with 2PC "
               "between shards; Calvin's input log fixes the order before any partition runs. Shared key-value "
               "store: CockroachDB and Spanner let each leaseholder lock its range; DSQL's adjudicators check write "
@@ -122,7 +122,7 @@ def who_orders():
               "coherent caches, though it splits one joint lower. Shared disk: in Aurora Multi-Master, now retired, "
               "storage takes the first write to each page and the other writer aborts; plain Aurora has one writer, "
               "which is itself the ordering point, above the split.")
-    svg.header("Who decides, at each joint",
+    svg.header("Which nodes decide, at each joint",
                ["Each row is a joint, and the family that splits there. Within a family, the two designs differ in",
                 "who runs the ordering point. Oracle RAC orders one joint above its split."])
     heads = [("Split point", "the family", BLUE), ("Orders on the data owners", "the nodes that hold the data decide", DIM),
@@ -155,14 +155,16 @@ def who_orders():
 
 def two_sequences():
     pw, gap_g, gap_b = 350, 12, 6
-    r0, l1, r1, l2, r2, bh = 68, 134, 146, 214, 226, 40
+    r0, r1, r2, bh, oh = 68, 180, 258, 40, 24
     svg = Svg(760, r2 + bh + 72,
-              "Two panels. Left, split then replicate, as in Vitess and most designs: the application and router "
-              "sit on top; a blue line splits the data into two shards, keys a to m and n to z, each with its "
-              "own SQL engine; an orange line below replicates each shard three times through its binlog. Right, "
-              "replicate then split, as in Calvin: an orange line first replicates the input log of transactions to "
-              "three replicas; a blue line then splits each replica into two partitions, which execute every "
-              "transaction. Both end with six pieces, but in Calvin each replica repeats far more of the work.")
+              "Two panels. Left, split, order, replicate, as in Vitess and most designs: the application and "
+              "router sit on top; a blue line splits the data into two shards, keys a to m and n to z; each shard "
+              "then orders its own writes in its own SQL engine; an orange line below replicates each shard three "
+              "times through its binlog. Right, order, replicate, split, as in Calvin: a sequencer first fixes one "
+              "order for every key; an orange line then replicates the input log of transactions to three replicas; "
+              "a blue line then splits each replica into two partitions, which execute every transaction. Both end "
+              "with six pieces, but Vitess has one order per shard and Calvin one order for all, and in Calvin each "
+              "replica repeats far more of the work.")
 
     def groups(px, n_groups, n_boxes):
         gw = (pw - gap_g * (n_groups - 1)) / n_groups
@@ -174,6 +176,11 @@ def two_sequences():
         svg.text(x + w / 2, y + 17, top, 11.5)
         svg.text(x + w / 2, y + 31, sub, 10, fill=DIM)
 
+    # Drawn like the ordering point in the whole-picture figure.
+    def order_box(x, y, w, label):
+        svg.rect(x, y, w, oh, STORE, LINE, 4, ' stroke-dasharray="4 3"')
+        svg.text(x + w / 2, y + 16, label, 10.5)
+
     def point(px, y, color, dashed, label):
         svg.line(px, y, px + pw, color, dashed)
         svg.text(px, y - 7, label, 10.5, fill=color, anchor="start")
@@ -181,30 +188,32 @@ def two_sequences():
     def shade(px, y):
         svg.rect(px - 6, y + 4, pw + 12, r2 + bh + 26 - (y + 4), ORANGE, None, 6, ' fill-opacity="0.07"')
 
-    # Left: split, then replicate.
-    px = 20
-    shade(px, l2)
-    svg.text(px, r0 - 40, "Split, then replicate", 13, 600, anchor="start")
+    # Left: split, then each shard orders and replicates its own writes.
+    px, split_y, repl_y = 20, 132, 246
+    shade(px, repl_y)
+    svg.text(px, r0 - 40, "Split, order, replicate", 13, 600, anchor="start")
     svg.text(px, r0 - 23, "Vitess, and most designs", 11, fill=DIM, anchor="start")
     two_line_box(px, r0, pw, "Application + router", "every query enters here")
-    point(px, l1, BLUE, False, "split: the router sends each statement to its shard")
-    point(px, l2, ORANGE, True, "replicate: each shard ships its binlog")
+    point(px, split_y, BLUE, False, "split: the router sends each statement to its shard")
+    point(px, repl_y, ORANGE, True, "replicate: each shard ships its binlog")
     for (gx, gw, bw), key in zip(groups(px, 2, 3), ["a–m", "n–z"]):
+        order_box(gx, split_y + 10, gw, f"order: the shard locks keys {key}")
         two_line_box(gx, r1, gw, "SQL", f"keys {key}, runs each write once")
         for b in range(3):
             two_line_box(gx + b * (bw + gap_b), r2, bw, key, "storage", STORE)
         svg.text(gx + gw / 2, r2 + bh + 17, f"three replicas of {key}", 10.5, fill=DIM)
-    svg.text(px, r2 + bh + 44, "Each replica only applies row changes.", 11, anchor="start")
-    svg.text(px, r2 + bh + 60, "The shard's primary already ran the transaction.", 11, fill=DIM, anchor="start")
+    svg.text(px, r2 + bh + 44, "Each shard orders its own writes.", 11, anchor="start")
+    svg.text(px, r2 + bh + 60, "Each replica only applies the row changes.", 11, fill=DIM, anchor="start")
 
-    # Right: replicate, then split.
-    px = 390
-    shade(px, l1)
-    svg.text(px, r0 - 40, "Replicate, then split", 13, 600, anchor="start")
+    # Right: one order for every key, then replicate it, then split.
+    px, repl_y, split_y = 390, 166, 246
+    shade(px, repl_y)
+    svg.text(px, r0 - 40, "Order, replicate, split", 13, 600, anchor="start")
     svg.text(px, r0 - 23, "Calvin", 11, fill=DIM, anchor="start")
     two_line_box(px, r0, pw, "Application", "every transaction enters here")
-    point(px, l1, ORANGE, True, "replicate: the input log of transactions")
-    point(px, l2, BLUE, False, "split: each replica partitions the log by key")
+    order_box(px, r0 + bh + 10, pw, "order: the sequencer fixes one order for every key")
+    point(px, repl_y, ORANGE, True, "replicate: the input log of transactions")
+    point(px, split_y, BLUE, False, "split: each replica partitions the log by key")
     for n, (gx, gw, bw) in enumerate(groups(px, 3, 2), 1):
         two_line_box(gx, r1, gw, "Input log", "all keys")
         for b, key in enumerate(["a–m", "n–z"]):
