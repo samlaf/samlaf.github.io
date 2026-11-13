@@ -125,8 +125,8 @@ def who_orders():
     svg.header("Which nodes decide, at each joint",
                ["Each row is a joint, and the family that splits there. Within a family, the two designs differ in",
                 "who runs the ordering point. Oracle RAC orders one joint above its split."])
-    heads = [("Split point", "the family", BLUE), ("Orders on the data owners", "the nodes that hold the data decide", DIM),
-             ("Orders elsewhere", "something else decides", DIM)]
+    heads = [("Split point", "the family", BLUE), ("Owner-decider", "the nodes that hold the data decide", DIM),
+             ("Single- or separate-decider", "one writer, or other nodes, decide", DIM)]
     for (cx, _), (t, sub, color) in zip(cols, heads):
         svg.text(cx + 6, 102, t, 12, 600, color, "start")
         svg.text(cx + 6, 118, sub, 10.5, fill=DIM, anchor="start")
@@ -162,7 +162,8 @@ def two_sequences():
               "then orders its own writes in its own SQL engine; an orange line below replicates each shard three "
               "times through its binlog. Right, order, replicate, split, as in Calvin: a sequencer first fixes one "
               "order for every key; an orange line then replicates the input log of transactions to three replicas; "
-              "a blue line then splits each replica into two partitions, which execute every transaction. Both end "
+              "a blue line then splits each replica into two partitions, and each transaction runs on the "
+              "partitions that hold its keys. Both end "
               "with six pieces, but Vitess has one order per shard and Calvin one order for all, and in Calvin each "
               "replica repeats far more of the work.")
 
@@ -226,53 +227,63 @@ def two_sequences():
 
 def state_placement():
     ONE, SPLIT, STEP, STREAM, NONE = range(5)
-    # Per design: (name, examples, writers, [(kind, cell lines)] for locks, cache, log).
-    rows = [
-        ("Read replicas", "Postgres, MySQL", "one",
-         [(ONE, ["the primary"]), (ONE, ["the primary"]), (ONE, ["the primary's WAL"])]),
-        ("Routed shards", "Vitess, Citus", "many",
-         [(SPLIT, ["per shard"]), (SPLIT, ["per shard"]), (SPLIT, ["per shard"])]),
-        ("Deterministic", "Calvin", "many",
-         [(SPLIT, ["per partition,", "in log order"]), (SPLIT, ["per partition"]),
-          (STREAM, ["one input log,", "merged by epoch"])]),
-        ("Range owners", "CockroachDB, Spanner", "many",
-         [(SPLIT, ["per range, at", "its leaseholder"]), (SPLIT, ["per node, for", "its own ranges"]),
-          (SPLIT, ["Raft log", "per range"])]),
-        ("Unbundled", "DSQL", "many",
-         [(SPLIT, ["adjudicators,", "per key range"]), (SPLIT, ["in storage,", "per key range"]),
-          (STREAM, ["the journal, one", "shared service"])]),
-        ("Object owners", "FaRM", "many",
-         [(SPLIT, ["per object,", "at its primary"]), (NONE, ["none: reads go", "to the primary"]),
-          (SPLIT, ["per primary, copied", "to its backups"])]),
-        ("Disaggregated memory", "NAM-DB", "many",
-         [(SPLIT, ["per record, by CAS", "in memory servers"]), (NONE, ["none"]),
-          (STEP, ["per compute thread,", "merged at recovery"])]),
-        ("Coherent caches", "Oracle RAC", "many",
-         [(SPLIT, ["per resource, at", "its master node"]), (STEP, ["one per node, coherent;", "a master per block"]),
-          (STEP, ["one per node,", "merged by SCN"])]),
-        ("Log-based storage", "Aurora", "one",
-         [(ONE, ["the one writer"]), (ONE, ["the writer's;", "replicas follow redo"]),
-          (ONE, ["written by the writer,", "kept by storage"])]),
+    # Per answer to "who checks conflicts?": its designs, each with cells for locks, cache, and log.
+    groups = [
+        ("Single-decider", "the one writer decides", [
+            ("Read replicas", "Postgres, MySQL",
+             [(ONE, ["the primary"]), (ONE, ["the primary"]), (ONE, ["the primary's WAL"])]),
+            ("Log-based storage", "Aurora",
+             [(ONE, ["the one writer"]), (ONE, ["the writer's;", "replicas follow redo"]),
+              (ONE, ["written by the writer,", "kept by storage"])]),
+        ]),
+        ("Owner-decider", "the nodes that hold the data decide", [
+            ("Routed shards", "Vitess, Citus",
+             [(SPLIT, ["per shard"]), (SPLIT, ["per shard"]), (SPLIT, ["per shard"])]),
+            ("Range owners", "CockroachDB, Spanner",
+             [(SPLIT, ["per range, at", "its leaseholder"]), (SPLIT, ["per node, for", "its own ranges"]),
+              (SPLIT, ["Raft log", "per range"])]),
+            ("Object owners", "FaRM",
+             [(SPLIT, ["per object,", "at its primary"]), (NONE, ["none: reads go", "to the primary"]),
+              (SPLIT, ["per primary, copied", "to its backups"])]),
+        ]),
+        ("Separate-decider", "nodes that don't hold the data decide", [
+            ("Deterministic", "Calvin",
+             [(SPLIT, ["per partition,", "in log order"]), (SPLIT, ["per partition"]),
+              (STREAM, ["one input log,", "merged by epoch"])]),
+            ("Unbundled", "DSQL",
+             [(SPLIT, ["adjudicators,", "per key range"]), (SPLIT, ["in storage,", "per key range"]),
+              (STREAM, ["the journal, one", "shared service"])]),
+            ("Disaggregated memory", "NAM-DB",
+             [(SPLIT, ["per record, by CAS", "in memory servers"]), (NONE, ["none"]),
+              (STEP, ["per compute thread,", "merged at recovery"])]),
+            ("Coherent caches", "Oracle RAC",
+             [(SPLIT, ["per resource, at", "its master node"]), (STEP, ["one per node, coherent;", "a master per block"]),
+              (STEP, ["one per node,", "merged by SCN"])]),
+        ]),
     ]
     heads = [("Locks", "who checks conflicts"), ("Cache", "hot pages or rows"),
              ("Log", "the order, made durable")]
-    nx, cx0, cw, gap, wx = 20, 180, 160, 8, 690
-    top, rh, rgap = 124, 40, 5
-    legend_y = top + len(rows) * (rh + rgap) + 22
+    nx, cx0, cw, gap = 20, 192, 176, 8
+    right = cx0 + 3 * cw + 2 * gap
+    top, rh, rgap, gh, ggap = 124, 40, 5, 26, 12
+    n_rows = sum(len(rows) for _, _, rows in groups)
+    legend_y = top + len(groups) * (gh + ggap) + n_rows * (rh + rgap) + 20
     h = legend_y + 40
-    svg = Svg(760, h, "Where each design keeps the state that orders writes: locks, cache, and log. "
-              "Read replicas and Aurora keep locks, cache, and log in one node, and have one writer. Every design "
-              "with many writers splits its locks, so that each slice has one owner: per shard, partition, range, "
-              "key range, object, record, or resource. Caches are split, absent, or kept coherent. Logs vary most: "
-              "split per shard or range, one per node and merged, or one shared stream, as in Calvin and DSQL.")
+    svg = Svg(760, h, "Where each design keeps the state that orders writes: locks, cache, and log, grouped by "
+              "who checks conflicts. In single-decider designs, read replicas and Aurora, all three stay "
+              "in one node. In owner-decider designs, routed shards, range owners, and FaRM's object "
+              "owners, the locks split with the data, per shard, range, or object, and so do the caches and logs, "
+              "except that FaRM keeps no cache. In separate-decider designs, the locks still split, "
+              "per partition, key range, record, or resource, but caches and logs vary most: Calvin and DSQL share "
+              "one log stream, and NAM-DB and Oracle RAC keep one log per node and merge them; RAC also keeps one "
+              "coherent cache per node.")
     svg.header("Where each design keeps the state that orders writes",
-               ["Every design with many writers splits its locks, so each slice has one owner. Caches and logs have",
-                "more options: a log can stay one per node and be merged, or be one stream that every writer shares."])
+               ["With one writer, all three stay in one node. With many, the locks always split, so each slice has",
+                "one owner. With separate deciders, caches and logs have the most options."])
     for i, (t, sub) in enumerate(heads):
         x = cx0 + i * (cw + gap)
         svg.text(x + cw / 2, 100, t, 12, 600)
         svg.text(x + cw / 2, 114, sub, 10, fill=DIM)
-    svg.text(wx + 20, 100, "Writers", 12, 600)
 
     def cell(x, y, kind, lines, w=cw):
         if kind == ONE:
@@ -292,14 +303,19 @@ def state_placement():
             svg.text(x + w / 2, y + rh / 2 - 3, lines[0], 10, fill=color)
             svg.text(x + w / 2, y + rh / 2 + 10, lines[1], 10, fill=color)
 
-    for r, (name, ex, writers, cells) in enumerate(rows):
-        y = top + r * (rh + rgap)
-        svg.text(nx, y + 17, name, 11.5, 600, anchor="start")
-        svg.text(nx, y + 31, ex, 10, fill=DIM, anchor="start")
-        for i, (kind, lines) in enumerate(cells):
-            cell(cx0 + i * (cw + gap), y, kind, lines)
-        svg.text(wx + 20, y + rh / 2 + 4, writers, 11, 600 if writers == "many" else 400,
-                 FG if writers == "many" else DIM)
+    y = top
+    for title, gloss, rows in groups:
+        y += ggap
+        svg.text(nx, y + 12, title, 12, 600, anchor="start")
+        svg.text(nx + 7 * len(title) + 10, y + 12, gloss, 10.5, fill=DIM, anchor="start")
+        svg.add(f'<line x1="{nx}" y1="{y + 19}" x2="{right}" y2="{y + 19}" stroke="{LINE}" stroke-width="1"/>')
+        y += gh
+        for name, ex, cells in rows:
+            svg.text(nx + 10, y + 17, name, 11.5, 600, anchor="start")
+            svg.text(nx + 10, y + 31, ex, 10, fill=DIM, anchor="start")
+            for i, (kind, lines) in enumerate(cells):
+                cell(cx0 + i * (cw + gap), y, kind, lines)
+            y += rh + rgap
 
     legend = [(ONE, "in one node"), (SPLIT, "split: each slice has one owner"),
               (STEP, "one per node, kept coherent or merged"), (STREAM, "one shared stream")]
@@ -371,30 +387,26 @@ def replication_paths():
 
 
 def decision_tree():
-    lw, lh, gap = 232, 204, 12
+    lw, lh, gap = 232, 140, 12
     lx = [20, 20 + lw + gap, 20 + 2 * (lw + gap)]
     lc = [x + lw / 2 for x in lx]
     q2c = (lc[1] + lc[2]) / 2
     q1c = (lc[0] + q2c) / 2
-    r0, dy = 96, 64  # the root question, and how far it pushes the rest of the tree down
-    ly = 300 + dy
+    y1 = 92
+    ly = y1 + 210
     h = ly + lh + 24
     svg = Svg(760, h,
-              "A decision tree. The split point picks the family. First: is each write ordered before it is "
-              "replicated? If not, replicas settle writes later, as in Dynamo, Cassandra, and CRDTs; they replicate "
-              "before they order, and this post leaves them aside. If so: how many nodes may write? With one writer, "
-              "the writer decides, inside itself, at no joint; shards, if any, stay hidden, and replication may come "
-              "before or after the split. Aurora and Neon run order, split, replicate; read replicas run order, "
-              "replicate. With many writers, the locks, cache, and log must be split or kept coherent. Then: which "
-              "nodes decide? If the data owners decide, they order at the split, in each slice, and each slice "
-              "replicates itself; shards show to whoever coordinates commits, the application or the engine. Vitess, "
-              "CockroachDB, and FaRM run split, order, replicate. If something else decides, it orders at the split "
-              "on other nodes, or above it; the data shards stay hidden, the deciders coordinate, and replication may "
-              "come before the split. Calvin and DSQL run order, replicate, split; Oracle RAC runs order, split, "
-              "replicate.")
-    svg.header("Three questions fix the sequence",
-               ["The split point picks the family. Three questions then fix the sequence of split, order, and",
-                "replicate."])
+              "A decision tree with two questions and three answers. First: how many nodes may write? With one "
+              "writer, the writer decides, inside itself, at no joint (single-decider); its locks, cache, and log stay private, and "
+              "shards, if any, stay hidden, as in Aurora, Neon, and read replicas. With many writers, the locks, "
+              "cache, and log must be split or kept coherent. Then: which nodes decide? If the data owners decide "
+              "(owner-decider), they order at the split, in each slice; the locks split with the data, and shards show to whoever "
+              "coordinates commits, the application or the engine, as in Vitess, CockroachDB, and FaRM. If something "
+              "else decides (separate-decider), it orders at the split on other nodes, or above it; the locks still split, "
+              "and the data shards stay hidden, as in Calvin, DSQL, NAM-DB, and Oracle RAC.")
+    svg.header("Who checks conflicts?",
+               ["Two questions sort every design into one of three answers. Most of the design follows from",
+                "the answer."])
 
     def wire(d):
         svg.add(f'<path d="{d}" fill="none" stroke="{LINE}" stroke-width="1.5"/>')
@@ -406,32 +418,6 @@ def decision_tree():
     def branch(x, y, label):
         svg.text(x + 6, y, label, 10.5, fill=DIM, anchor="start")
 
-    color = {"split": BLUE, "order": FG, "replicate": ORANGE}
-
-    def sequence(x, y, steps, opacity=1):
-        parts = []
-        for i, st in enumerate(steps):
-            gap = ' dx="5"' if i else ""
-            if i:
-                parts.append(f'<tspan fill="{DIM}" font-weight="400"{gap}>→</tspan>')
-            parts.append(f'<tspan fill="{color[st]}"{gap}>{st}</tspan>')
-        svg.add(f'<text x="{x}" y="{y}" text-anchor="start" font-size="11.5" font-weight="600" '
-                f'opacity="{opacity}">{"".join(parts)}</text>')
-
-    question(q1c, r0, "Is each write ordered before it is replicated?", 300)
-    wire(f"M{q1c} {r0 + 32}V{r0 + dy}")
-    branch(q1c, r0 + 50, "yes")
-    # Leaderless designs: the one branch the post leaves aside.
-    ox = q1c + 150
-    wire(f"M{ox} {r0 + 16}H{ox + 40}")
-    svg.text(ox + 6, r0 + 10, "no", 10.5, fill=DIM, anchor="start")
-    svg.rect(ox + 40, r0 - 14, 760 - 20 - (ox + 40), 60, STORE, None, 6)
-    bx = ox + 52
-    svg.text(bx, r0 + 3, "Replicas settle writes later.", 10.5, fill=DIM, anchor="start")
-    sequence(bx, r0 + 20, ["replicate", "order"], 0.6)
-    svg.text(bx, r0 + 37, "Dynamo, Cassandra, CRDTs: out of scope", 10.5, fill=DIM, anchor="start")
-
-    y1 = r0 + dy
     question(q1c, y1, "How many nodes may write?")
     wire(f"M{q1c} {y1 + 32}V{y1 + 50}H{lc[0]}V{ly}")
     wire(f"M{q1c} {y1 + 50}H{q2c}V{y1 + 74}")
@@ -448,28 +434,26 @@ def decision_tree():
     branch(lc[2], y1 + 192, "something else")
 
     leaves = [
-        ("The one writer decides",
-         ["Orders inside the writer, at no joint.", "Shards, if any, stay hidden.",
-          "Replication may come before", "or after the split."],
-         [("Aurora, Neon", ["order", "split", "replicate"]), ("Read replicas", ["order", "replicate"])]),
-        ("The data owners decide",
-         ["Orders at the split, in each slice.", "Each slice replicates itself.",
+        ("Single-decider",
+         ["Orders inside the writer, at no joint.", "Locks, cache, and log stay private.",
+          "Shards, if any, stay hidden."],
+         "Aurora, Neon, read replicas"),
+        ("Owner-decider",
+         ["Orders at the split, in each slice.", "The locks split with the data.",
           "Shards show to whoever coordinates", "commits: the app, or the engine."],
-         [("Vitess, CockroachDB, FaRM", ["split", "order", "replicate"])]),
-        ("Something else decides",
-         ["Orders at the split on other nodes,", "or above it.", "Data shards stay hidden;",
-          "the deciders coordinate.", "Replication may come before the split."],
-         [("Calvin, DSQL", ["order", "replicate", "split"]), ("Oracle RAC", ["order", "split", "replicate"])]),
+         "Vitess, CockroachDB, FaRM"),
+        ("Separate-decider",
+         ["Orders at the split on other nodes,", "or above it.", "The locks still split.",
+          "Data shards stay hidden."],
+         "Calvin, DSQL, NAM-DB, Oracle RAC"),
     ]
-    for x, (title, facts, seqs) in zip(lx, leaves):
+    for x, (title, facts, examples) in zip(lx, leaves):
         svg.rect(x, ly, lw, lh, WHITE, LINE, 6)
         svg.text(x + 12, ly + 22, title, 12.5, 600, anchor="start")
         for i, f in enumerate(facts):
             svg.text(x + 12, ly + 42 + 14 * i, f, 10.5, fill=DIM, anchor="start")
-        svg.add(f'<line x1="{x + 12}" y1="{ly + 118}" x2="{x + lw - 12}" y2="{ly + 118}" stroke="{STORE}" stroke-width="1.5"/>')
-        for i, (names, steps) in enumerate(seqs):
-            svg.text(x + 12, ly + 138 + 36 * i, names, 10.5, fill=DIM, anchor="start")
-            sequence(x + 12, ly + 154 + 36 * i, steps)
+        svg.add(f'<line x1="{x + 12}" y1="{ly + 104}" x2="{x + lw - 12}" y2="{ly + 104}" stroke="{STORE}" stroke-width="1.5"/>')
+        svg.text(x + 12, ly + 125, examples, 11, 600, anchor="start")
     return svg.render()
 
 
@@ -563,8 +547,8 @@ def space_time_grid(rows, n_cols, aria, title):
         for k, item in enumerate(row):
             legend_item(34 + 240 * k, lg + 14 + 42 * r, *item)
 
-    for x, (t, sub) in zip(cols[:2], [("Orders on the data owners", "the nodes that hold the data decide"),
-                                      ("Orders elsewhere", "one writer, or something else decides")]):
+    for x, (t, sub) in zip(cols[:2], [("Owner-decider", "the nodes that hold the data decide"),
+                                      ("Single- or separate-decider", "one writer, or other nodes, decide")]):
         svg.text(x, hy, t, 12, 600, DIM, "start")
         svg.text(x, hy + 16, sub, 10.5, fill=DIM, anchor="start")
     for c in cols:
