@@ -45,7 +45,7 @@ class Svg:
 
 def joints_map():
     layers = [("Application", False), ("SQL", False), ("Access methods", False),
-              ("Buffer pool", False), ("Disk", True)]
+              ("Buffer pool + log", False), ("Disk", True)]
     joints = [
         ("Shared nothing", "Vitess/Citus, Calvin", "Command log", "Calvin, NAM-DB"),
         ("Shared key-value store", "CockroachDB/Spanner, DSQL", "Logical log", "Vitess, CockroachDB/Spanner, DSQL"),
@@ -55,10 +55,10 @@ def joints_map():
     x0, x1, top, rh, bh = 255, 505, 44, 66, 32
     mid = (x0 + x1) / 2
     h = top + (len(layers) - 1) * rh + bh + 24
-    svg = Svg(760, h, "One engine stack: application, SQL, access methods, buffer pool, disk. "
+    svg = Svg(760, h, "One engine stack: application, SQL, access methods, buffer pool and log, disk. "
               "Each of the four joints between layers can host either point. On the left, the family "
               "that splits the data at that joint: shared nothing above SQL, shared key-value store below SQL, "
-              "shared buffer pool below the access methods, shared disk below the buffer pool. On the right, "
+              "shared buffer pool below the access methods, shared disk below the buffer pool and log. On the right, "
               "what a design ships when it replicates at that joint: a command log, a logical log, "
               "an object log, or a physical log or blocks. Each design on the left also appears on the right.")
     svg.text(x0 - 15, top - 14, "Split point", 12, 600, BLUE, "end")
@@ -80,10 +80,8 @@ def joints_map():
 
 def who_orders():
     layers = [("Application", False), ("SQL", False), ("Access methods", False),
-              ("Buffer pool", False), ("Disk", True)]
+              ("Buffer pool + log", False), ("Disk", True)]
     # Per joint: split family, then (name, mechanism lines) entries for each ordering column.
-    # An entry whose name is None is drawn faint: no design can sit there. On the shared disk
-    # row, no ordering point sits at the joint itself, so both ordering lines are faint.
     rows = [
         ("Shared nothing",
          [("Routed shards", ["Vitess, Citus: each shard locks its", "rows, and 2PC joins shards"])],
@@ -96,7 +94,8 @@ def who_orders():
          [("Disaggregated memory", ["NAM-DB: the writer locks records", "by compare-and-swap"]),
           ("Coherent caches", ["Oracle RAC: global locks; its split", "point sits one joint lower"])]),
         ("Shared disk",
-         [(None, ["it only holds pages and logs"])],
+         [("Page owners", ["Aurora Multi-Master (retired):", "storage takes the first write to",
+                           "a page; the other writer aborts"])],
          [("Log-based storage", ["Aurora: the one writer orders", "every write, one joint up"])]),
     ]
     sx, sw, bh = 20, 110, 30
@@ -120,11 +119,12 @@ def who_orders():
               "store: CockroachDB and Spanner let each leaseholder lock its range; DSQL's adjudicators check write "
               "sets at commit. Shared buffer pool: FaRM's primaries lock their objects at commit; NAM-DB's writer "
               "locks records by compare-and-swap. Oracle RAC also orders at this joint, with global locks and "
-              "coherent caches, though it splits one joint lower. Shared disk: storage never decides, and Aurora "
-              "has one writer, which orders every write one joint up.")
+              "coherent caches, though it splits one joint lower. Shared disk: in Aurora Multi-Master, now retired, "
+              "storage takes the first write to each page and the other writer aborts; plain Aurora has one writer, "
+              "which orders every write one joint up.")
     svg.header("Who decides, at each joint",
                ["Each row is a joint, and the family that splits there. Within a family, the two designs differ in",
-                "who runs the ordering point. Storage never decides, and Oracle RAC orders one joint above its split."])
+                "who runs the ordering point. Oracle RAC orders one joint above its split."])
     heads = [("Split point", "the family", BLUE), ("Orders on the data owners", "the nodes that hold the data decide", DIM),
              ("Orders elsewhere", "something else decides", DIM)]
     for (cx, _), (t, sub, color) in zip(cols, heads):
@@ -139,25 +139,17 @@ def who_orders():
         svg.line(cx + 2, jy, cx + cw - 4, BLUE, False)
         svg.text(cx + 6, jy - 7, fam, 12, 600, anchor="start")
         for (cx, cw), entries in zip(cols[1:], [owners, other]):
-            empty = entries[0][0] is None
-            if empty or fam == "Shared disk":
-                svg.add(f'<line x1="{cx + 2}" y1="{jy}" x2="{cx + cw - 4}" y2="{jy}" stroke="{LINE}" stroke-width="1" stroke-dasharray="2 3"/>')
-            else:
-                svg.add(f'<line x1="{cx + 2}" y1="{jy}" x2="{cx + cw - 4}" y2="{jy}" stroke="{DIM}" stroke-width="2.5" stroke-dasharray="5 3"/>')
-            if empty:
-                svg.text(cx + 6, jy - 7, "None: storage never decides", 12, fill=DIM, anchor="start")
+            svg.add(f'<line x1="{cx + 2}" y1="{jy}" x2="{cx + cw - 4}" y2="{jy}" stroke="{DIM}" stroke-width="2.5" stroke-dasharray="5 3"/>')
             ty = jy
             for k, (nm, mech) in enumerate(entries):
-                if k == 0 and not empty:
+                if k == 0:
                     svg.text(cx + 6, jy - 7, nm, 12, 600, anchor="start")
-                elif k > 0:
+                else:
                     ty += entry_gap - 2
                     svg.text(cx + 6, ty, nm, 12, 600, anchor="start")
-                for m in (mech if not empty else []):
+                for m in mech:
                     ty += line_h
                     svg.text(cx + 6, ty + 1, m, 10.5, fill=DIM, anchor="start")
-            if empty:
-                svg.text(cx + 6, jy + 14, entries[0][1][0], 10.5, fill=DIM, anchor="start")
     return svg.render()
 
 
@@ -224,21 +216,21 @@ def two_sequences():
 
 
 def replication_paths():
-    rows = ["SQL", "Access methods", "Buffer pool", "Disk"]
-    row_y = {"Write request": 120, "SQL": 200, "Access methods": 280, "Buffer pool": 360, "Disk": 440}
+    rows = ["SQL", "Access methods", "Buffer pool + log", "Disk"]
+    row_y = {"Write request": 120, "SQL": 200, "Access methods": 280, "Buffer pool + log": 360, "Disk": 440}
     cw, ch, step = 120, 30, 145
     # (first row the replica repeats, line label, log name, examples), lowest replication point first.
     copies = [
         ("Disk", "page changes", "Physical log", "Postgres WAL, Aurora redo"),
-        ("Buffer pool", "new object values", "Object log", "FaRM"),
+        ("Buffer pool + log", "new object values", "Object log", "FaRM"),
         ("Access methods", "row and key changes", "Logical log", "Vitess, CockroachDB, DSQL"),
         ("SQL", "transactions and their inputs", "Command log", "Calvin, VoltDB"),
     ]
-    svg = Svg(760, 536, "A write runs down the primary's stack: SQL, access methods, buffer pool, disk. "
+    svg = Svg(760, 536, "A write runs down the primary's stack: SQL, access methods, buffer pool and log, disk. "
               "Orange arrows show where it leaves for the replicas at four heights. A physical log leaves "
-              "below the buffer pool, so each replica only writes its disk. An object log leaves below the "
+              "below the buffer pool and log, so each replica only writes its disk. An object log leaves below the "
               "access methods, so each replica updates its memory and disk. A logical log leaves below SQL, "
-              "so each replica runs its access methods, buffer pool, and disk. A command log leaves above SQL, "
+              "so each replica runs its access methods, buffer pool and log, and disk. A command log leaves above SQL, "
               "so each replica runs the whole stack.")
     svg.add('<defs>' + "".join(
         f'<marker id="{i}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" '
