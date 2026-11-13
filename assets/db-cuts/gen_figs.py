@@ -1,4 +1,4 @@
-"""Generate figures 02a, 02b, 03c, and 03d for the "Carving a database at its joints" post.
+"""Generate figures 02a, 02b, 03c, 03d, and 03e for the "Carving a database at its joints" post.
 
 Run `python3 assets/db-cuts/gen_figs.py`; it writes the SVGs next to itself.
 The other SVGs in this folder are drawn by hand or elsewhere.
@@ -96,7 +96,7 @@ def who_orders():
         ("Shared disk",
          [("Page owners", ["Aurora Multi-Master (retired):", "storage takes the first write to",
                            "a page; the other writer aborts"])],
-         [("Log-based storage", ["Aurora: the one writer orders", "every write, one joint up"])]),
+         [("Log-based storage", ["Aurora: the one writer is the", "ordering point, above the split"])]),
     ]
     sx, sw, bh = 20, 110, 30
     cols = [(150, 180), (340, 205), (555, 195)]
@@ -121,7 +121,7 @@ def who_orders():
               "locks records by compare-and-swap. Oracle RAC also orders at this joint, with global locks and "
               "coherent caches, though it splits one joint lower. Shared disk: in Aurora Multi-Master, now retired, "
               "storage takes the first write to each page and the other writer aborts; plain Aurora has one writer, "
-              "which orders every write one joint up.")
+              "which is itself the ordering point, above the split.")
     svg.header("Who decides, at each joint",
                ["Each row is a joint, and the family that splits there. Within a family, the two designs differ in",
                 "who runs the ordering point. Oracle RAC orders one joint above its split."])
@@ -215,6 +215,95 @@ def two_sequences():
     return svg.render()
 
 
+def state_placement():
+    ONE, SPLIT, STEP, STREAM, NONE = range(5)
+    # Per design: (name, examples, writers, [(kind, cell lines)] for locks, cache, log).
+    rows = [
+        ("Read replicas", "Postgres, MySQL", "one",
+         [(ONE, ["the primary"]), (ONE, ["the primary"]), (ONE, ["the primary's WAL"])]),
+        ("Routed shards", "Vitess, Citus", "many",
+         [(SPLIT, ["per shard"]), (SPLIT, ["per shard"]), (SPLIT, ["per shard"])]),
+        ("Deterministic", "Calvin", "many",
+         [(SPLIT, ["per partition,", "in log order"]), (SPLIT, ["per partition"]),
+          (STREAM, ["one input log,", "merged by epoch"])]),
+        ("Range owners", "CockroachDB, Spanner", "many",
+         [(SPLIT, ["per range, at", "its leaseholder"]), (SPLIT, ["per node, for", "its own ranges"]),
+          (SPLIT, ["Raft log", "per range"])]),
+        ("Unbundled", "DSQL", "many",
+         [(SPLIT, ["adjudicators,", "per key range"]), (SPLIT, ["in storage,", "per key range"]),
+          (STREAM, ["the journal, one", "shared service"])]),
+        ("Object owners", "FaRM", "many",
+         [(SPLIT, ["per object,", "at its primary"]), (NONE, ["none: reads go", "to the primary"]),
+          (SPLIT, ["per primary, copied", "to its backups"])]),
+        ("Disaggregated memory", "NAM-DB", "many",
+         [(SPLIT, ["per record, by CAS", "in memory servers"]), (NONE, ["none"]),
+          (STEP, ["per compute thread,", "merged at recovery"])]),
+        ("Coherent caches", "Oracle RAC", "many",
+         [(SPLIT, ["per resource, at", "its master node"]), (STEP, ["one per node, coherent;", "a master per block"]),
+          (STEP, ["one per node,", "merged by SCN"])]),
+        ("Log-based storage", "Aurora", "one",
+         [(ONE, ["the one writer"]), (ONE, ["the writer's;", "replicas follow redo"]),
+          (ONE, ["written by the writer,", "kept by storage"])]),
+    ]
+    heads = [("Locks", "who checks conflicts"), ("Cache", "hot pages or rows"),
+             ("Log", "the order, made durable")]
+    nx, cx0, cw, gap, wx = 20, 180, 160, 8, 690
+    top, rh, rgap = 124, 40, 5
+    legend_y = top + len(rows) * (rh + rgap) + 22
+    h = legend_y + 40
+    svg = Svg(760, h, "Where each design keeps the state that orders writes: locks, cache, and log. "
+              "Read replicas and Aurora keep locks, cache, and log in one node, and have one writer. Every design "
+              "with many writers splits its locks, so that each slice has one owner: per shard, partition, range, "
+              "key range, object, record, or resource. Caches are split, absent, or kept coherent. Logs vary most: "
+              "split per shard or range, one per node and merged, or one shared stream, as in Calvin and DSQL.")
+    svg.header("Where each design keeps the state that orders writes",
+               ["Every design with many writers splits its locks, so each slice has one owner. Caches and logs have",
+                "more options: a log can stay one per node and be merged, or be one stream that every writer shares."])
+    for i, (t, sub) in enumerate(heads):
+        x = cx0 + i * (cw + gap)
+        svg.text(x + cw / 2, 100, t, 12, 600)
+        svg.text(x + cw / 2, 114, sub, 10, fill=DIM)
+    svg.text(wx + 20, 100, "Writers", 12, 600)
+
+    def cell(x, y, kind, lines, w=cw):
+        if kind == ONE:
+            svg.rect(x, y, w, rh, STORE, None)
+        elif kind == SPLIT:
+            svg.rect(x, y, w, rh, BLUE, None, extra=' fill-opacity="0.12"')
+        elif kind == STEP:
+            svg.add(f'<rect x="{x + 0.75}" y="{y + 0.75}" width="{w - 1.5}" height="{rh - 1.5}" rx="4" '
+                    f'fill="{WHITE}" stroke="{BLUE}" stroke-width="1.5"/>')
+        elif kind == STREAM:
+            svg.add(f'<rect x="{x + 0.75}" y="{y + 0.75}" width="{w - 1.5}" height="{rh - 1.5}" rx="4" '
+                    f'fill="{STORE}" stroke="{DIM}" stroke-width="1.25" stroke-dasharray="4 3"/>')
+        color = DIM if kind == NONE else FG
+        if len(lines) == 1:
+            svg.text(x + w / 2, y + rh / 2 + 4, lines[0], 10, fill=color)
+        else:
+            svg.text(x + w / 2, y + rh / 2 - 3, lines[0], 10, fill=color)
+            svg.text(x + w / 2, y + rh / 2 + 10, lines[1], 10, fill=color)
+
+    for r, (name, ex, writers, cells) in enumerate(rows):
+        y = top + r * (rh + rgap)
+        svg.text(nx, y + 17, name, 11.5, 600, anchor="start")
+        svg.text(nx, y + 31, ex, 10, fill=DIM, anchor="start")
+        for i, (kind, lines) in enumerate(cells):
+            cell(cx0 + i * (cw + gap), y, kind, lines)
+        svg.text(wx + 20, y + rh / 2 + 4, writers, 11, 600 if writers == "many" else 400,
+                 FG if writers == "many" else DIM)
+
+    legend = [(ONE, "in one node"), (SPLIT, "split: each slice has one owner"),
+              (STEP, "one per node, kept coherent or merged"), (STREAM, "one shared stream")]
+    lx = nx
+    for kind, label in legend:
+        svg.add(f'<g transform="translate({lx} {legend_y}) scale(0.5)">')
+        cell(0, 0, kind, [""], 40)
+        svg.add('</g>')
+        svg.text(lx + 26, legend_y + 14, label, 10.5, fill=DIM, anchor="start")
+        lx += 60 + len(label) * 5.2
+    return svg.render()
+
+
 def replication_paths():
     rows = ["SQL", "Access methods", "Buffer pool + log", "Disk"]
     row_y = {"Write request": 120, "SQL": 200, "Access methods": 280, "Buffer pool + log": 360, "Disk": 440}
@@ -277,3 +366,4 @@ open(f"{out}/02b-two-sequences.svg", "w").write(two_sequences())
 open(f"{out}/03c-replication-paths.svg", "w").write(replication_paths())
 open(f"{out}/02a-joints-map.svg", "w").write(joints_map())
 open(f"{out}/03d-who-orders.svg", "w").write(who_orders())
+open(f"{out}/03e-state-placement.svg", "w").write(state_placement())
