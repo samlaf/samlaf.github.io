@@ -1,4 +1,4 @@
-"""Generate figures 02a, 02b, 03c, 03d, 03e, 04, and 04b for the "Carving a database at its joints" post.
+"""Generate figures 02, 03, 04, and 06 through 13 for the "Carving a database at its joints" post.
 
 Run `python3 assets/db-cuts/gen_figs.py`; it writes the SVGs next to itself.
 The other SVGs in this folder are drawn by hand or elsewhere.
@@ -589,11 +589,176 @@ def space_time():
         "Every design in space and time")
 
 
+def timeline(title, aria, design, cols, lanes, boxes, arrows, split, repl, shade, notes=()):
+    """Draw one design's steps: columns are steps in time, lanes are the parts that run them.
+
+    cols: step names; a name starting with "~" is drawn dim, for a step after the commit.
+    lanes: (name, description) from top to bottom.
+    boxes: {id: (column, lane, text)}.
+    arrows: (from id, to id, color, *options). When the boxes share no column or lane, the route bends once:
+        across then down by default, or down then across with the option "vh". The option "dashed" dashes it.
+    split, repl: (lane boundary, label); boundary k is the top of lane k. split may be None.
+    shade: (first column, first lane), shaded to the right and bottom edges: steps every replica repeats.
+    notes: (x, y, text, color, anchor).
+    """
+    x0, cw, top, lh, bw, bh = 200, 160, 112, 70, 140, 28
+    right = x0 + cw * len(cols)
+    svg = Svg(right + 20, top + lh * len(lanes) + 20, aria)
+    svg.add('<defs>' + "".join(
+        f'<marker id="tl-{n}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" '
+        f'orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="{c}"/></marker>'
+        for n, c in [("grey", LINE), ("blue", BLUE)]) + '</defs>')
+    svg.header(title, [f"Across: the four steps of a transaction, in {design}'s sequence. Down: the layer that runs each step.",
+                       "Orange: the replication point; the shaded steps run again on every replica. "
+                       "Blue: the split point, and what crosses there."])
+    c0, l0 = shade
+    svg.add(f'<rect x="{x0 + cw * c0}" y="{top + lh * l0}" width="{right - x0 - cw * c0}" '
+            f'height="{lh * (len(lanes) - l0)}" fill="{ORANGE}" fill-opacity="0.07"/>')
+    svg.add(f'<path d="M{x0} 82H{right}" stroke="{LINE}" stroke-width="1" marker-end="url(#tl-grey)"/>')
+    svg.text(x0 - 8, 86, "time", 11.5, fill=DIM, anchor="end")
+    for k, c in enumerate(cols):
+        dim = c.startswith("~")
+        svg.text(x0 + cw * (k + 0.5), 101, c.lstrip("~"), 12, 400 if dim else 600, DIM if dim else FG)
+    rule = lambda y: svg.add(f'<line x1="24" y1="{y}" x2="{right}" y2="{y}" stroke="#e6e4df" stroke-width="1"/>')
+    rule(top)
+    for k, (name, desc) in enumerate(lanes):
+        svg.text(24, top + lh * k + 33, name, 12.5, 600, anchor="start")
+        svg.text(24, top + lh * k + 49, desc, 10.5, fill=DIM, anchor="start")
+        rule(top + lh * (k + 1))
+    y = top + lh * repl[0]
+    svg.add(f'<line x1="24" y1="{y}" x2="{right}" y2="{y}" stroke="{ORANGE}" stroke-width="2" stroke-dasharray="5 3"/>')
+    svg.text(right - 4, y - 6, repl[1], 11, fill=ORANGE, anchor="end")
+    if split:
+        # A split on the replication boundary sits just above it, with its label below, so both stay legible.
+        shared = split[0] == repl[0]
+        y = top + lh * split[0] - (3 if shared else 0)
+        svg.add(f'<line x1="24" y1="{y}" x2="{right}" y2="{y}" stroke="{BLUE}" stroke-width="2"/>')
+        svg.text(right - 4, y + 14 if shared else y - 6, split[1], 11, fill=BLUE, anchor="end")
+
+    def box(i):
+        c, l, _ = boxes[i]
+        return x0 + cw * (c + 0.5), top + lh * l + 21 + bh / 2
+
+    for a, b, color, *opts in arrows:
+        (ax, ay), (bx, by) = box(a), box(b)
+        up = by < ay
+        if ay == by:
+            d = f"M{ax + bw / 2} {ay}H{bx - bw / 2}"
+        elif ax == bx:
+            d = f"M{ax} {ay - bh / 2 if up else ay + bh / 2}V{by + bh / 2 if up else by - bh / 2}"
+        elif "vh" in opts:
+            d = f"M{ax} {ay - bh / 2 if up else ay + bh / 2}V{by}H{bx - bw / 2}"
+        else:
+            d = f"M{ax + bw / 2} {ay}H{bx}V{by + bh / 2 if up else by - bh / 2}"
+        name = "blue" if color == BLUE else "grey"
+        dash = ' stroke-dasharray="4 3"' if "dashed" in opts else ""
+        svg.add(f'<path d="{d}" fill="none" stroke="{color}" stroke-width="1.25"{dash} marker-end="url(#tl-{name})"/>')
+    for i, (c, l, label) in boxes.items():
+        cx, cy = box(i)
+        svg.rect(cx - bw / 2, cy - bh / 2, bw, bh)
+        svg.text(cx, cy + 4, label, 11)
+    for x, y, t, color, anchor in notes:
+        svg.text(x, y, t, 10.5, fill=color, anchor=anchor)
+    return svg.render()
+
+
+def cockroachdb():
+    return timeline(
+        "CockroachDB checks and replicates each write at its range while the transaction runs",
+        "CockroachDB's steps over time and across layers. The gateway node runs the SQL and sends key-value reads "
+        "and writes to each range's leaseholder, which checks locks and writes intents. Raft replicates each "
+        "intent as it is written. At commit, the gateway fixes the commit timestamp, which a leaseholder may have "
+        "pushed past a later read, and the commit is done once a majority of the range's replicas acknowledge it. "
+        "Afterwards, every replica applies the commit and its intents become ordinary values.",
+        "CockroachDB",
+        ["Execute + Check", "Number", "Persist", "~Apply (after commit)"],
+        [("Gateway", "SQL on any node; the coordinator"),
+         ("Leaseholders", "one per range: locks, timestamp cache"),
+         ("Followers", "each range's other replicas")],
+        {"run": (0, 0, "run the SQL"), "check": (0, 1, "check locks, write intents"),
+         "intent": (0, 2, "replicate each intent"), "num": (1, 0, "fix the commit timestamp"),
+         "ack": (2, 2, "a majority acknowledges"), "apply": (3, 2, "resolve intents")},
+        [("run", "check", BLUE), ("check", "intent", LINE), ("check", "num", LINE),
+         ("num", "ack", BLUE), ("ack", "apply", LINE)],
+        (1, "split point: key-value reads and writes, by range"),
+        (2, "replication point: Raft log"),
+        (3, 2),
+        [(448, 168, "pushed past later reads", DIM, "start")])
+
+
+def aurora():
+    return timeline(
+        "Aurora runs the transaction on one writer, then persists its redo in storage",
+        "Aurora's steps over time and across layers. The one writer runs the transaction, taking locks and changing "
+        "pages in its buffer pool, which fetches pages from storage on a miss. It assigns the commit LSN. Storage "
+        "persists the redo once 4 of 6 copies acknowledge, and each copy builds pages from it. The writer also "
+        "streams redo to read replicas, which apply it to their cached pages: a cache, not a copy.",
+        "Aurora",
+        ["Execute + Check", "Number", "Persist", "~Apply (after commit)"],
+        [("Writer", "SQL, locks, LSNs; exactly one"),
+         ("Buffer pools", "the writer's and each replica's"),
+         ("Storage service", "log and pages; 6 copies, 3 AZs")],
+        {"run": (0, 0, "run, take locks"), "pages": (0, 1, "read and change pages"), "serve": (0, 2, "serve a page"),
+         "lsn": (1, 0, "assign the commit LSN"), "ack": (2, 2, "4 of 6 copies acknowledge"),
+         "build": (3, 2, "build pages from redo"), "replicas": (3, 1, "replicas apply redo")},
+        [("run", "pages", LINE), ("serve", "pages", BLUE), ("run", "lsn", LINE), ("lsn", "ack", BLUE, "vh"),
+         ("ack", "build", LINE), ("lsn", "replicas", BLUE, "dashed")],
+        (2, "split point: redo down, pages up"),
+        (2, "replication point: redo records"),
+        (3, 2),
+        [(288, 245, "page on a miss", BLUE, "start"), (600, 141, "redo stream", BLUE, "middle"),
+         (682, 221, "a cache, not a copy", DIM, "end")])
+
+
+def dsql():
+    return timeline(
+        "DSQL runs the transaction first, then checks it, then journals it",
+        "DSQL's steps over time and across layers. A query processor runs the transaction, reading rows from "
+        "storage as of its start and buffering its writes. At commit, adjudicators check the write set for "
+        "conflicts and pick a commit time. Appending to the journal is the commit. Each storage replica then "
+        "applies the write sets.",
+        "DSQL",
+        ["Execute", "Check + Number", "Persist", "~Apply (after commit)"],
+        [("Query processors", "SQL; many, stateless"),
+         ("Adjudicators", "concurrency control; per key range"),
+         ("Journal", "the log; across zones"),
+         ("Storage", "rows by timestamp; sharded")],
+        {"run": (0, 0, "run, buffer writes"), "serve": (0, 3, "serve rows as of start"),
+         "check": (1, 1, "check, pick commit time"), "append": (2, 2, "append: the commit"),
+         "apply": (3, 3, "apply write sets")},
+        [("serve", "run", BLUE), ("run", "check", BLUE), ("check", "append", LINE), ("append", "apply", LINE, "vh")],
+        (1, "split point: row reads; write sets at commit"),
+        (3, "replication point: write sets"),
+        (3, 3),
+        [(288, 256, "row reads", BLUE, "start")])
+
+
+def calvin():
+    return timeline(
+        "Calvin orders and persists a transaction before it runs",
+        "Calvin's steps over time and across layers. The sequencer numbers and persists transaction inputs above "
+        "execution. Every replica then takes locks in log order, executes, and reads and writes its own storage. "
+        "Partitions send each other the rows a transaction reads.",
+        "Calvin",
+        ["Number", "Persist", "Check", "Execute"],
+        [("Sequencer", "above execution: the input log"),
+         ("Scheduler", "concurrency control"),
+         ("Executor", "execution, one per partition"),
+         ("Storage", "access methods and disk")],
+        {"batch": (0, 0, "batch into an epoch"), "repl": (1, 0, "replicate the batch"),
+         "lock": (2, 1, "lock in log order"), "run": (3, 2, "run the transaction"),
+         "rw": (3, 3, "read and write rows")},
+        [("batch", "repl", LINE), ("repl", "lock", LINE), ("lock", "run", LINE), ("run", "rw", LINE)],
+        None,
+        (1, "replication point: transaction inputs"),
+        (2, 1),
+        [(682, 291, "reads cross partitions", BLUE, "end")])
+
+
 out = sys.argv[1] if len(sys.argv) > 1 else os.path.dirname(os.path.abspath(__file__))
-open(f"{out}/04-decision-tree.svg", "w").write(decision_tree())
-open(f"{out}/04b-space-time.svg", "w").write(space_time())
-open(f"{out}/02b-two-sequences.svg", "w").write(two_sequences())
-open(f"{out}/03c-replication-paths.svg", "w").write(replication_paths())
-open(f"{out}/02a-joints-map.svg", "w").write(joints_map())
-open(f"{out}/03d-who-orders.svg", "w").write(who_orders())
-open(f"{out}/03e-state-placement.svg", "w").write(state_placement())
+for name, fig in [("02-two-sequences", two_sequences), ("03-joints-map", joints_map),
+                  ("04-replication-paths", replication_paths), ("06-who-orders", who_orders),
+                  ("07-decision-tree", decision_tree), ("08-state-placement", state_placement),
+                  ("09-cockroachdb", cockroachdb), ("10-aurora", aurora), ("11-dsql", dsql),
+                  ("12-calvin", calvin), ("13-space-time", space_time)]:
+    open(f"{out}/{name}.svg", "w").write(fig())
