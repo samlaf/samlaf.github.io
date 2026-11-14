@@ -23,7 +23,7 @@ date:   2026-11-01
 
 If Plato were alive today and tasked with scaling a database engine, he would look for the natural joints at which to carve it.
 
-This post does just that. It treats every distributed database in it, from sharded Postgres to Spanner, Aurora, and Calvin, as the same engine cut in different places. Each design makes three choices: where it splits the data, where it replicates it, and where it orders conflicting writes. Two rules tie the choices together. Where a design makes them tells you how many nodes can write, how much work each replica repeats, and whether your schema has to know about shards.
+This post does just that. It treats every distributed database it covers, from sharded Postgres to Spanner, Aurora, and Calvin, as the same engine cut in different places. Each design makes three choices: where it splits the data, where it replicates it, and where it orders conflicting writes. Two rules tie the choices together. Where a design makes them tells you how many nodes can write, how much work each replica repeats, and whether your schema has to know about shards.
 
 ![One engine: the buffer pool and the log side by side above the disk, with what crosses each interface](/assets/db-cuts/01-engine-stack.svg)
 
@@ -57,7 +57,7 @@ Most people know the classic sharded database. A router above SQL sends each que
 
 [^citus]: Citus is a Postgres extension, not a fork. Postgres lets an extension take over query planning, and Citus uses this to rewrite each query into SQL on the shard tables, which are ordinary Postgres tables on the workers. Commits that span shards use Postgres's own two-phase commit (`PREPARE TRANSACTION`). MySQL has no planner hook like Postgres's, and Vitess runs as a separate proxy in front of it.
 
-Most designs similarly split first, then order and replicate within each slice. [Calvin](#calvin-the-log-comes-first) orders first, then replicates, then splits.
+Sharded designs like these split first, then order and replicate within each slice. [Calvin](#calvin-the-log-comes-first) orders first, then replicates, then splits.
 
 ![Two panels. Left, split, order, replicate, as in Vitess: a router splits the data into two shards, each shard orders its own writes, and each shard ships its binlog to three replicas. Right, order, replicate, split, as in Calvin: a sequencer fixes one order for every key, the input log goes to three replicas, each replica splits into two partitions, and each transaction runs on the partitions that hold its keys](/assets/db-cuts/02b-two-sequences.svg)
 
@@ -144,9 +144,9 @@ So this post reads "shared X" as the name of a split point, not of hardware. **S
 - **Log-based storage.** The log is the interface. The writer sends redo records to a storage service, and storage sends pages back on a miss. Aurora, Neon, Azure SQL Hyperscale, and AlloyDB work this way, each with one writer. [Aurora](#aurora-the-log-is-the-database) shows why.
 - **Coherent caches.** The buffer pools also talk to each other. Every node runs SQL, access methods, a buffer pool, and its own log over the whole database, and all of them read and write one set of shared volumes. The hard part is keeping the buffer pools coherent and the locks global. This is data shipping: pages and lock messages cross between nodes. Oracle RAC (Cache Fusion) and Db2 pureScale are the long-lived examples. ScaleStore, a research system, keeps buffer pools coherent the same way, over RDMA and without shared disk.
 
-Every family that spans machines has two designs, and they differ in the same way: whether the nodes that hold the data decide what commits, or something else does. [Ordering](#ordering-where-writes-meet) shows why that choice shapes the rest of a design.
+Every family that spans machines has two designs, and they differ in the same way: whether the nodes that hold the data decide what commits, or other nodes do. This post calls them owner-decider and separate-decider. Shared disk is the one family with a third design: a single writer decides, over storage that spans many machines. Aurora, Azure SQL Hyperscale, PolarDB, AlloyDB, and Neon all work this way. [Ordering](#ordering-where-writes-meet) shows why that choice shapes the rest of a design.
 
-![Each row is a joint and the family that splits there, with two ordering columns: owner-decider, or single- or separate-decider. Shared nothing: routed shards lock per shard and use 2PC; Calvin's input log fixes the order. Shared key-value store: leaseholders lock their ranges; DSQL's adjudicators check at commit. Shared buffer pool: FaRM's primaries lock at commit; NAM-DB's writer locks by compare-and-swap; Oracle RAC also orders here, one joint above its split. Shared disk: in Aurora Multi-Master, now retired, storage takes the first write to each page; in Aurora, the one writer orders every write, above its split](/assets/db-cuts/03d-who-orders.svg)
+![Which nodes decide, in each family. Rows are the four families that span machines, each named by where it splits; columns are owner-decider, separate-decider, and single-decider. Shared nothing: routed shards lock per shard and use 2PC; Calvin's input log fixes the order. Shared key-value store: leaseholders lock their ranges; DSQL's adjudicators check at commit. Shared buffer pool: FaRM's primaries lock at commit; NAM-DB's writer locks by compare-and-swap. Shared disk: in Aurora Multi-Master, now retired, storage takes the first write to each page; Oracle RAC orders with global locks, one joint above its split; and only this family has a single-decider design: in Aurora, the one writer orders every write, above its split](/assets/db-cuts/03d-who-orders.svg)
 
 ### Ordering: where writes meet
 
@@ -201,7 +201,7 @@ This post covers designs that give conflicting writes one order.[^commute] That 
 
 **Rule 1: order before you replicate.** Every replica must see the same order. So a design orders writes before it replicates them. Either one place orders and ships the result, or every replica receives the same ordered input and runs it deterministically, as Calvin's replicas do from its log.
 
-**Rule 2: check each item in one place.** No slice may hide a conflict, so each item needs one place that sees every access the isolation level checks: every write, and under serializability, every read too. Below the split, that place is the slice owner. Above it, each node keeps private locks and caches over the whole database. So either one node writes, or the locks are split at a higher joint, as in Oracle RAC. [Ordering](#ordering-where-writes-meet) shows why.
+**Rule 2: check each item in one place.** No slice may hide a conflict, so each item needs one place that sees every access the isolation level checks: every write, and under serializability, every read too. Below the split, that place is the slice owner. Above it, each node keeps private locks and caches over the whole database. So a design that orders above its split either has one writer, or splits its locks at that higher joint, as Oracle RAC does. [Ordering](#ordering-where-writes-meet) shows why.
 
 [^commute]: Designs whose writes commute need neither rule. A CRDT copies each write first and merges later, and the merge gives the same result in any order. Dynamo and Cassandra also copy first, then let each replica keep the write with the latest timestamp. The price: commuting writes can't enforce a rule that spans writes, such as unique usernames or a balance that never goes below zero. Hellerstein and Alvaro's [CALM theorem][calm] makes this precise. A program can run without coordination exactly when it is monotonic, meaning new input never makes an earlier answer wrong. A uniqueness check fails this test: a later write can turn an earlier "yes, that name is free" into a "no."
 
@@ -217,9 +217,9 @@ Together, the rules leave four sequences, and the answer to [who checks conflict
 
 - **Single-decider:** order, split, replicate (Aurora), or order, replicate, with no split (read replicas).
 - **Owner-decider:** split, order, replicate (Vitess, CockroachDB, FaRM).
-- **Separate-decider:** order, replicate, split (Calvin, DSQL), or order, split, replicate (Oracle RAC).
+- **Separate-decider:** order, replicate, split (Calvin, DSQL), or order, split, replicate (Oracle RAC). NAM-DB orders and splits, but has no replicas.
 
-[Three designs up close](#three-designs-up-close) charts both axes for each design, and [the map at the end](#conclusion-the-whole-picture) draws all the designs side by side, with where each splits, replicates, and orders, and who may write.
+[Three designs up close](#three-designs-up-close) charts both axes for each design, and [the grid at the end](#conclusion-the-whole-picture) places every design in space and time, grouped by who checks conflicts.
 
 ## Three designs up close
 
@@ -299,11 +299,9 @@ Every design in this post comes down to three choices: [where it splits](#splitt
 2. What does a replica receive: pages, objects, rows, or transactions? That is its replication point.
 3. Which nodes check conflicts? That is its ordering point. If one node keeps the locks, cache, and log for the whole database, the design has one writer, however many machines it spans.
 
-![Nine designs in five families, as side-by-side node stacks: where each splits the data, where it replicates data, where writes are ordered, and who may write](/assets/db-cuts/03-whole-picture.svg)
+The figure below places every design in space and time: where it splits, orders, and replicates, in what sequence, and when the transaction executes. Where all three points share one joint, as in CockroachDB and DSQL, only the sequence tells the designs apart. Where two designs share a sequence, as Aurora and Oracle RAC do, only the joints do.
 
-The map shows where each design cuts. The next figure adds the sequence, and when the transaction executes. Where all three points share one joint, as in CockroachDB and Calvin, only the sequence tells the designs apart. Where two designs share a sequence, as Aurora and Oracle RAC do, only the joints do.
-
-![Every design in space and time, one small grid per design. Rows are places, from in a node down to below the buffer pool; columns are four steps in sequence; a green band marks when the transaction executes. Among owner-deciders, every design splits, orders, and replicates at one joint, except Vitess, which replicates one joint lower: CockroachDB below SQL, FaRM below the access methods, Aurora Multi-Master below the buffer pool. Vitess splits before it executes, orders while it executes, and replicates after. CockroachDB and Aurora Multi-Master do all three while the transaction runs, and FaRM does them after. Among single- and separate-deciders: read replicas order in the primary while it executes, then replicate; Calvin orders, replicates, and splits above SQL, all before it executes; DSQL executes first, then orders, replicates, and splits below SQL; NAM-DB has no replicas; Aurora orders in the writer and Oracle RAC below the access methods, while they execute, and both split and replicate below the buffer pool. Leaderless designs, out of scope, replicate before they order](/assets/db-cuts/04b-space-time.svg)
+![Every design in space and time, one small grid per design, in three columns: owner-decider, separate-decider, and single-decider. Rows are places, from in a node down to below the buffer pool; columns are four steps in sequence; a green band marks when the transaction executes. Among owner-deciders, every design splits, orders, and replicates at one joint, except Vitess, which replicates one joint lower: CockroachDB below SQL, FaRM below the access methods, Aurora Multi-Master below the buffer pool. Vitess splits before it executes, orders while it executes, and replicates after. CockroachDB and Aurora Multi-Master do all three while the transaction runs, and FaRM does them after. Among separate-deciders: Calvin orders, replicates, and splits above SQL, all before it executes; DSQL executes first, then orders, replicates, and splits below SQL; NAM-DB has no replicas; Oracle RAC orders below the access methods while it executes, then splits and replicates below the buffer pool. Single-deciders order in the one writer while it executes: read replicas then replicate, and Aurora splits and replicates below the buffer pool. Leaderless designs, out of scope, replicate before they order](/assets/db-cuts/04b-space-time.svg)
 
 Finally, follow one request: pick a design, and step a read-write or a read-only transaction through the joints.
 

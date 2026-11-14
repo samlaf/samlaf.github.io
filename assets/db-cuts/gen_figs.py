@@ -78,78 +78,66 @@ def joints_map():
     return svg.render()
 
 
+# Column heads shared by the figures that sort designs by who checks conflicts.
+DECIDERS = [("Owner-decider", "the nodes that hold the data decide"),
+            ("Separate-decider", "nodes that don't hold the data decide"),
+            ("Single-decider", "the one writer decides")]
+
+
 def who_orders():
-    layers = [("Application", False), ("SQL", False), ("Access methods", False),
-              ("Buffer pool + log", False), ("Disk", True)]
-    # Per joint: split family, then (name, mechanism lines) entries for each ordering column.
+    # Per family: where it splits, then (name, mechanism lines) for each decider, or None.
     rows = [
-        ("Shared nothing",
-         [("Routed shards", ["Vitess, Citus: each shard locks its", "rows, and 2PC joins shards"])],
-         [("Deterministic", ["Calvin: the input log fixes the", "order before any partition runs"])]),
-        ("Shared key-value store",
-         [("Range owners", ["CockroachDB, Spanner: each", "leaseholder locks its range"])],
-         [("Unbundled", ["DSQL: adjudicators check", "write sets at commit"])]),
-        ("Shared buffer pool",
-         [("Object owners", ["FaRM: each primary locks its", "objects at commit"])],
-         [("Disaggregated memory", ["NAM-DB: the writer locks records", "by compare-and-swap"]),
-          ("Coherent caches", ["Oracle RAC: global locks; its split", "point sits one joint lower"])]),
-        ("Shared disk",
-         [("Page owners", ["Aurora Multi-Master (retired):", "storage takes the first write to",
-                           "a page; the other writer aborts"])],
-         [("Log-based storage", ["Aurora: the one writer is the", "ordering point, above the split"])]),
+        ("Shared nothing", "splits above SQL",
+         ("Routed shards", ["Vitess, Citus: each shard locks", "its rows; 2PC joins shards"]),
+         ("Deterministic", ["Calvin: the input log fixes the", "order before any partition runs"]),
+         None),
+        ("Shared key-value store", "splits below SQL",
+         ("Range owners", ["CockroachDB, Spanner: each", "leaseholder locks its range"]),
+         ("Unbundled", ["DSQL: adjudicators check", "write sets at commit"]),
+         None),
+        ("Shared buffer pool", "splits below access methods",
+         ("Object owners", ["FaRM: each primary locks its", "objects at commit"]),
+         ("Disaggregated memory", ["NAM-DB: the writer locks", "records by compare-and-swap"]),
+         None),
+        ("Shared disk", "splits below the buffer pool",
+         ("Page owners", ["Aurora Multi-Master (retired):", "storage takes the first write", "to a page; the loser aborts"]),
+         ("Coherent caches", ["Oracle RAC: global locks, one", "joint above the split"]),
+         ("Log-based storage", ["Aurora, Neon: the one writer", "orders, above the split"])),
     ]
-    sx, sw, bh = 20, 110, 30
-    cols = [(150, 180), (340, 205), (555, 195)]
-    above, line_h, entry_gap = 26, 13, 20
-    # Each joint's line sits a fixed distance below the box above it; the space below
-    # the line grows with the number of mechanism lines in its tallest cell.
-    ys, y, box_y = [], 132, []
-    for name, owners, other in rows:
-        box_y.append(y)
-        jy = y + bh + above
-        ys.append(jy)
-        def depth(entries):
-            return sum(len(m) * line_h for _, m in entries) + entry_gap * (len(entries) - 1)
-        y = jy + max(depth(owners), depth(other)) + 16
-    box_y.append(y)
-    h = y + bh + 20
-    svg = Svg(760, h, "Which nodes decide, at each joint. Each row is a joint and the family that splits the data there. "
-              "Shared nothing: routed shards, such as Vitess and Citus, let each shard lock its rows, with 2PC "
-              "between shards; Calvin's input log fixes the order before any partition runs. Shared key-value "
-              "store: CockroachDB and Spanner let each leaseholder lock its range; DSQL's adjudicators check write "
-              "sets at commit. Shared buffer pool: FaRM's primaries lock their objects at commit; NAM-DB's writer "
-              "locks records by compare-and-swap. Oracle RAC also orders at this joint, with global locks and "
-              "coherent caches, though it splits one joint lower. Shared disk: in Aurora Multi-Master, now retired, "
-              "storage takes the first write to each page and the other writer aborts; plain Aurora has one writer, "
-              "which is itself the ordering point, above the split.")
-    svg.header("Which nodes decide, at each joint",
-               ["Each row is a joint, and the family that splits there. Within a family, the two designs differ in",
-                "who runs the ordering point. Oracle RAC orders one joint above its split."])
-    heads = [("Split point", "the family", BLUE), ("Owner-decider", "the nodes that hold the data decide", DIM),
-             ("Single- or separate-decider", "one writer, or other nodes, decide", DIM)]
+    cols = [(20, 150), (182, 186), (368, 186), (554, 186)]
+    line_h, top = 13, 132
+    heights = [38 + line_h * max(len(c[1]) for c in r[2:] if c) for r in rows]
+    h = top + sum(heights) + 10
+    svg = Svg(760, h, "Which nodes decide, in each family. Rows are the four families that span machines, each named "
+              "by where it splits; columns are owner-decider, separate-decider, and single-decider. Shared nothing: "
+              "routed shards, such as Vitess and Citus, let each shard lock its rows, with 2PC between shards; "
+              "Calvin's input log fixes the order before any partition runs. Shared key-value store: CockroachDB and "
+              "Spanner let each leaseholder lock its range; DSQL's adjudicators check write sets at commit. Shared "
+              "buffer pool: FaRM's primaries lock their objects at commit; NAM-DB's writer locks records by "
+              "compare-and-swap. Shared disk: in Aurora Multi-Master, now retired, storage takes the first write to "
+              "each page and the loser aborts; Oracle RAC orders with global locks, one joint above its split; and "
+              "only this family has a single-decider design: Aurora and Neon have one writer, which orders every "
+              "write, above the split.")
+    svg.header("Which nodes decide, in each family",
+               ["Every family that spans machines has an owner-decider and a separate-decider design.",
+                "Only shared disk adds a third: one writer, over storage that spans machines."])
+    heads = [("Family", "named by where it splits", BLUE)] + [(t, sub, DIM) for t, sub in DECIDERS]
     for (cx, _), (t, sub, color) in zip(cols, heads):
-        svg.text(cx + 6, 102, t, 12, 600, color, "start")
-        svg.text(cx + 6, 118, sub, 10.5, fill=DIM, anchor="start")
-    for i, (name, store) in enumerate(layers):
-        svg.rect(sx, box_y[i], sw, bh, STORE if store else WHITE)
-        svg.text(sx + sw / 2, box_y[i] + 19, name, 11)
-    for jy, (fam, owners, other) in zip(ys, rows):
-        svg.add(f'<line x1="{sx + sw / 2}" y1="{jy}" x2="{cols[0][0]}" y2="{jy}" stroke="{LINE}" stroke-width="1" stroke-dasharray="2 3"/>')
-        cx, cw = cols[0]
-        svg.line(cx + 2, jy, cx + cw - 4, BLUE, False)
-        svg.text(cx + 6, jy - 7, fam, 12, 600, anchor="start")
-        for (cx, cw), entries in zip(cols[1:], [owners, other]):
-            svg.add(f'<line x1="{cx + 2}" y1="{jy}" x2="{cx + cw - 4}" y2="{jy}" stroke="{DIM}" stroke-width="2.5" stroke-dasharray="5 3"/>')
-            ty = jy
-            for k, (nm, mech) in enumerate(entries):
-                if k == 0:
-                    svg.text(cx + 6, jy - 7, nm, 12, 600, anchor="start")
-                else:
-                    ty += entry_gap - 2
-                    svg.text(cx + 6, ty, nm, 12, 600, anchor="start")
-                for m in mech:
-                    ty += line_h
-                    svg.text(cx + 6, ty + 1, m, 10.5, fill=DIM, anchor="start")
+        svg.text(cx, 102, t, 12, 600, color, "start")
+        svg.text(cx, 118, sub, 10.5, fill=DIM, anchor="start")
+    y = top
+    for (fam, where, *cells), rh in zip(rows, heights):
+        svg.add(f'<line x1="20" y1="{y}" x2="740" y2="{y}" stroke="{STORE}" stroke-width="1.5"/>')
+        svg.text(cols[0][0], y + 20, fam, 12, 600, anchor="start")
+        svg.text(cols[0][0], y + 35, where, 10.5, fill=DIM, anchor="start")
+        for (cx, _), cell in zip(cols[1:], cells):
+            if not cell:
+                continue
+            nm, mech = cell
+            svg.text(cx, y + 20, nm, 12, 600, anchor="start")
+            for k, m in enumerate(mech):
+                svg.text(cx, y + 35 + k * line_h, m, 10.5, fill=DIM, anchor="start")
+        y += rh
     return svg.render()
 
 
@@ -465,15 +453,16 @@ EXEC_FILL = "#e6f0e1"
 
 
 def space_time_grid(rows, n_cols, aria, title):
-    """Draw one small grid per design, in the family-by-decider layout of figure 03d.
+    """Draw one small grid per design, one row per family and one column per decider.
 
+    Each row is (family, owner-decider, separate-decider, single-decider), with None for an empty cell.
     Each design is (name, steps, execute span). A step is (kind, place, column), plus True when it is
     only an alternative. The execute span, when given, is the (first, last) column the transaction runs in.
     """
     pw, rh, head_h, title_h = 192, 13, 20, 18
     gh = rh * len(PLACES)
     cw = pw / n_cols
-    cols = [128, 128 + pw + 26, 128 + 2 * pw + 38]
+    cols = [128, 128 + pw + 18, 128 + 2 * pw + 36]
     row_h = head_h + title_h + gh + 16
     lg = 50  # top of the legend
     hy = lg + 128  # top of the column heads
@@ -547,25 +536,23 @@ def space_time_grid(rows, n_cols, aria, title):
         for k, item in enumerate(row):
             legend_item(34 + 240 * k, lg + 14 + 42 * r, *item)
 
-    for x, (t, sub) in zip(cols[:2], [("Owner-decider", "the nodes that hold the data decide"),
-                                      ("Single- or separate-decider", "one writer, or other nodes, decide")]):
+    for x, (t, sub) in zip(cols, DECIDERS):
         svg.text(x, hy, t, 12, 600, DIM, "start")
         svg.text(x, hy + 16, sub, 10.5, fill=DIM, anchor="start")
     for c in cols:
         for k in range(n_cols):
             svg.text(c + (k + 0.5) * cw, hy + 34, ["1st", "2nd", "3rd", "4th"][k], 10, fill=DIM)
 
-    for r, (fam, owners, elsewhere) in enumerate(rows):
+    for r, (fam, *designs) in enumerate(rows):
         faded = fam.startswith("Leaderless")
         svg.add(f'<line x1="20" y1="{y0 + r * row_h}" x2="740" y2="{y0 + r * row_h}" stroke="{STORE}" stroke-width="1.5"/>')
         svg.text(20, y0 + r * row_h + 15, fam, 12, 600, DIM if faded else FG, "start")
         y = y0 + r * row_h + head_h
         for k, pl in enumerate(PLACES):
             svg.text(cols[0] - 8, y + title_h + (k + 0.5) * rh + 3, pl, 8.5, fill=DIM, anchor="end")
-        for design, x in zip(owners, cols[:1]):
-            panel(x, y, *design, faded)
-        for design, x in zip(elsewhere, cols[1:]):
-            panel(x, y, *design, faded)
+        for design, x in zip(designs, cols):
+            if design:
+                panel(x, y, *design, faded)
     return svg.render()
 
 
@@ -573,29 +560,32 @@ def space_time():
     # The commit path of one write. O is where conflicts are checked (Miller's validate): inside the
     # execute band for lock-based designs, after it for commit-time checks, before it for Calvin.
     rows = [
-        ("Shared memory", [], [("Read replicas", [("O", N, 1), ("R", SQL, 2), ("R", BP, 2, True)], (0, 1))]),
+        ("Shared memory", None, None, ("Read replicas", [("O", N, 1), ("R", SQL, 2), ("R", BP, 2, True)], (0, 1))),
         ("Shared nothing",
-         [("Vitess, Citus", [("S", TOP, 0), ("O", TOP, 2), ("R", SQL, 3), ("R", BP, 3, True)], (1, 2))],
-         [("Calvin", [("O", TOP, 0), ("R", TOP, 1), ("S", TOP, 2)], (3, 3))]),
-        ("Shared key-value store", [("CockroachDB, Spanner", [("S", SQL, 1), ("O", SQL, 2), ("R", SQL, 3)], (0, 3))],
-         [("DSQL, FoundationDB", [("O", SQL, 1), ("R", SQL, 2), ("S", SQL, 3)], (0, 0))]),
-        ("Shared buffer pool", [("FaRM", [("S", AM, 1), ("O", AM, 2), ("R", AM, 3)], (0, 0))],
-         [("NAM-DB", None, None)]),
-        ("Shared disk", [("Aurora Multi-Master", [("S", BP, 1), ("O", BP, 2), ("R", BP, 3)], (0, 3))],
-         [("Aurora, Neon", [("O", N, 1), ("S", BP, 2), ("R", BP, 3)], (0, 3)),
-          ("Oracle RAC", [("O", AM, 1), ("S", BP, 2), ("R", BP, 3)], (0, 1))]),
+         ("Vitess, Citus", [("S", TOP, 0), ("O", TOP, 2), ("R", SQL, 3), ("R", BP, 3, True)], (1, 2)),
+         ("Calvin", [("O", TOP, 0), ("R", TOP, 1), ("S", TOP, 2)], (3, 3)), None),
+        ("Shared key-value store",
+         ("CockroachDB, Spanner", [("S", SQL, 1), ("O", SQL, 2), ("R", SQL, 3)], (0, 3)),
+         ("DSQL, FoundationDB", [("O", SQL, 1), ("R", SQL, 2), ("S", SQL, 3)], (0, 0)), None),
+        ("Shared buffer pool",
+         ("FaRM", [("S", AM, 1), ("O", AM, 2), ("R", AM, 3)], (0, 0)),
+         ("NAM-DB", None, None), None),
+        ("Shared disk",
+         ("Aurora Multi-Master", [("S", BP, 1), ("O", BP, 2), ("R", BP, 3)], (0, 3)),
+         ("Oracle RAC", [("O", AM, 1), ("S", BP, 2), ("R", BP, 3)], (0, 1)),
+         ("Aurora, Neon", [("O", N, 1), ("S", BP, 2), ("R", BP, 3)], (0, 3))),
         ("Leaderless, out of scope: replicas settle writes later",
-         [("Dynamo, Cassandra", [("S", SQL, 0), ("R", SQL, 1), ("O", SQL, 2)], None)], []),
+         ("Dynamo, Cassandra", [("S", SQL, 0), ("R", SQL, 1), ("O", SQL, 2)], None), None, None),
     ]
     return space_time_grid(
         rows, 4,
-        "Every design placed in space and time. Each panel is one design. Its rows are places: in a node, above "
+        "Every design placed in space and time. Each panel is one design, in three columns by who checks "
+        "conflicts: owner-decider, separate-decider, and single-decider. Its rows are places: in a node, above "
         "SQL, below SQL, below the access methods, below the buffer pool. Its columns are four steps in sequence. "
         "S is the split point, O the ordering point, R the replication point, and a green band marks when the "
-        "transaction executes, which has no fixed place. Calvin orders, replicates, and splits before it executes. DSQL and FaRM execute "
-        "first, then order, replicate, and split or split, order, and replicate. Lock-based designs order while "
-        "they execute: read replicas, Vitess, Oracle RAC, and Aurora; CockroachDB and Aurora also split and "
-        "replicate each write while the transaction runs. Vitess splits before it executes and replicates after.",
+        "transaction executes, which has no fixed place. Owner-deciders split first, then order and replicate. "
+        "Separate-deciders order first: Calvin before it executes, DSQL after, and Oracle RAC while it runs. "
+        "Single-deciders order in the one writer while it executes.",
         "Every design in space and time")
 
 
