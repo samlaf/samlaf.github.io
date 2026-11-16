@@ -21,6 +21,15 @@ h4 {
 	margin:0px;
 }
 
+// Minima sets every heading in regular weight, and the post layout doesn't use Minima's
+// .post-content sizes, so a post h4 renders at body size and reads as a plain paragraph.
+// The bare h4 rule above is for the homepage project titles; .post-body keeps this to posts.
+.post-body h4 {
+	font-weight: 600;
+	margin-top: 1.5em;
+	margin-bottom: 0.5em;
+}
+
 
 /* These are for centering images: https://stackoverflow.com/a/43691451/4971151 */
 /* this one by using <img class="center" ...> */
