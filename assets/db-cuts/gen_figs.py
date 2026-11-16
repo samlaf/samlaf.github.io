@@ -116,8 +116,8 @@ def who_orders():
               "buffer pool: FaRM's primaries lock their objects at commit; NAM-DB's writer locks records by "
               "compare-and-swap. Shared disk: in Aurora Multi-Master, now retired, storage takes the first write to "
               "each page and the loser aborts; Oracle RAC orders with global locks, one joint above its split; and "
-              "only this family has a single-decider design: Aurora and Neon have one writer, which orders every "
-              "write, above the split.")
+              "only this family has a single-decider design: Aurora and Neon have one writer, which checks every "
+              "conflict, above the split.")
     svg.header("Which nodes decide, in each family",
                ["Every family that spans machines has an owner-decider and a separate-decider design.",
                 "Only shared disk adds a third: one writer, over storage that spans machines."])
@@ -257,15 +257,15 @@ def state_placement():
     n_rows = sum(len(rows) for _, _, rows in groups)
     legend_y = top + len(groups) * (gh + ggap) + n_rows * (rh + rgap) + 20
     h = legend_y + 40
-    svg = Svg(760, h, "Where each design keeps the state that orders writes: locks, cache, and log, grouped by "
-              "who checks conflicts. In single-decider designs, read replicas and Aurora, all three stay "
+    svg = Svg(760, h, "Where each design keeps the state that checks conflicts: locks, cache, and log, grouped by "
+              "who does the checking. In single-decider designs, read replicas and Aurora, all three stay "
               "in one node. In owner-decider designs, routed shards, range owners, and FaRM's object "
               "owners, the locks split with the data, per shard, range, or object, and so do the caches and logs, "
               "except that FaRM keeps no cache. In separate-decider designs, the locks still split, "
               "per partition, key range, record, or resource, but caches and logs vary most: Calvin and DSQL share "
               "one log stream, and NAM-DB and Oracle RAC keep one log per node and merge them; RAC also keeps one "
               "coherent cache per node.")
-    svg.header("Where each design keeps the state that orders writes",
+    svg.header("Where each design keeps the state that checks conflicts",
                ["With one writer, all three stay in one node. With many, the locks always split, so each slice has",
                 "one owner. With separate deciders, caches and logs have the most options."])
     for i, (t, sub) in enumerate(heads):
@@ -526,7 +526,7 @@ def space_time_grid(rows, n_cols, aria, title):
     svg.rect(20, lg, 720, 100, WHITE, STORE, 6)
     items = [
         [(lambda x, y: marker(x, y, "S", False), "Split point", "requests reach the owner of each slice"),
-         (lambda x, y: marker(x, y, "O", False), "Ordering point", "conflicting writes are checked"),
+         (lambda x, y: marker(x, y, "O", False), "Ordering point", "conflicts are checked"),
          (lambda x, y: marker(x, y, "R", False), "Replication point", "copies leave for the replicas")],
         [(swatch, "Execution", "the transaction runs: no fixed place"),
          (lambda x, y: marker(x, y, "R", True), "Alternative", "Postgres's WAL instead of MySQL's binlog"),

@@ -46,13 +46,13 @@ The joints are the interfaces that connect components, from SQL statements at th
 Past one machine, the engine runs on many nodes. Here a node is one machine that runs some adjacent layers of the stack: the whole engine, as in a classic shard, or only part of it, as when compute nodes run the top layers over a storage service. A design makes three choices:
 
 - **Replicating** *copies* the data onto other nodes.
-  - Benefits: durability, scalable reads, and lower-latency reads (via geo-replication).
+  - Benefits: durability, availability, and scalable reads, potentially served closer to users (via geo-replication). But a replica's reads may be stale, unless it first asks the node that decides writes, or waits to catch up.
 - **Splitting** *shards* the data across several nodes.
-  - Benefits: scalable writes, and a database larger than one storage device can hold.
-- **Ordering** *decides* between conflicting writes.
+  - Benefits: scalable reads and writes, as long as they spread across slices rather than pile onto one, and a database larger than one storage device can hold.
+- **Ordering** *decides* between conflicting accesses: two writes to the same item, and, under serializability, a read and a later write.
   - It sets whether sharding scales writes: only when no single node checks every conflict.
 
-Each choice sits at one of the engine's joints. Sharding splits the data at the **split point**: the interface where each request is routed to the node that owns its slice of the data. Above it, every node sees the whole database. Below it, each slice has one owner. Writes are replicated at the **replication point**: the interface where a write leaves the node that decides it, for its replicas. Writes are ordered at the **ordering point**: the interface where the decisions of different writers meet, and conflicting writes get their final order.
+Each choice sits at one of the engine's joints. Sharding splits the data at the **split point**: the interface where each request is routed to the node that owns its slice of the data. Above it, every node sees the whole database. Below it, each slice has one owner. Writes are replicated at the **replication point**: the interface where a write leaves the node that decides it, for its replicas. Conflicts are settled at the **ordering point**: the interface where the decisions of different writers meet, and where every access the isolation level checks must pass.
 
 Most people know the classic sharded database. A router above SQL sends each query to the shards that hold its rows. Each shard is an ordinary database: it orders its own writes and has its own replicas. Vitess (sharded MySQL) and Citus (sharded Postgres) both work this way.[^citus] The engines under them still differ in how they replicate. Postgres ships its write-ahead log (WAL), a log of page changes. MySQL ships its binlog, a log of row changes.
 
@@ -96,6 +96,8 @@ Designs also differ in who must acknowledge a write before it commits:[^ack]
 [^ack]: Designs also differ in what a replica acknowledges: that it received the write, flushed it to disk, or applied it. Postgres lets you choose with `synchronous_commit` (`remote_write`, `on`, or `remote_apply`). Only an applied write is visible to a client that reads from the replica.
 
 Unless it acknowledges only applied writes, a replica can lag the primary. So replicas scale only the reads that can tolerate some lag. A read that must see the latest write either asks the node that decides writes, or waits until its replica has caught up.
+
+In the terms of consistency models, a lagging replica gives a *consistent prefix*: every write up to some point, in order, but perhaps stale. A client that carries a token, such as the last log position it saw, and reads only from replicas at least that far along, also sees its own writes. And a read that sees the latest write, by either route, is linearizable.
 
 ### Splitting: where data divides
 
@@ -147,13 +149,13 @@ So this post reads "shared X" as the name of a split point, not of hardware. **S
 
 Every family that spans machines has two designs, and they differ in the same way: whether the nodes that hold the data decide what commits, or other nodes do. This post calls them owner-decider and separate-decider. Shared disk is the one family with a third design: a single writer decides, over storage that spans many machines. Aurora, Azure SQL Hyperscale, PolarDB, AlloyDB, and Neon all work this way. [Ordering](#ordering-where-writes-meet) shows why that choice shapes the rest of a design.
 
-![Which nodes decide, in each family. Rows are the four families that span machines, each named by where it splits; columns are owner-decider, separate-decider, and single-decider. Shared nothing: routed shards lock per shard and use 2PC; Calvin's input log fixes the order. Shared key-value store: leaseholders lock their ranges; DSQL's adjudicators check at commit. Shared buffer pool: FaRM's primaries lock at commit; NAM-DB's writer locks by compare-and-swap. Shared disk: in Aurora Multi-Master, now retired, storage takes the first write to each page; Oracle RAC orders with global locks, one joint above its split; and only this family has a single-decider design: in Aurora, the one writer orders every write, above its split](/assets/db-cuts/06-who-orders.svg)
+![Which nodes decide, in each family. Rows are the four families that span machines, each named by where it splits; columns are owner-decider, separate-decider, and single-decider. Shared nothing: routed shards lock per shard and use 2PC; Calvin's input log fixes the order. Shared key-value store: leaseholders lock their ranges; DSQL's adjudicators check at commit. Shared buffer pool: FaRM's primaries lock at commit; NAM-DB's writer locks by compare-and-swap. Shared disk: in Aurora Multi-Master, now retired, storage takes the first write to each page; Oracle RAC orders with global locks, one joint above its split; and only this family has a single-decider design: in Aurora, the one writer checks every conflict, above its split](/assets/db-cuts/06-who-orders.svg)
 
 ### Ordering: where writes meet
 
 The **ordering point** is where conflicting writes get their final order. Concurrency control runs there.
 
-Ordering does two jobs: numbering and checking. [Miller][miller-decomposing] calls them *order* and *validate*. This post renames them, because here ordering means both. Numbering gives every write a place in one sequence, so that replicas and snapshots agree on what came first. Checking finds the writes that conflict and settles which one wins. Only checking must look at the data. It names keys, objects, or pages, so it sits at the joint for that unit. Numbering need not look at the data, so it can be cheap and need no joint. It can come from clocks, as in [Spanner and CockroachDB](#cockroachdb-every-range-decides-for-itself), or from one process, as in FoundationDB's sequencer.[^numbering] The ordering point is where the checking happens. Calvin is the edge case: its partitions lock in the order the log fixes, so the number alone decides and no partition votes on a commit. Its log is its ordering point.
+Ordering does two jobs: numbering and checking. [Miller][miller-decomposing] calls them *order* and *validate*. This post renames them, because here ordering means both. Numbering gives every write a place in one sequence, so that replicas and snapshots agree on what came first. Checking finds the writes that conflict and settles which one wins. Only checking must look at the data. It names keys, objects, or pages, so it sits at the joint for that unit. Numbering need not look at the data, so it can be cheap and need no joint. It can come from clocks, as in [Spanner and CockroachDB](#cockroachdb-every-range-decides-for-itself), or from one process, as in FoundationDB's sequencer.[^numbering] Numbering fixes one order, but it doesn't promise that the order matches real time: a transaction that starts after another one commits can still get a smaller number. Matching real time is a separate guarantee, strict serializability, and it costs extra. Spanner waits out its clock error at each commit, TiDB takes every number from one server, and CockroachDB gives it only per key. The ordering point is where the checking happens. Calvin is the edge case: its partitions lock in the order the log fixes, so the number alone decides and no partition votes on a commit. Its log is its ordering point.
 
 [^numbering]: In practice, numbering often borrows some of checking's view of the data. A CockroachDB range remembers when each key was last read, and pushes a later write past that time. A Spanner commit timestamp must come after every participant's prepare timestamp. And DSQL's adjudicators pick the commit time as they check.
 
@@ -177,7 +179,9 @@ Most of a design follows from one question: who checks conflicts? Two smaller qu
 
 **Many writers split that state.** Splitting adds write capacity only when no single node checks every conflict. So every design with many writers splits its locks, so that each slice of them has one owner. Caches have more options: a design can split its cache, keep none, or keep one per node and make them coherent. Logs have the most options, because a log only numbers writes. One log can serve every writer, or each node keeps its own, and recovery merges them.[^multi-leader] What remains is who owns each slice of the locks: the nodes that hold the data, or something else.
 
-**Owner-decider.** Each item lives in one slice, so the slice's owner sees every conflict on its data, as long as the reads that matter pass through it too. The locks split with the data, for free. Two-phase commit doesn't change who decides: its coordinator checks no conflicts, it only collects each shard's vote, and any shard can veto. Routed shards, range owners, and FaRM's object owners work this way, and so did Aurora Multi-Master, whose storage took the first write to each page.
+**Owner-decider.** Each item lives in one slice, so the slice's owner sees every conflict on its data, as long as the reads that matter pass through it too.[^reads-pass] The locks split with the data, for free. Two-phase commit doesn't change who decides: its coordinator checks no conflicts, it only collects each shard's vote, and any shard can veto. Routed shards, range owners, and FaRM's object owners work this way, and so did Aurora Multi-Master, whose storage took the first write to each page.
+
+[^reads-pass]: Reads pass through the owner in one of three ways. They take read locks, as in Spanner. They leave read timestamps, as in CockroachDB's timestamp cache. Or the transaction checks its reads again at commit, against the owner's current versions, as in FaRM. A separate decider sees only what is sent to it, which is why most of them give only snapshot isolation: DSQL, NAM-DB, and Oracle RAC, whose SERIALIZABLE level is snapshot isolation. FoundationDB sends its read sets to its resolvers along with its write sets, and gets serializability.
 
 The price is that the shards show. A slice boundary must show to whoever coordinates commits across it, and here that coordinator is the layer just above the split. It pays for a commit protocol each time a transaction crosses the boundary.
 
@@ -192,7 +196,7 @@ Because the deciders coordinate commits, the data shards stay out of sight. Calv
 
 The figure gathers where each design keeps its locks, cache, and log, grouped by the three answers.
 
-![Where each design keeps the state that orders writes: locks, cache, and log, grouped by who checks conflicts. In single-decider designs, read replicas and Aurora, all three stay in one node. In owner-decider designs, routed shards, range owners, and FaRM's object owners, the locks split with the data, per shard, range, or object, and so do the caches and logs, except that FaRM keeps no cache. In separate-decider designs, the locks still split, per partition, key range, record, or resource, but caches and logs vary most: Calvin and DSQL share one log stream, NAM-DB and Oracle RAC keep one log per node and merge them, and RAC also keeps one coherent cache per node](/assets/db-cuts/08-state-placement.svg)
+![Where each design keeps the state that checks conflicts: locks, cache, and log, grouped by who does the checking. In single-decider designs, read replicas and Aurora, all three stay in one node. In owner-decider designs, routed shards, range owners, and FaRM's object owners, the locks split with the data, per shard, range, or object, and so do the caches and logs, except that FaRM keeps no cache. In separate-decider designs, the locks still split, per partition, key range, record, or resource, but caches and logs vary most: Calvin and DSQL share one log stream, NAM-DB and Oracle RAC keep one log per node and merge them, and RAC also keeps one coherent cache per node](/assets/db-cuts/08-state-placement.svg)
 
 [^multi-leader]: Many writers here does not mean multi-leader replication. Conflicting writes are still ordered before they commit, through shared locks or a check at commit.
 
@@ -220,18 +224,20 @@ Together, the rules leave four sequences, and the answer to [who checks conflict
 - **Owner-decider:** split, order, replicate (Vitess, CockroachDB, FaRM).
 - **Separate-decider:** order, replicate, split (Calvin, DSQL), or order, split, replicate (Oracle RAC). NAM-DB orders and splits, but has no replicas.
 
+**Where reads go.** The rules settle conflicts, not freshness: whether a read sees every write that committed before it began. Where reads go settles that. A read at the node that decides, such as a leaseholder, a shard's primary, or Aurora's writer, sees every committed write. A read at a replica sees some prefix of the writes, perhaps stale, unless it first asks the decider or waits until it has caught up. The two questions are independent, and DSQL shows it. Its reads skip the ordering point, so it gets only snapshot isolation. Yet they are fresh: each one asks storage for data as of the transaction's start time, taken from a clock whose error is bounded, as [Brooker][dsql-reads] describes.
+
 [Four designs up close](#four-designs-up-close) charts both axes for each design, and [the grid at the end](#conclusion-the-whole-picture) places every design in space and time, grouped by who checks conflicts.
 
 ## Four designs up close
 
 Four designs cover all three answers to [who checks conflicts](#ordering-where-writes-meet), and all three times a design can check: before, during, or after the transaction runs. Each also puts its log in a different place.
 
-| Design | Who checks | When | Where the log sits |
-| --- | --- | --- | --- |
-| [CockroachDB](#cockroachdb-every-range-decides-for-itself) | owner-decider: each range's leaseholder | while the transaction runs | one Raft log per range |
-| [Aurora](#aurora-the-log-is-the-database) | single-decider: the one writer | while the transaction runs | at the bottom: redo records |
-| [DSQL](#dsql-every-layer-its-own-fleet) | separate-decider: the adjudicators | after it runs, at commit | in the middle: write sets |
-| [Calvin](#calvin-the-log-comes-first) | separate-decider: the input log | before it runs | at the top: transaction inputs |
+| Design | Who checks | When | Isolation | Where the log sits |
+| --- | --- | --- | --- | --- |
+| [CockroachDB](#cockroachdb-every-range-decides-for-itself) | owner-decider: each range's leaseholder | while the transaction runs | serializable: each leaseholder records reads | one Raft log per range |
+| [Aurora](#aurora-the-log-is-the-database) | single-decider: the one writer | while the transaction runs | the engine's own: Postgres or MySQL | at the bottom: redo records |
+| [DSQL](#dsql-every-layer-its-own-fleet) | separate-decider: the adjudicators | after it runs, at commit | snapshot isolation: reads skip the adjudicators | in the middle: write sets |
+| [Calvin](#calvin-the-log-comes-first) | separate-decider: the input log | before it runs | serializable: reads lock in log order | at the top: transaction inputs |
 
 None of them is alone. Spanner, TiDB, and YugabyteDB have CockroachDB's shape: SQL over ranges, each range with its own consensus log. Azure SQL Hyperscale ([Socrates][socrates]), Google's AlloyDB, and Neon have Aurora's shape: one writer over shared, log-based storage. Socrates and Neon go one step further and separate the log service from the page servers. FoundationDB has DSQL's shape, as a key-value store without SQL on top. VoltDB, like Calvin, replicates transactions rather than their results.
 
@@ -239,16 +245,20 @@ Each design below gets a chart with two axes. Across is time: [Miller's][miller-
 
 ### CockroachDB: every range decides for itself
 
-[CockroachDB][cockroachdb] splits its keys into ranges of up to 512 MiB, and Raft replicates each range three times by default. One replica of each range, the leaseholder, serves its reads and writes. Every node runs SQL over the whole database.
+[CockroachDB][cockroachdb] splits its keys into ranges of up to 512 MiB, and Raft replicates each range three times by default. One replica of each range, the leaseholder, serves all its writes and, by default, its reads.[^follower-reads] Every node runs SQL over the whole database.
+
+[^follower-reads]: Any replica can serve a read at a timestamp the leaseholder has *closed*, meaning it has promised that no write will land at or below that time. Such a read needs no entry in the timestamp cache, because no later write can land beneath it. These follower reads are a few seconds stale, except in global tables. There the leaseholder closes timestamps slightly in the future, and each write waits for its future timestamp to pass before it returns, so followers serve current reads.
 
 ![CockroachDB's steps over time and across layers: the gateway runs the SQL; each leaseholder checks locks and writes intents, which Raft replicates as they are written; the gateway fixes the commit timestamp; a majority acknowledges the commit; then intents become ordinary values](/assets/db-cuts/09-cockroachdb.svg)
 
 - **The gateway** is whichever node the client connects to. It runs the SQL, coordinates the transaction, and sends each key-value read and write to the leaseholder of the key's range.
-- **Leaseholders** check conflicts while the transaction runs. A write leaves an *intent*: a provisional value that also locks its key. A transaction that meets another's intent usually waits for it to finish. Each leaseholder also remembers when each key was last read, and moves a later write past that time.
+- **Leaseholders** check conflicts while the transaction runs. A write leaves an *intent*: a provisional value that also locks its key. A transaction that meets another's intent usually waits for it to finish. Each leaseholder also keeps a *timestamp cache* of when each key was last read, and moves a later write past that time.
 - **Raft** replicates each intent as soon as the leaseholder writes it. The transaction doesn't wait for each one, only for all of them at commit.
 - **The commit** is one more write: the transaction's record, on the range of its first key. Once the commit is durable, the intents become ordinary values in the background.
 
-**How it numbers without a joint.** Each node stamps transactions with a hybrid logical clock: wall time, plus a counter. But clocks drift, so a read that finds a value stamped just after its own timestamp can't tell which came first. CockroachDB treats any value within the maximum clock offset, 500 ms by default, as uncertain. It moves the read past that value, and restarts the transaction if the move would change what it has already read. [Spanner][spanner] pays at write time instead. Its TrueTime clocks bound their error to a few milliseconds, and each commit waits out that bound before it returns. TiDB skips clocks and takes every timestamp from one server.
+**How it stays fresh without a joint.** Three mechanisms split the work. A hybrid logical clock, wall time plus a counter, numbers transactions. The timestamp cache catches conflicts. And an *uncertainty interval* keeps reads fresh. Clocks drift, so a read that finds a value stamped just after its own timestamp can't tell whether that write committed before the read began. CockroachDB treats any value within the maximum clock offset, 500 ms by default, as uncertain. It moves the read past that value, and restarts the transaction if the move would change what it has already read. [Spanner][spanner] pays at write time instead. Its TrueTime clocks bound their error to a few milliseconds, and each commit waits out that bound before it returns. TiDB skips clocks and takes every timestamp from one server.
+
+The uncertainty interval protects reads of one key. Across keys, CockroachDB claims serializability, not strict serializability. Two transactions on disjoint keys can commit in an order that contradicts real time, which [Cockroach Labs][crdb-atomic-clocks] calls *causal reverse*. Spanner's commit wait rules that out.
 
 **What a commit across ranges costs.** A transaction that writes to several ranges must commit on all of them or on none. This is the commit protocol that [owner-deciders pay for](#ordering-where-writes-meet). A plain two-phase commit takes two rounds of consensus: one to make the intents durable, and one to write the record. With [parallel commits][crdb-parallel-commits], CockroachDB writes the record as *staging*, alongside the last intents, in one round. The transaction is committed once all of them are durable, and any node that finds a staging record can check whether they are. None of this reaches the application.
 
@@ -352,6 +362,7 @@ Finally, follow one request: pick a design, and step a read-write or a read-only
 22. [CockroachDB: The Resilient Geo-Distributed SQL Database][cockroachdb] — Taft et al., SIGMOD 2020; ranges, leaseholders, intents, hybrid logical clocks, and parallel commits
 23. [Spanner: Google's Globally-Distributed Database][spanner] — Corbett et al., OSDI 2012; TrueTime and commit wait
 24. [Parallel Commits: An atomic commit protocol for globally distributed transactions][crdb-parallel-commits] — Cockroach Labs, 2019; a commit across ranges in one round of consensus
+25. [Living Without Atomic Clocks][crdb-atomic-clocks] — Cockroach Labs; how CockroachDB orders transactions without TrueTime, and where it falls short of strict serializability ("causal reverse")
 
 [aurora-ascendant]: https://www.allthingsdistributed.com/2019/03/amazon-aurora-design-cloud-native-relational-database.html "Amazon Aurora ascendant: How we designed a cloud-native relational database"
 [aurora-paper]: https://www.allthingsdistributed.com/files/p1041-verbitski.pdf "Amazon Aurora: Design Considerations for High Throughput Cloud-Native Relational Databases"
@@ -377,5 +388,6 @@ Finally, follow one request: pick a design, and step a read-write or a read-only
 [cockroachdb]: https://dl.acm.org/doi/10.1145/3318464.3386134 "CockroachDB: The Resilient Geo-Distributed SQL Database"
 [spanner]: https://www.usenix.org/system/files/conference/osdi12/osdi12-final-16.pdf "Spanner: Google's Globally-Distributed Database"
 [crdb-parallel-commits]: https://www.cockroachlabs.com/blog/parallel-commits/ "Parallel Commits: An atomic commit protocol for globally distributed transactions"
+[crdb-atomic-clocks]: https://www.cockroachlabs.com/blog/living-without-atomic-clocks/ "Living Without Atomic Clocks"
 
 ## Footnotes <!-- omit in toc -->
