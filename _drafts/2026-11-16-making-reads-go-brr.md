@@ -105,6 +105,7 @@ Each of the first two takes a trick from sequential consistency and widens "my o
 
 - Leader leases: the leader reads locally, because no one else can become leader until its lease expires. This is correct only while clock drift stays within its bound. CockroachDB's leaseholder works this way.
 - Closed timestamps in the future: CockroachDB's [global tables][crdb-global]. The leaseholder promises that no write will land below a time slightly in the future. Writes take future timestamps and wait for those times to pass before they return. Followers then serve current reads.
+- Bounded clocks over multiversioned storage: DSQL. Each transaction picks a start time from EC2's precision clock, which [Brooker][dsql-reads] describes as "an accurate clock with strong error bounds." Every read asks storage for data as of that time, on any shard or replica, and sees every transaction that committed before it. No leader or lease is involved, only the clock bound.
 
 The trade-off doesn't go away. For local reads to be both linearizable and cheap, writes must pay: they reach every reader, or they wait out the clock. Otherwise, reads pay with a message to someone who knows.
 
@@ -156,7 +157,7 @@ Strict serializability is serializability plus real-time order. A serializable p
 
 CockroachDB runs one mechanism for each question:
 
-- The **uncertainty interval** handles freshness. A read restarts if it finds a value that may have committed before the read began.
+- The **uncertainty interval** handles freshness. Clocks drift, so a read that finds a value stamped just after its own timestamp can't tell whether that write committed before the read began. CockroachDB treats any value within the maximum clock offset, 500 ms by default, as uncertain. The read moves past that value, and restarts the transaction if the move would change what it has already read. Spanner pays at write time instead: each commit waits out TrueTime's error bound, a few milliseconds, before it returns. So in CockroachDB reads pay for freshness, and in Spanner writes do.
 - The **timestamp cache** handles conflicts. A write is pushed above any read of its key.
 
 Both live at the leaseholder, which makes them easy to blur. And CockroachDB stops short of strict serializability. Two transactions on disjoint keys can commit in an order that contradicts real time, which [Cockroach Labs][crdb-atomic-clocks] calls "causal reverse." In their words: "While Spanner provides linearizability, CockroachDB only goes as far as to claim serializability."
@@ -192,14 +193,15 @@ Each level strictly contains the one before: linearizability ⊂ set-linearizabi
 16. [Paxos Quorum Leases][quorum-leases] — Moraru, Andersen, Kaminsky, SoCC 2014; read leases on a subset of replicas, which every write must reach
 17. [Megastore: Providing Scalable, Highly Available Storage for Interactive Services][megastore] — Baker et al., CIDR 2011; local reads from any up-to-date replica
 18. [Global Tables][crdb-global] — CockroachDB docs; closed timestamps in the future, for current reads from any replica
-19. [A Critique of ANSI SQL Isolation Levels][berenson-critique] — Berenson et al., SIGMOD 1995; defines snapshot isolation and shows it allows write skew
-20. [DSQL Vignette: Transactions and Durability][dsql-writes] — Brooker, 2024; optimistic commits that check only write sets
-21. [Serializable Isolation for Snapshot Databases][cahill-ssi] — Cahill, Röhm, Fekete, SIGMOD 2008; serializable snapshot isolation (SSI)
-22. [Living Without Atomic Clocks][crdb-atomic-clocks] — Cockroach Labs; how CockroachDB orders transactions without TrueTime, and "causal reverse"
-23. [A Linearizability-based Hierarchy for Concurrent Specifications][cacm-hierarchy] — Castañeda, Rajsbaum, Raynal, CACM 2022; linearizability, set-linearizability, and interval-linearizability
-24. [Unifying Concurrent Objects and Distributed Tasks: Interval-Linearizability][jacm-interval] — Castañeda, Rajsbaum, Raynal, JACM 2018; interval-linearizability can specify any task
-25. [Relaxed Queues and Stacks from Read/Write Operations][relaxed-queues] — Castañeda, Rajsbaum, Raynal, 2020; relaxed objects that run wait-free on read/write registers
-26. [A Snapshot-Based Introduction to the Linearizability Hierarchy][netys-talk] — NETYS 2022 talk; the hierarchy through snapshot objects
+19. [DSQL Vignette: Reads and Compute][dsql-reads] — Brooker, 2024; reads as of a start time from a clock with bounded error
+20. [A Critique of ANSI SQL Isolation Levels][berenson-critique] — Berenson et al., SIGMOD 1995; defines snapshot isolation and shows it allows write skew
+21. [DSQL Vignette: Transactions and Durability][dsql-writes] — Brooker, 2024; optimistic commits that check only write sets
+22. [Serializable Isolation for Snapshot Databases][cahill-ssi] — Cahill, Röhm, Fekete, SIGMOD 2008; serializable snapshot isolation (SSI)
+23. [Living Without Atomic Clocks][crdb-atomic-clocks] — Cockroach Labs; how CockroachDB orders transactions without TrueTime, and "causal reverse"
+24. [A Linearizability-based Hierarchy for Concurrent Specifications][cacm-hierarchy] — Castañeda, Rajsbaum, Raynal, CACM 2022; linearizability, set-linearizability, and interval-linearizability
+25. [Unifying Concurrent Objects and Distributed Tasks: Interval-Linearizability][jacm-interval] — Castañeda, Rajsbaum, Raynal, JACM 2018; interval-linearizability can specify any task
+26. [Relaxed Queues and Stacks from Read/Write Operations][relaxed-queues] — Castañeda, Rajsbaum, Raynal, 2020; relaxed objects that run wait-free on read/write registers
+27. [A Snapshot-Based Introduction to the Linearizability Hierarchy][netys-talk] — NETYS 2022 talk; the hierarchy through snapshot objects
 
 [bailis-lin-ser]: http://www.bailis.org/blog/linearizability-versus-serializability/ "Linearizability versus Serializability"
 [jepsen-serializable]: https://jepsen.io/consistency/models/serializable "Jepsen: Serializability"
@@ -220,6 +222,7 @@ Each level strictly contains the one before: linearizability ⊂ set-linearizabi
 [crdb-follower]: https://www.cockroachlabs.com/docs/stable/follower-reads "CockroachDB: Follower Reads"
 [crdb-global]: https://www.cockroachlabs.com/docs/stable/global-tables "CockroachDB: Global Tables"
 [berenson-critique]: https://dl.acm.org/doi/10.1145/223784.223785 "A Critique of ANSI SQL Isolation Levels"
+[dsql-reads]: https://brooker.co.za/blog/2024/12/04/inside-dsql.html "DSQL Vignette: Reads and Compute"
 [dsql-writes]: https://brooker.co.za/blog/2024/12/05/inside-dsql-writes.html "DSQL Vignette: Transactions and Durability"
 [cahill-ssi]: https://dl.acm.org/doi/10.1145/1376616.1376690 "Serializable Isolation for Snapshot Databases"
 [crdb-atomic-clocks]: https://www.cockroachlabs.com/blog/living-without-atomic-clocks/ "Living Without Atomic Clocks"
