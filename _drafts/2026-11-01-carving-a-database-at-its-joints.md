@@ -12,7 +12,8 @@ date:   2026-11-01
   - [Replication: where data is copied](#replication-where-data-is-copied)
   - [Splitting: where data divides](#splitting-where-data-divides)
   - [Validation: where accesses meet](#validation-where-accesses-meet)
-- [How the three points fit together](#how-the-three-points-fit-together)
+    - [Ordering: a time but no place](#ordering-a-time-but-no-place)
+- [How the three choices fit together](#how-the-three-choices-fit-together)
 - [Four designs up close](#four-designs-up-close)
   - [CockroachDB: every range decides for itself](#cockroachdb-every-range-decides-for-itself)
   - [Aurora: the log is the database](#aurora-the-log-is-the-database)
@@ -25,6 +26,8 @@ date:   2026-11-01
 If Plato were alive today and tasked with scaling a database engine, he would look for the natural joints at which to carve it.
 
 This post does just that. It treats every distributed database it covers, from sharded Postgres to Spanner, Aurora, and Calvin, as the same engine cut in different places. Each design makes three choices: where it splits the data, where it replicates it, and where, if anywhere, it checks for conflicts. Two rules tie the choices together. Where a design makes them tells you how many nodes can write, how much work each replica repeats, and whether your schema has to know about shards.
+
+These choices build on Alex Miller's [Decomposing Transactional Systems][miller-decomposing]: every transactional system executes, orders, validates, and persists. Miller lays these steps out in time. This post also places them in space, at the engine's joints. It narrows *persist* to *replicate*, where copies leave for other nodes, and adds one step, *split*. Three of the steps sit at a joint: split, replicate, and validate. Those are the three choices. Execution and ordering need no particular joint, so they have a time but no place.
 
 ![One engine: the buffer pool and the log side by side above the disk, with what crosses each interface](/assets/db-cuts/01-engine-stack.svg)
 
@@ -52,7 +55,7 @@ Past one machine, the engine runs on many nodes. Here a node is one machine that
 - **Validating** *checks* conflicting accesses: two writes to the same item, and, under serializability, a read and a later write.
   - It sets whether sharding scales writes: only when no single node checks every conflict.
 
-Each choice sits at one of the engine's joints. Sharding splits the data at the **split point**: the interface where each request is routed to the node that owns its slice of the data. Above it, every node sees the whole database. Below it, each slice has one owner. Writes are replicated at the **replication point**: the interface where a write leaves the node that decides it, for its replicas. Conflicts are checked at the **validation point**: the interface where every access the isolation level cares about must pass.
+Each choice sits at one of the engine's joints. Sharding splits the data at the **split joint**: the interface where each request is routed to the node that owns its slice of the data. Above it, every node sees the whole database. Below it, each slice has one owner. Writes are replicated at the **replication joint**: the interface where a write leaves the node that decides it, for its replicas. Conflicts are checked at the **validation joint**: the interface where every access the isolation level cares about must pass.
 
 Most people know the classic sharded database. A router above SQL sends each query to the shards that hold its rows. Each shard is an ordinary database: it validates its own writes and has its own replicas. Vitess (sharded MySQL) and Citus (sharded Postgres) both work this way.[^citus] The engines under them still differ in how they replicate. Postgres ships its write-ahead log (WAL), a log of page changes. MySQL ships its binlog, a log of row changes.
 
@@ -62,21 +65,21 @@ Sharded designs like these split first, then validate and replicate within each 
 
 ![Two panels. Left, split, validate, replicate, as in Vitess: a router splits the data into two shards, each shard validates its own writes, and each shard ships its binlog to three replicas. Right, order, replicate, split, validate, as in Calvin: a sequencer fixes one order for every key, the input log goes to three replicas, each replica splits into two partitions, and each partition locks its keys in log order and runs the transactions that touch them](/assets/db-cuts/02-two-sequences.svg)
 
-This figure shows only the sequence. Every joint can host a split point or a replication point, and, as we'll see, a validation point. The three points are not fully independent, though. For example, a replica must never be left to choose between conflicting writes, so the replication point never sits above the validation point.
+This figure shows only the sequence. Any joint can be a design's split joint or replication joint, and, as we'll see, its validation joint. The three choices are not fully independent, though. For example, a replica must never be left to choose between conflicting writes, so the replication joint never sits above the validation joint.
 
 ![One engine stack from the application down to disk. At each of the four joints, the left half of the line names the family that splits the data there, and the right half names what a design ships when it replicates there](/assets/db-cuts/03-joints-map.svg)
 
-This post names each joint by its place: above SQL, below SQL, below the access methods, and below the buffer pool and log. All three points are places in the stack. Designs also differ in *when* they act: whether they replicate a write before or after it commits, and whether they decide what commits before, during, or after execution. [How the three points fit together](#how-the-three-points-fit-together) works out how the points constrain each other, in place and in time.
+This post names each joint by its place: above SQL, below SQL, below the access methods, and below the buffer pool and log. All three choices are joints: places in the stack, not moments in time. Designs also differ in *when* they act: whether they replicate a write before or after it commits, and whether they decide what commits before, during, or after execution. [How the three choices fit together](#how-the-three-choices-fit-together) works out how the choices constrain each other, in place and in time.
 
 ### Replication: where data is copied
 
-A replicated database ships each write from the node that decides it to its replicas, almost always as a log.[^not-a-log] Layers above the replication point handle each write once, on the node that decides it. Layers below it handle each write on every replica: each one receives the stream and applies it. That is why replication never scales writes.
+A replicated database ships each write from the node that decides it to its replicas, almost always as a log.[^not-a-log] Layers above the replication joint handle each write once, on the node that decides it. Layers below it handle each write on every replica: each one receives the stream and applies it. That is why replication never scales writes.
 
 [^not-a-log]: Three exceptions. Leaderless systems, such as Dynamo and Cassandra, have no node that decides: a coordinator sends each write to a quorum of replicas, and replicas that miss one catch up by comparing state, not by replaying a log. State-based CRDTs ship their state, or a delta of it, and merge it. [Validation](#validation-where-accesses-meet) shows when a design can skip deciding this way. And a new replica first copies a snapshot of the data files, then switches to the log to keep up.
 
-![One write runs down the primary's stack and leaves for the replicas at four heights: a physical log below the buffer pool, an object log below the access methods, a logical log below SQL, and a command log above SQL. Each replica runs every layer below the point where the write left](/assets/db-cuts/04-replication-paths.svg)
+![One write runs down the primary's stack and leaves for the replicas at four heights: a physical log below the buffer pool, an object log below the access methods, a logical log below SQL, and a command log above SQL. Each replica runs every layer below the joint where the write left](/assets/db-cuts/04-replication-paths.svg)
 
-A higher replication point repeats more work on each replica, but it usually ties the replicas less tightly to the primary's internals:
+A higher replication joint repeats more work on each replica, but it usually ties the replicas less tightly to the primary's internals:
 
 1. **Physical log.** Postgres ships its WAL, so its replicas only rebuild pages. This is the cheapest way to replicate, but each replica must match the primary byte for byte: same version, same indexes, every table.
 2. **Object log.** FaRM ships the new value of each object a transaction wrote, to that object's backups. Its indexes are objects too, so a backup only copies values into memory and never runs the access methods. But a backup holds a byte-for-byte copy of its primary's memory, so this is still physical replication, with objects in place of pages. It buys little over a physical log: FaRM keeps its data in memory and has no pages, so objects are what it logs.
@@ -110,9 +113,9 @@ These names fit modern databases poorly, for two reasons:
 
 ![Two panels. Left, a shared disk: every node sends page requests by address to one shared storage, which splits the data into segments no node sees. Right, a shared key-value store: each node keeps a map of range owners and sends each request to the range that holds the key](/assets/db-cuts/05-hide-or-show-shards.svg)
 
-Every design that grows past one machine splits its data into slices somewhere. What tells designs apart is the interface through which requests reach each slice's owner: SQL queries, key-value reads and writes, reads of records in remote memory, or pages and log records. That interface is the split point.
+Every design that grows past one machine splits its data into slices somewhere. What tells designs apart is the interface through which requests reach each slice's owner: SQL queries, key-value reads and writes, reads of records in remote memory, or pages and log records. That interface is the split joint.
 
-So this post reads "shared X" as the name of a split point, not of hardware. **Shared X: every node above X can reach all of X; behind X's interface, the data is split into slices, each with one owner.** Sharing means common access, not copies: the nodes above may cache what they read, but none holds its own durable copy. Above X, each node runs its own instance of every layer. Read this way, the three classic names grow into five families of "shared X": shared memory, shared nothing, shared key-value store, shared buffer pool, and shared disk. Whether the nodes above can see the slices, as with a key-value store, or not, as with a shared disk, does not change the family. It depends on who decides, as [Validation](#validation-where-accesses-meet) shows.
+So this post reads "shared X" as the name of a split joint, not of hardware. **Shared X: every node above X can reach all of X; behind X's interface, the data is split into slices, each with one owner.** Sharing means common access, not copies: the nodes above may cache what they read, but none holds its own durable copy. Above X, each node runs its own instance of every layer. Read this way, the three classic names grow into five families of "shared X": shared memory, shared nothing, shared key-value store, shared buffer pool, and shared disk. Whether the nodes above can see the slices, as with a key-value store, or not, as with a shared disk, does not change the family. It depends on who decides, as [Validation](#validation-where-accesses-meet) shows.
 
 **Shared memory** is one machine. Its threads check conflicts in RAM, through one buffer pool and one lock table.[^per-core] Scaling it up means buying a bigger machine. **Read replicas** add machines for reads, but every write still goes through one primary.
 
@@ -149,17 +152,15 @@ Every family that spans machines has two designs, and they differ in the same wa
 
 ### Validation: where accesses meet
 
-The **validation point** is where conflicting accesses meet. Concurrency control runs there.
+The **validation joint** is where conflicting accesses meet. Concurrency control runs there.
 
-[Miller][miller-decomposing] breaks every transactional system into four steps: execute, order, validate, and persist. *Ordering* picks the commit version: "the time at which the database claims all reads and writes occurred atomically." *Validating* enforces concurrency control: it checks for conflicts, and makes a transaction wait or abort when it would break the isolation level. Only validation must look at the data. It names keys, objects, or pages, so it sits at the joint for that unit. Ordering need not look at the data, so it can be cheap and need no joint. It can come from clocks, as in [Spanner and CockroachDB](#cockroachdb-every-range-decides-for-itself), or from one process, as in FoundationDB's sequencer and TiDB's timestamp oracle.[^ordering]
+Two of [Miller's][miller-decomposing] steps deal with conflicts. *Ordering* picks the commit version: "the time at which the database claims all reads and writes occurred atomically." *Validating* enforces concurrency control: it checks for conflicts, and makes a transaction wait or abort when it would break the isolation level. Only validation must look at the data. It names keys, objects, or pages, so it sits at the joint for that unit. Ordering need not look at the data, so it can be cheap and need no joint. It can come from clocks, as in [Spanner and CockroachDB](#cockroachdb-every-range-decides-for-itself), or from one process, as in FoundationDB's sequencer and TiDB's timestamp oracle. [Ordering](#ordering-a-time-but-no-place) shows when it happens.
 
 In most designs, validation decides what commits. Calvin is the exception. It orders each transaction first, and that order alone decides. Its partitions still validate: each one locks its keys in log order. But that validation never rejects a transaction. It only makes every partition, on every replica, follow the order the log already fixed. So this post names designs by who *decides* what commits, not by who validates.
 
-[^ordering]: In practice, ordering often borrows some of validation's view of the data. In Miller's words, when validation comes first, "it provides a range of acceptable commit versions, and the ordering step chooses one of them." A CockroachDB range remembers when each key was last read, and pushes a later write past that time. A Spanner commit timestamp must come after every participant's prepare timestamp. And DSQL's adjudicators pick the commit time as they check.
-
 A conflict is two accesses to the same item, where at least one is a write. Snapshot isolation checks only write against write. Serializability also checks read against write, because a transaction that read a value must come before one that overwrote it.
 
-Most of a design follows from one question: who decides what commits? The *decider* is the node that settles it: by validating, in most designs, or by ordering, in Calvin. Three smaller questions sort the answers: must anyone decide, how many nodes may write, and, if many, which nodes decide. That leaves four answers: no-decider, single-decider, owner-decider, and separate-decider. Each one fixes where a design keeps its locks, cache, and log, where its validation point sits, if it has one, and whether its shards show.[^ziegler-axes]
+Most of a design follows from one question: who decides what commits? The *decider* is the node that settles it: by validating, in most designs, or by ordering, in Calvin. Three smaller questions sort the answers: must anyone decide, how many nodes may write, and, if many, which nodes decide. That leaves four answers: no-decider, single-decider, owner-decider, and separate-decider. Each one fixes where a design keeps its locks, cache, and log, where its validation joint sits, if it has one, and whether its shards show.[^ziegler-axes]
 
 [^ziegler-axes]: [Ziegler et al.][ziegler-cidr23] sort designs by who may write each item. This post sorts them by who decides. In most designs, the same nodes do both:
 
@@ -173,7 +174,7 @@ Most of a design follows from one question: who decides what commits? The *decid
 
 ![A decision tree with three questions and four answers. First: must anyone decide? If not, no node decides (no-decider): replicas merge writes in any order, which is safe only if merging breaks no rule the data must keep, as in Cassandra, Riak, and CRDTs. If so: how many nodes may write? With one writer, the writer decides, inside itself, at no joint (single-decider); its locks, cache, and log stay private, and shards, if any, stay hidden, as in Aurora and read replicas. With many writers, the locks, cache, and log must be split or kept coherent. Then: which nodes decide? If the data owners decide (owner-decider), they validate at the split, in each slice; the locks split with the data, and shards show to whoever coordinates commits, the application or the engine, as in Vitess, CockroachDB, and FaRM. If something else decides (separate-decider), it decides at the split on other nodes, or above it; the locks still split, and the data shards stay hidden, as in Calvin, DSQL, and Oracle RAC](/assets/db-cuts/07-decision-tree.svg)
 
-**No-decider.** Replicas copy each write first and merge later, so no node decides, and there is no validation point. Leaderless stores such as Cassandra and Riak work this way, and so do CRDTs and local-first databases such as [cr-sqlite][cr-sqlite].[^leaders] Merging is safe only when new writes can never make an earlier answer wrong, which Hellerstein and Alvaro's [CALM theorem][calm] calls being monotonic. A uniqueness check fails this test, because a later write can turn an earlier "yes, that name is free" into a "no." Merging also needs to know what the data means, and pages and disk blocks don't carry that, so no design we know of merges below the access methods. The rest of this post covers designs that decide.
+**No-decider.** Replicas copy each write first and merge later, so no node decides, and there is no validation joint. Leaderless stores such as Cassandra and Riak work this way, and so do CRDTs and local-first databases such as [cr-sqlite][cr-sqlite].[^leaders] Merging is safe only when new writes can never make an earlier answer wrong, which Hellerstein and Alvaro's [CALM theorem][calm] calls being monotonic. A uniqueness check fails this test, because a later write can turn an earlier "yes, that name is free" into a "no." Merging also needs to know what the data means, and pages and disk blocks don't carry that, so no design we know of merges below the access methods. The rest of this post covers designs that decide.
 
 [^leaders]: Replication is often sorted by which replicas accept writes: single-leader, multi-leader, or leaderless, as in Kleppmann's [Designing Data-Intensive Applications][ddia]. That axis differs from who decides:
 
@@ -183,9 +184,9 @@ Most of a design follows from one question: who decides what commits? The *decid
     | Multi-leader, conflicts resolved later | no-decider | cr-sqlite, CouchDB |
     | Leaderless | no-decider | Dynamo, Cassandra, Riak |
 
-    Every design that decides replicates like a single-leader design, because of [rule 1](#how-the-three-points-fit-together): replicas only replay, so one node, or one ordered log, must feed them.
+    Every design that decides replicates like a single-leader design, because of [rule 1](#how-the-three-choices-fit-together): replicas only replay, so one node, or one ordered log, must feed them.
 
-**Single-decider.** One node, the writer, keeps the state that checks conflicts, its locks, cached pages, and log, private, over the whole database. Private state is safe only while one node writes. Two writers with private locks could lock the same row and never know it. Two writers with private caches could each update a stale copy of the same page. [Stonebraker][stonebraker-sn] named these three as the problems of shared disk in 1985. With one writer, nothing crosses between nodes to check conflicts, so the validation point sits inside the writer, not at a joint. Read replicas work this way. So does Aurora, which shares its storage but nothing above it: its storage splits each volume into 10 GB segments that no SQL node thinks about. [Aurora](#aurora-the-log-is-the-database) covers the details.
+**Single-decider.** One node, the writer, keeps the state that checks conflicts, its locks, cached pages, and log, private, over the whole database. Private state is safe only while one node writes. Two writers with private locks could lock the same row and never know it. Two writers with private caches could each update a stale copy of the same page. [Stonebraker][stonebraker-sn] named these three as the problems of shared disk in 1985. With one writer, nothing crosses between nodes to check conflicts, so there is no validation joint: the writer validates inside itself. Read replicas work this way. So does Aurora, which shares its storage but nothing above it: its storage splits each volume into 10 GB segments that no SQL node thinks about. [Aurora](#aurora-the-log-is-the-database) covers the details.
 
 **Many writers split that state.** Splitting adds write capacity only when no single node checks every conflict. So every design with many writers splits its locks, so that each slice of them has one owner. Caches have more options: a design can split its cache, keep none, or keep one per node and make them coherent. Logs have the most options, because a log only makes the order durable and checks nothing. One log can serve every writer, or each node keeps its own, and recovery merges them.[^multi-leader] What remains is who owns each slice of the locks: the nodes that hold the data, or something else.
 
@@ -200,7 +201,7 @@ The price is that the shards show. A slice boundary must show to whoever coordin
 
 This is also why designs below SQL split and move their data on their own. A range below SQL is small, and moving it changes only who serves it, never which queries are legal. A shard above SQL is a whole database. Citus and Vitess can move data between shards online, but an operator starts the move, and changing the shard key is a schema change.
 
-**Separate-decider.** Here the deciders are not the nodes that hold the data: Calvin's input log, DSQL's adjudicators, NAM-DB's compute servers, and Oracle RAC's lock masters. The locks still split, so each slice has one owner: per partition in Calvin, per key range in DSQL, per record in NAM-DB's remote memory, and per resource in RAC, whose master node is chosen by hash. Most of these deciders meet the other writers at the split point. Shared disk is the exception: plain storage can't decide, so RAC validates one joint higher, below the access methods, and keeps its caches coherent there. That is why a shared disk alone never gives you many writers.
+**Separate-decider.** Here the deciders are not the nodes that hold the data: Calvin's input log, DSQL's adjudicators, NAM-DB's compute servers, and Oracle RAC's lock masters. The locks still split, so each slice has one owner: per partition in Calvin, per key range in DSQL, per record in NAM-DB's remote memory, and per resource in RAC, whose master node is chosen by hash. Most of these deciders meet the other writers at the split joint. Shared disk is the exception: plain storage can't decide, so RAC validates one joint higher, below the access methods, and keeps its caches coherent there. That is why a shared disk alone never gives you many writers.
 
 Because the deciders coordinate commits, the data shards stay out of sight. Calvin's partitions and DSQL's storage are split by key, but a transaction pays no commit protocol to touch several of them. DSQL's adjudicators own key ranges, so the protocol runs among them instead.
 
@@ -208,9 +209,19 @@ The figure gathers where each design keeps its locks, cache, and log, grouped by
 
 ![Where each design keeps the state that checks conflicts: locks, cache, and log, grouped by who decides. In single-decider designs, read replicas and Aurora, all three stay in one node. In owner-decider designs, routed shards, range owners, and FaRM's object owners, the locks split with the data, per shard, range, or object, and so do the caches and logs, except that FaRM keeps no cache. In separate-decider designs, the locks still split, per partition, key range, record, or resource, but caches and logs vary most: Calvin and DSQL share one log stream, NAM-DB and Oracle RAC keep one log per node and merge them, and RAC also keeps one coherent cache per node](/assets/db-cuts/08-state-placement.svg)
 
-[^multi-leader]: Many writers here does not mean multi-leader replication. Conflicting writes are still ordered before they commit, through shared locks or a check at commit.
+[^multi-leader]: Many writers here does not mean multi-leader replication. Conflicts are still settled before writes commit, through shared locks or a check at commit.
 
-## How the three points fit together
+#### Ordering: a time but no place
+
+Ordering picks each transaction's commit version. It needs no joint, so [the grid at the end](#conclusion-the-whole-picture) draws it as a purple strip across every layer, at the moment the version is fixed. What differs between designs is when that moment comes, relative to validation. In [Miller's][miller-decomposing] words: "When validation happens after ordering, it checks to see if the assigned order is valid. When validation happens before ordering, it provides a range of acceptable commit versions, and the ordering step chooses one of them." That gives three cases:
+
+- **Validate, then order.** Most designs work this way. Locks already settle the order of any two conflicting transactions, because the second must wait until the first releases its locks. So any version picked while the locks are still held agrees with that order. A Postgres or MySQL primary, or [Aurora's](#aurora-the-log-is-the-database) writer, assigns the commit an LSN, and Oracle RAC assigns it an SCN. CockroachDB and Spanner validate in a way that also bounds the version, and in [CockroachDB](#cockroachdb-every-range-decides-for-itself) the version can even move after validation, which must then run again.
+- **Order, then validate, and abort on a conflict.** [DSQL](#dsql-every-layer-its-own-fleet) picks a commit time first, and its adjudicators then check whether that time is still valid. FoundationDB works the same way: its sequencer hands out the commit version, and its resolvers then check it.
+- **Order, then validate, with nothing to reject.** [Calvin](#calvin-the-log-comes-first) fixes the order before anything runs, so validation can only enforce it. That is why, in Calvin, the order decides.
+
+Ordering never changes which joint a design picks. It changes what validation does: bound a version picked later, confirm a version picked in advance, or enforce it.
+
+## How the three choices fit together
 
 Whether anyone must decide sets which rules apply. A no-decider design needs neither rule below, because its writes merge in any order. Every other design needs both.
 
@@ -220,7 +231,7 @@ Whether anyone must decide sets which rules apply. A no-decider design needs nei
 
 A write moves down the stack as it moves forward in time. That turns each choice of sequence into a constraint on place:
 
-- **Replication sits at or below validation** (rule 1). Every layer below the replication point runs again on each replica, and must only replay what was decided above it. So the later a design copies, the less each replica repeats: Aurora's storage only builds pages, but every Calvin replica runs every transaction.
+- **Replication sits at or below validation** (rule 1). Every layer below the replication joint runs again on each replica, and must only replay what was decided above it. So the later a design copies, the less each replica repeats: Aurora's storage only builds pages, but every Calvin replica runs every transaction.
 - **Replication comes before the split only when the decision does** (rules 1 + 2). If the slice owners decide, a design splits, then validates and replicates each slice. Most designs work this way. Calvin decides first, by ordering, so it can replicate its input log above SQL, and each replica then splits the log among its partitions. Aurora decides in its one writer, so it can go either way: its storage splits each volume into segments and then replicates each one, and Aurora MySQL can also ship its binlog to another cluster before any split.
 - **Ordering before execution puts the order above SQL.** A design that orders a transaction before running it must fix the order before the transaction enters the stack, above everything that executes. Calvin is the one design here that does.
 
@@ -231,24 +242,24 @@ Together, the rules leave four kinds of sequence, and the answer to [who decides
 - **No-decider:** split, then replicate, and merge in any order (Cassandra, Dynamo, Riak), or replicate with no split (cr-sqlite).
 - **Single-decider:** validate, split, replicate (Aurora), or validate, replicate, with no split (read replicas).
 - **Owner-decider:** split, validate, replicate (Vitess, CockroachDB, FaRM).
-- **Separate-decider:** order, replicate, split, validate (Calvin); validate, replicate, split (DSQL, whose adjudicators order as they validate); or validate, split, replicate (Oracle RAC). NAM-DB validates and splits, but has no replicas.
+- **Separate-decider:** order, replicate, split, validate (Calvin); validate, replicate, split (DSQL); or validate, split, replicate (Oracle RAC). NAM-DB validates and splits, but has no replicas.
 
 [Four designs up close](#four-designs-up-close) charts both axes for each design, and [the grid at the end](#conclusion-the-whole-picture) places every design in space and time, grouped by who decides.
 
 ## Four designs up close
 
-Four designs cover the three answers to [who decides](#validation-where-accesses-meet) that have a decider, and all three times a design can decide: before, during, or after the transaction runs. Each also puts its log in a different place.
+Four designs cover the three answers to [who decides](#validation-where-accesses-meet) that have a decider, and all three times a design can decide: before, during, or after the transaction runs. Together they also cover the three [ordering cases](#ordering-a-time-but-no-place).
 
-| Design | Who decides | When it decides | Isolation | Where the log sits |
+| Design | Who decides | When it decides | When it orders | Isolation |
 | --- | --- | --- | --- | --- |
-| [CockroachDB](#cockroachdb-every-range-decides-for-itself) | owner-decider: each range's leaseholder | while the transaction runs | serializable: each leaseholder records reads | one Raft log per range |
-| [Aurora](#aurora-the-log-is-the-database) | single-decider: the one writer | while the transaction runs | the engine's own: Postgres or MySQL | at the bottom: redo records |
-| [DSQL](#dsql-every-layer-its-own-fleet) | separate-decider: the adjudicators | after it runs, at commit | snapshot isolation: reads skip the adjudicators | in the middle: write sets |
-| [Calvin](#calvin-the-log-comes-first) | separate-decider: the input log | before it runs | serializable: reads lock in log order | at the top: transaction inputs |
+| [CockroachDB](#cockroachdb-every-range-decides-for-itself) | owner-decider: each range's leaseholder | while the transaction runs | after it validates, and a push can move the version | serializable: each leaseholder records reads |
+| [Aurora](#aurora-the-log-is-the-database) | single-decider: the one writer | while the transaction runs | after it validates: the commit LSN | the engine's own: Postgres or MySQL |
+| [DSQL](#dsql-every-layer-its-own-fleet) | separate-decider: the adjudicators | after it runs, at commit | before it validates: the adjudicators check the commit time | snapshot isolation: reads skip the adjudicators |
+| [Calvin](#calvin-the-log-comes-first) | separate-decider: the input log | before it runs | before anything runs: the input log | serializable: reads lock in log order |
 
 None of them is alone. Spanner, TiDB, and YugabyteDB have CockroachDB's shape: SQL over ranges, each range with its own consensus log. Azure SQL Hyperscale ([Socrates][socrates]), Google's AlloyDB, and Neon have Aurora's shape: one writer over shared, log-based storage. Socrates and Neon go one step further and separate the log service from the page servers. FoundationDB has DSQL's shape, as a key-value store without SQL on top. VoltDB, like Calvin, replicates transactions rather than their results.
 
-Each design below gets a chart with two axes. Across is time: [Miller's][miller-decomposing] four steps, execute, order, validate, and persist, in that design's own sequence. The validation point is where the validate step runs, and the replication point is where the persist step sends copies to replicas. Down is space: the layer that runs each step. The orange line is the replication point, and the shaded area holds the steps that every replica repeats.
+Each design below gets a chart with two axes. Across is time: [Miller's][miller-decomposing] four steps, execute, order, validate, and persist, in that design's own sequence. The validation joint is where the validate step runs, and the replication joint is where the persist step sends copies to replicas. Down is space: the layer that runs each step. The orange line is the replication joint, and the shaded area holds the steps that every replica repeats.
 
 ### CockroachDB: every range decides for itself
 
@@ -261,7 +272,7 @@ Each design below gets a chart with two axes. Across is time: [Miller's][miller-
 - **Raft** replicates each intent as soon as the leaseholder writes it. The transaction doesn't wait for each one, only for all of them at commit.
 - **The commit** is one more write: the transaction's record, on the range of its first key. Once the commit is durable, the intents become ordinary values in the background.
 
-**How it orders without a joint.** A hybrid logical clock, wall time plus a counter, gives each transaction its timestamp, so no single node hands out timestamps. The clock only orders. The timestamp cache and the intents validate, at each range.
+**How it orders without a joint.** A hybrid logical clock, wall time plus a counter, gives each transaction a provisional timestamp, so no single node hands out timestamps. The clock only orders. The timestamp cache and the intents validate, at each range. But validation can move the order: a leaseholder pushes a write's timestamp past any later read of the same key. At commit, the gateway fixes the final timestamp. If a push moved it, the transaction did its own reads at an older timestamp, so it first checks them again at the new one, which CockroachDB calls a *read refresh*, and restarts if any of them changed. So ordering finishes after validation, and a moved version means validating again. Spanner bounds its version in a similar way: its coordinator must pick a commit timestamp after every participant's prepare timestamp.
 
 **What a commit across ranges costs.** A transaction that writes to several ranges must commit on all of them or on none. This is the commit protocol that [owner-deciders pay for](#validation-where-accesses-meet). A plain two-phase commit takes two rounds of consensus: one to make the intents durable, and one to write the record. With [parallel commits][crdb-parallel-commits], CockroachDB writes the record as *staging*, alongside the last intents, in one round. The transaction is committed once all of them are durable, and any node that finds a staging record can check whether they are. None of this reaches the application.
 
@@ -297,16 +308,16 @@ DSQL is AWS's fourth answer. It keeps Postgres's SQL layer and rebuilds everythi
 
 Aurora DSQL keeps Postgres's SQL engine but replaces everything beneath it with separately scaled services. Marc Brooker's walkthrough ([Reads and Compute][dsql-reads], [Transactions and Durability][dsql-writes]) describes each piece.
 
-![DSQL's steps over time and across layers: query processors execute, adjudicators validate and order, the journal persists, and each storage replica applies the write sets](/assets/db-cuts/11-dsql.svg)
+![DSQL's steps over time and across layers: query processors execute, a commit time is picked, adjudicators validate, the journal persists, and each storage replica applies the write sets](/assets/db-cuts/11-dsql.svg)
 
 - **Query processors** run a customized Postgres engine. They never talk to each other, and they cache no table data, only rarely-changing metadata such as table definitions.
-- **Adjudicators** own key ranges and check each write set at commit. A transaction aborts if another one has written its keys since it started. Isolation is snapshot isolation, so write skew is possible.
+- **Adjudicators** own key ranges and check each write set at commit. The commit time is picked first, so the check asks one question: did another transaction write these keys between this one's start time and its commit time? If so, the transaction aborts. Isolation is snapshot isolation, so write skew is possible.
 - **The journal** persists committed transactions in commit order. Appending is the commit.
 - **Storage** is sharded, and serves rows as of a timestamp rather than pages.
 
 **How it gets many writers.** Aurora avoids Stonebraker's three shared-disk problems by having one writer. DSQL removes each one instead. Concurrency control lives in the adjudicators, so no query processor keeps a lock table. Query processors cache no data, so there are no buffer pools to keep coherent. And the journal is the log that many writers share, built as a service that scales. The price: contention becomes aborts, and every read and commit crosses the network.
 
-**Why only snapshot isolation.** The adjudicators see only what a query processor sends them at commit: its write set. Reads go straight to storage, as of the transaction's start time, and never reach the adjudicators. So the adjudicators can check only write against write, which is snapshot isolation. Two transactions can each read a row the other writes, and both commit: that is write skew. A query can opt a read into the check with `SELECT … FOR UPDATE`, which adds the row to the write set. FoundationDB has the same shape, but its clients send their read sets along with their write sets at commit. Its resolvers check both, so it offers serializability, at the price of bigger commit messages and more aborts. Where the reads go decides which conflicts the validation point can see.
+**Why only snapshot isolation.** The adjudicators see only what a query processor sends them at commit: its write set. Reads go straight to storage, as of the transaction's start time, and never reach the adjudicators. So the adjudicators can check only write against write, which is snapshot isolation. Two transactions can each read a row the other writes, and both commit: that is write skew. A query can opt a read into the check with `SELECT … FOR UPDATE`, which adds the row to the write set. FoundationDB has the same shape, but its clients send their read sets along with their write sets at commit. Its resolvers check both, so it offers serializability, at the price of bigger commit messages and more aborts. Where the reads go decides which conflicts the validation joint can see.
 
 ### Calvin: the log comes first
 
@@ -327,13 +338,13 @@ Aurora DSQL keeps Postgres's SQL engine but replaces everything beneath it with 
 
 Every design in this post comes down to three choices: [where it splits](#splitting-where-data-divides), [where it replicates](#replication-where-data-is-copied), and [where it validates](#validation-where-accesses-meet). To place a design this post doesn't cover, ask three questions:
 
-1. What interface reaches a slice of the data: SQL, keys, records, or pages? That is its split point.
-2. What does a replica receive: pages, objects, rows, or transactions? That is its replication point.
-3. Must anyone decide, and if so, where are conflicts checked? That is its validation point, if it has one. If one node keeps the locks, cache, and log for the whole database, the design has one writer, however many machines it spans.
+1. What interface reaches a slice of the data: SQL, keys, records, or pages? That is its split joint.
+2. What does a replica receive: pages, objects, rows, or transactions? That is its replication joint.
+3. Must anyone decide, and if so, where are conflicts checked? That is its validation joint, if it has one. If one node keeps the locks, cache, and log for the whole database, the design has one writer, however many machines it spans.
 
-The figure below places every design in space and time: where it splits, validates, and replicates, in what sequence, and when the transaction executes. Calvin's grid also marks when it orders, because in Calvin the order decides. Where all three points share one joint, as in CockroachDB and DSQL, only the sequence tells the designs apart. Where two designs share a sequence, as Aurora and Oracle RAC do, only the joints do.
+The figure below places every design in space and time: where it splits, validates, and replicates, in what sequence, and when the transaction executes. Calvin's grid also marks when it orders, because in Calvin the order decides. Where all three choices fall on one joint, as in CockroachDB and DSQL, only the sequence tells the designs apart. Where two designs share a sequence, as Aurora and Oracle RAC do, only the joints do.
 
-![Every design in space and time, one small grid per design, in four columns: owner-decider, separate-decider, single-decider, and no-decider. Rows are places, from in a node down to below the buffer pool; columns are four steps in sequence; a green band marks when the transaction executes. Among owner-deciders, every design splits, validates, and replicates at one joint, except Vitess, which replicates one joint lower: CockroachDB below SQL, FaRM below the access methods, Aurora Multi-Master below the buffer pool. Vitess splits before it executes, validates while it executes, and replicates after. CockroachDB and Aurora Multi-Master do all three while the transaction runs, and FaRM does them after. Among separate-deciders: Calvin orders, replicates, and splits above SQL, all before it executes, then validates above SQL as it executes; DSQL executes first, then validates, replicates, and splits below SQL; NAM-DB has no replicas; Oracle RAC validates below the access methods while it executes, then splits and replicates below the buffer pool. Single-deciders validate in the one writer while it executes: read replicas then replicate, and Aurora splits and replicates below the buffer pool. No-deciders never validate: Cassandra and Riak split and replicate below their query language after they execute, and cr-sqlite replicates below SQL with no split. The no-decider column is empty below the key-value store, because pages carry no meaning to merge by](/assets/db-cuts/13-space-time.svg)
+![Every design in space and time, one small grid per design, in four columns: owner-decider, separate-decider, single-decider, and no-decider. Rows are places, from in a node down to below the buffer pool; columns are four steps in sequence; a green band marks when the transaction executes, and a purple strip marks when the commit version is fixed. Among owner-deciders, every design splits, validates, and replicates at one joint, except Vitess, which replicates one joint lower: CockroachDB below SQL, FaRM below the access methods, Aurora Multi-Master below the buffer pool. Vitess splits before it executes, validates while it executes, and replicates after. CockroachDB and Aurora Multi-Master do all three while the transaction runs, and FaRM does them after. Owner-deciders fix the version after they validate, and in CockroachDB validation first narrows it. Among separate-deciders: Calvin orders, replicates, and splits above SQL, all before it executes, then validates above SQL as it executes; DSQL executes first, then orders, and then validates, replicates, and splits below SQL; NAM-DB has no replicas; Oracle RAC validates below the access methods while it executes, then splits and replicates below the buffer pool. Single-deciders validate in the one writer while it executes, then order: read replicas then replicate, and Aurora splits and replicates below the buffer pool. No-deciders never validate or order: Cassandra and Riak split and replicate below their query language after they execute, and cr-sqlite replicates below SQL with no split. The no-decider column is empty below the key-value store, because pages carry no meaning to merge by](/assets/db-cuts/13-space-time.svg)
 
 Finally, follow one request: pick a design, and step a read-write or a read-only transaction through the joints.
 

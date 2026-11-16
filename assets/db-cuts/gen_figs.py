@@ -56,13 +56,13 @@ def joints_map():
     mid = (x0 + x1) / 2
     h = top + (len(layers) - 1) * rh + bh + 24
     svg = Svg(760, h, "One engine stack: application, SQL, access methods, buffer pool and log, disk. "
-              "Each of the four joints between layers can host either point. On the left, the family "
+              "Any of the four joints between layers can be a split joint or a replication joint. On the left, the family "
               "that splits the data at that joint: shared nothing above SQL, shared key-value store below SQL, "
               "shared buffer pool below the access methods, shared disk below the buffer pool and log. On the right, "
               "what a design ships when it replicates at that joint: a command log, a logical log, "
               "an object log, or a physical log or blocks. Each design on the left also appears on the right.")
-    svg.text(x0 - 15, top - 14, "Split point", 12, 600, BLUE, "end")
-    svg.text(x1 + 15, top - 14, "Replication point", 12, 600, ORANGE, "start")
+    svg.text(x0 - 15, top - 14, "Split joint", 12, 600, BLUE, "end")
+    svg.text(x1 + 15, top - 14, "Replication joint", 12, 600, ORANGE, "start")
     for i, (name, store) in enumerate(layers):
         y = top + i * rh
         svg.rect(x0, y, x1 - x0, bh, STORE if store else WHITE)
@@ -110,7 +110,7 @@ def two_sequences():
             svg.rect(x, y, w, oh, WHITE, FG)
         svg.text(x + w / 2, y + 16, label, 10.5)
 
-    def point(px, y, color, dashed, label):
+    def boundary(px, y, color, dashed, label):
         svg.line(px, y, px + pw, color, dashed)
         svg.text(px, y - 7, label, 10.5, fill=color, anchor="start")
 
@@ -123,8 +123,8 @@ def two_sequences():
     svg.text(px, r0 - 40, "Split, validate, replicate", 13, 600, anchor="start")
     svg.text(px, r0 - 23, "Vitess, and most designs", 11, fill=DIM, anchor="start")
     two_line_box(px, r0, pw, "Application + router", "every query enters here")
-    point(px, split_y, BLUE, False, "split: the router sends each statement to its shard")
-    point(px, repl_y, ORANGE, True, "replicate: each shard ships its binlog")
+    boundary(px, split_y, BLUE, False, "split: the router sends each statement to its shard")
+    boundary(px, repl_y, ORANGE, True, "replicate: each shard ships its binlog")
     for (gx, gw, bw), key in zip(groups(px, 2, 3), ["a–m", "n–z"]):
         step_box(gx, split_y + 10, gw, f"validate: the shard locks keys {key}", True)
         two_line_box(gx, r1, gw, "SQL", f"keys {key}, runs each write once")
@@ -141,8 +141,8 @@ def two_sequences():
     svg.text(px, r0 - 23, "Calvin", 11, fill=DIM, anchor="start")
     two_line_box(px, r0, pw, "Application", "every transaction enters here")
     step_box(px, r0 + bh + 10, pw, "order: the sequencer fixes one order for every key", False)
-    point(px, repl_y, ORANGE, True, "replicate: the input log of transactions")
-    point(px, split_y, BLUE, False, "split: each replica partitions the log by key")
+    boundary(px, repl_y, ORANGE, True, "replicate: the input log of transactions")
+    boundary(px, split_y, BLUE, False, "split: each replica partitions the log by key")
     for n, (gx, gw, bw) in enumerate(groups(px, 3, 2), 1):
         two_line_box(gx, r1, gw, "Input log", "all keys")
         for b, key in enumerate(["a–m", "n–z"]):
@@ -261,7 +261,7 @@ def replication_paths():
     rows = ["SQL", "Access methods", "Buffer pool + log", "Disk"]
     row_y = {"Write request": 120, "SQL": 200, "Access methods": 280, "Buffer pool + log": 360, "Disk": 440}
     cw, ch, step = 120, 30, 145
-    # (first row the replica repeats, line label, log name, examples), lowest replication point first.
+    # (first row the replica repeats, line label, log name, examples), lowest replication joint first.
     copies = [
         ("Disk", "page changes", "Physical log", "Postgres WAL, Aurora redo"),
         ("Buffer pool + log", "new object values", "Object log", "FaRM"),
@@ -279,8 +279,8 @@ def replication_paths():
         f'orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="{c}"/></marker>'
         for i, c in [("ar", LINE), ("ar-ink", FG), ("ar-or", ORANGE)]) + '</defs>')
     svg.header("Where each write leaves for the replicas",
-               ["A write runs down the primary's stack. At the replication point, it leaves as a log and continues down each replica.",
-                "Shaded: the layers every replica runs for every write. The higher the replication point, the more of the stack each replica repeats.",
+               ["A write runs down the primary's stack. At the replication joint, it leaves as a log and continues down each replica.",
+                "Shaded: the layers every replica runs for every write. The higher the replication joint, the more of the stack each replica repeats.",
                 "Replicas may also run the upper layers, but only to serve reads, so the figure leaves them out."])
 
     def column(x, names, arrow):
@@ -374,7 +374,7 @@ def decision_tree():
 
     leaves = [
         ("No-decider",
-         ["No validation point:", "replicas merge writes", "in any order.", "Safe only if merging",
+         ["No validation joint:", "replicas merge writes", "in any order.", "Safe only if merging",
           "breaks no rule the data", "must keep."],
          "Cassandra, Riak, CRDTs"),
         ("Single-decider",
@@ -405,6 +405,7 @@ def decision_tree():
 PLACES = ["in a node", "above SQL", "below SQL", "below access methods", "below the buffer pool"]
 N, TOP, SQL, AM, BP = range(5)
 EXEC_FILL = "#e6f0e1"
+PURPLE = "#7b4fc9"
 # Column heads: who decides.
 DECIDERS = [("Owner-decider", "the data owners decide"), ("Separate-decider", "other nodes decide"),
             ("Single-decider", "the one writer decides"), ("No-decider", "replicas merge later")]
@@ -415,29 +416,29 @@ def space_time_grid(rows, n_cols, aria, title):
 
     Each row is (family, owner-decider, separate-decider, single-decider, no-decider), with None for an
     empty cell.
-    Each design is (name, steps, execute span). A step is (kind, place, column), plus True when it is
-    only an alternative. Kinds: S split, V validate, R replicate, and O order, drawn only where it decides.
-    The execute span, when given, is the (first, last) column the transaction runs in.
+    Each design is (name, steps, execute span, order). A step is (kind, place, column), plus True when
+    it is only an alternative. Kinds: S split, V validate, R replicate. The execute span, when given, is
+    the (first, last) column the transaction runs in. Ordering has no place, so it is a vertical strip at
+    the column where the commit version is fixed; a half column means between two steps. A (start, end)
+    order also shades the stretch where validation narrows the version before ordering fixes it.
     """
     pw, rh, head_h, title_h, gap = 144, 13, 20, 18, 12
     gh = rh * len(PLACES)
     cw = pw / n_cols
     cols = [128 + k * (pw + gap) for k in range(len(DECIDERS))]
     row_h = head_h + title_h + gh + 16
-    lg = 64  # top of the legend
+    lg = 81  # top of the legend
     hy = lg + 128  # top of the column heads
     y0 = hy + 42
     svg = Svg(760, y0 + row_h * len(rows) + 10, aria)
-    svg.header(title, ["Rows: where each step happens. Columns: in what order. Lines join the steps in sequence."])
+    svg.header(title, ["Rows: where each step happens. Columns: in what order. Lines join the steps in sequence.",
+                       "Purple shading: validation narrows the commit version before ordering fixes it."])
     fills = {"S": BLUE, "R": ORANGE}
 
     def marker(cx, cy, kind, hollow):
         if kind == "V":
             svg.rect(cx - 8, cy - 6, 16, 12, STORE, DIM, 3, ' stroke-dasharray="3 2"')
             svg.text(cx, cy + 3.5, "V", 9, 600)
-        elif kind == "O":
-            svg.rect(cx - 8, cy - 6, 16, 12, WHITE, FG, 3)
-            svg.text(cx, cy + 3.5, "O", 9, 600)
         elif hollow:
             svg.rect(cx - 8, cy - 6, 16, 12, WHITE, fills[kind], 6, ' stroke-dasharray="3 2"')
             svg.text(cx, cy + 3.5, kind, 9, 600, fills[kind])
@@ -445,7 +446,10 @@ def space_time_grid(rows, n_cols, aria, title):
             svg.rect(cx - 8, cy - 6, 16, 12, fills[kind], None, 6)
             svg.text(cx, cy + 3.5, kind, 9, 600, WHITE)
 
-    def panel(x, y, name, steps, span):
+    def strip(sx, top, h):
+        svg.rect(sx - 2, top, 4, h, PURPLE, None, 2)
+
+    def panel(x, y, name, steps, span, order=None):
         svg.add('<g>')
         svg.text(x + 2, y + 13, name, 11, 600, anchor="start")
         gy = y + title_h
@@ -462,7 +466,13 @@ def space_time_grid(rows, n_cols, aria, title):
         for k in range(1, len(PLACES)):
             svg.add(f'<line x1="{x}" y1="{gy + k * rh}" x2="{x + pw}" y2="{gy + k * rh}" stroke="{STORE}" stroke-width="1"/>')
         pos = lambda pl, i: (x + (i + 0.5) * cw, gy + (pl + 0.5) * rh)
-        main = sorted([st for st in steps if len(st) == 3], key=lambda st: st[2])
+        if order is not None:
+            start, end = order if isinstance(order, tuple) else (order, order)
+            if start != end:
+                svg.rect(pos(0, start)[0], gy + 2, (end - start) * cw, gh - 4, PURPLE, None, 0,
+                         ' fill-opacity="0.16"')
+            strip(pos(0, end)[0], gy + 2, gh - 4)
+        main =sorted([st for st in steps if len(st) == 3], key=lambda st: st[2])
         path = " ".join(f"{'M' if k == 0 else 'L'}{pos(pl, i)[0]} {pos(pl, i)[1]}" for k, (_, pl, i) in enumerate(main))
         svg.add(f'<path d="{path}" fill="none" stroke="{DIM}" stroke-width="1.25"/>')
         for kind, pl, i, *alt in steps:
@@ -485,10 +495,10 @@ def space_time_grid(rows, n_cols, aria, title):
 
     svg.rect(20, lg, 720, 100, WHITE, STORE, 6)
     items = [
-        [(lambda x, y: marker(x, y, "S", False), "Split point", "requests reach the owner of each slice"),
-         (lambda x, y: marker(x, y, "V", False), "Validation point", "conflicts are checked"),
-         (lambda x, y: marker(x, y, "R", False), "Replication point", "copies leave for the replicas")],
-        [(lambda x, y: marker(x, y, "O", False), "Ordering", "shown only where it decides: Calvin"),
+        [(lambda x, y: marker(x, y, "S", False), "Split joint", "requests reach the owner of each slice"),
+         (lambda x, y: marker(x, y, "V", False), "Validation joint, or in a node", "conflicts are checked"),
+         (lambda x, y: marker(x, y, "R", False), "Replication joint", "copies leave for the replicas")],
+        [(lambda x, y: strip(x, y - 7, 14), "Ordering", "the commit version is fixed"),
          (swatch, "Execution", "the transaction runs: no fixed place"),
          (lambda x, y: marker(x, y, "R", True), "Alternative", "Postgres's WAL, not MySQL's binlog")],
     ]
@@ -517,36 +527,40 @@ def space_time_grid(rows, n_cols, aria, title):
 
 def space_time():
     # The commit path of one write. V is where conflicts are checked: inside the execute band for
-    # lock-based designs, after it for commit-time checks. Only Calvin shows O, because its order decides.
+    # lock-based designs, after it for commit-time checks. Lock-based designs fix the commit version
+    # once their locks are held; DSQL, FoundationDB, and Calvin fix it before they validate.
     rows = [
         ("Shared memory, no split", None, None,
-         ("Read replicas", [("V", N, 1), ("R", SQL, 2), ("R", BP, 2, True)], (0, 1)),
+         ("Read replicas", [("V", N, 1), ("R", SQL, 2), ("R", BP, 2, True)], (0, 1), 1.5),
          ("cr-sqlite", [("R", SQL, 1)], (0, 0))),
         ("Shared nothing",
-         ("Vitess, Citus", [("S", TOP, 0), ("V", TOP, 2), ("R", SQL, 3), ("R", BP, 3, True)], (1, 2)),
-         ("Calvin", [("O", TOP, 0), ("R", TOP, 1), ("S", TOP, 2), ("V", TOP, 3)], (3, 3)), None, None),
+         ("Vitess, Citus", [("S", TOP, 0), ("V", TOP, 2), ("R", SQL, 3), ("R", BP, 3, True)], (1, 2), 2.5),
+         ("Calvin", [("R", TOP, 1), ("S", TOP, 2), ("V", TOP, 3)], (3, 3), 0), None, None),
         ("Shared key-value store",
-         ("CockroachDB, Spanner", [("S", SQL, 1), ("V", SQL, 2), ("R", SQL, 3)], (0, 3)),
-         ("DSQL, FoundationDB", [("V", SQL, 1), ("R", SQL, 2), ("S", SQL, 3)], (0, 0)), None,
+         ("CockroachDB, Spanner", [("S", SQL, 1), ("V", SQL, 2), ("R", SQL, 3)], (0, 3), (2, 2.5)),
+         ("DSQL, FoundationDB", [("V", SQL, 1), ("R", SQL, 2), ("S", SQL, 3)], (0, 0), 0.5), None,
          ("Cassandra, Riak", [("S", SQL, 1), ("R", SQL, 2)], (0, 0))),
         ("Shared buffer pool",
-         ("FaRM", [("S", AM, 1), ("V", AM, 2), ("R", AM, 3)], (0, 0)),
+         ("FaRM", [("S", AM, 1), ("V", AM, 2), ("R", AM, 3)], (0, 0), 2.5),
          ("NAM-DB", None, None), None, None),
         ("Shared disk",
-         ("Aurora Multi-Master", [("S", BP, 1), ("V", BP, 2), ("R", BP, 3)], (0, 3)),
-         ("Oracle RAC", [("V", AM, 1), ("S", BP, 2), ("R", BP, 3)], (0, 1)),
-         ("Aurora, Neon", [("V", N, 1), ("S", BP, 2), ("R", BP, 3)], (0, 3)), None),
+         ("Aurora Multi-Master", [("S", BP, 1), ("V", BP, 2), ("R", BP, 3)], (0, 3), 2.5),
+         ("Oracle RAC", [("V", AM, 1), ("S", BP, 2), ("R", BP, 3)], (0, 1), 1.5),
+         ("Aurora, Neon", [("V", N, 1), ("S", BP, 2), ("R", BP, 3)], (0, 3), 1.5), None),
     ]
     return space_time_grid(
         rows, 4,
         "Every design placed in space and time. Each panel is one design, in four columns by who decides: "
         "owner-decider, separate-decider, single-decider, and no-decider. Its rows are places: in a node, above "
         "SQL, below SQL, below the access methods, below the buffer pool. Its columns are four steps in sequence. "
-        "S is the split point, V the validation point, R the replication point, and a green band marks when the "
-        "transaction executes, which has no fixed place. Owner-deciders split first, then validate and replicate. "
-        "Separate-deciders decide first: Calvin orders, marked O, before it executes, then validates as it runs; "
-        "DSQL validates after it executes, and Oracle RAC while it runs. Single-deciders validate in the one "
-        "writer while it executes. No-deciders never validate: Cassandra and "
+        "S is the split joint, V the validation joint, R the replication joint, and a green band marks when the "
+        "transaction executes, which has no fixed place. A purple strip marks when the commit version is fixed, "
+        "which has no fixed place either. Owner-deciders split first, then validate and replicate; they fix the "
+        "version after they validate, and in CockroachDB and Spanner validation first narrows it. "
+        "Separate-deciders decide first: Calvin orders before it executes, then validates as it runs; DSQL "
+        "orders after it executes, then validates; Oracle RAC validates while it runs, then orders. "
+        "Single-deciders validate in the one writer while it executes, then order. No-deciders never validate "
+        "or order: Cassandra and "
         "Riak split and replicate below their query language, and cr-sqlite replicates with no split. Below "
         "the key-value store, the no-decider column is empty.",
         "Every design in space and time")
@@ -572,8 +586,8 @@ def timeline(title, aria, design, cols, lanes, boxes, arrows, split, repl, shade
         f'orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="{c}"/></marker>'
         for n, c in [("grey", LINE), ("blue", BLUE)]) + '</defs>')
     svg.header(title, [f"Across: the four steps of a transaction, in {design}'s sequence. Down: the layer that runs each step.",
-                       "Orange: the replication point; the shaded steps run again on every replica. "
-                       "Blue: the split point, and what crosses there."])
+                       "Orange: the replication joint; the shaded steps run again on every replica. "
+                       "Blue: the split joint, and what crosses there."])
     c0, l0 = shade
     svg.add(f'<rect x="{x0 + cw * c0}" y="{top + lh * l0}" width="{right - x0 - cw * c0}" '
             f'height="{lh * (len(lanes) - l0)}" fill="{ORANGE}" fill-opacity="0.07"/>')
@@ -643,8 +657,8 @@ def cockroachdb():
          "ack": (2, 2, "a majority acknowledges"), "apply": (3, 2, "resolve intents")},
         [("run", "check", BLUE), ("check", "intent", LINE), ("check", "num", LINE),
          ("num", "ack", BLUE), ("ack", "apply", LINE)],
-        (1, "split point: key-value reads and writes, by range"),
-        (2, "replication point: Raft log"),
+        (1, "split joint: key-value reads and writes, by range"),
+        (2, "replication joint: Raft log"),
         (3, 2),
         [(448, 168, "pushed past later reads", DIM, "start")])
 
@@ -666,8 +680,8 @@ def aurora():
          "build": (3, 2, "build pages from redo"), "replicas": (3, 1, "replicas apply redo")},
         [("run", "pages", LINE), ("serve", "pages", BLUE), ("run", "lsn", LINE), ("lsn", "ack", BLUE, "vh"),
          ("ack", "build", LINE), ("lsn", "replicas", BLUE, "dashed")],
-        (2, "split point: redo down, pages up"),
-        (2, "replication point: redo records"),
+        (2, "split joint: redo down, pages up"),
+        (2, "replication joint: redo records"),
         (3, 2),
         [(288, 245, "page on a miss", BLUE, "start"), (600, 141, "redo stream", BLUE, "middle"),
          (682, 221, "a cache, not a copy", DIM, "end")])
@@ -677,21 +691,21 @@ def dsql():
     return timeline(
         "DSQL runs the transaction first, then validates it, then journals it",
         "DSQL's steps over time and across layers. A query processor runs the transaction, reading rows from "
-        "storage as of its start and buffering its writes. At commit, adjudicators check the write set for "
-        "conflicts and pick a commit time. Appending to the journal is the commit. Each storage replica then "
+        "storage as of its start and buffering its writes. At commit, it picks a commit time, and adjudicators "
+        "check whether another transaction wrote the same keys between the start and that time. Appending to the journal is the commit. Each storage replica then "
         "applies the write sets.",
         "DSQL",
-        ["Execute", "Validate + Order", "Persist", "~Apply (after commit)"],
+        ["Execute", "Order, then validate", "Persist", "~Apply (after commit)"],
         [("Query processors", "SQL; many, stateless"),
          ("Adjudicators", "concurrency control; per key range"),
          ("Journal", "the log; across zones"),
          ("Storage", "rows by timestamp; sharded")],
         {"run": (0, 0, "run, buffer writes"), "serve": (0, 3, "serve rows as of start"),
-         "check": (1, 1, "check, pick commit time"), "append": (2, 2, "append: the commit"),
+         "check": (1, 1, "check keys since start"), "append": (2, 2, "append: the commit"),
          "apply": (3, 3, "apply write sets")},
         [("serve", "run", BLUE), ("run", "check", BLUE), ("check", "append", LINE), ("append", "apply", LINE, "vh")],
-        (1, "split point: row reads; write sets at commit"),
-        (3, "replication point: write sets"),
+        (1, "split joint: row reads; write sets at commit"),
+        (3, "replication joint: write sets"),
         (3, 3),
         [(288, 256, "row reads", BLUE, "start")])
 
@@ -713,7 +727,7 @@ def calvin():
          "rw": (3, 3, "read and write rows")},
         [("batch", "repl", LINE), ("repl", "lock", LINE), ("lock", "run", LINE), ("run", "rw", LINE)],
         None,
-        (1, "replication point: transaction inputs"),
+        (1, "replication joint: transaction inputs"),
         (2, 1),
         [(682, 291, "reads cross partitions", BLUE, "end")])
 
