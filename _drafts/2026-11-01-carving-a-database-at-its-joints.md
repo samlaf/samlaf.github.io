@@ -86,7 +86,7 @@ A higher replication joint repeats more work on each replica, but it usually tie
 3. **Logical log.** MySQL keeps a physical WAL for durability on each node, like Postgres, but ships its binlog to replicas. Its replicas run their own access methods, so they can run another version or storage engine, keep their own indexes, or replicate only some tables. Outside consumers can also read the binlog for change data capture.[^engine-log]
 4. **Command log.** Calvin ships the inputs of each transaction, as blockchains do. The log is small, and no replica depends on another to run a transaction. But every replica runs every transaction on its own, and all of them must reach the same result. So execution must be deterministic.[^statement] That has [benefits][deterministic-overview], and one main cost: transactions can't race for locks, as they do in Postgres or MySQL, because each race could have a different winner on each replica. Instead, every replica takes its locks in the order the log fixes.
 
-[^statement]: MySQL shows what happens without it. Its binlog can also log SQL statements instead of row changes, which makes it a command log. But a statement that calls `UUID()`, or an `UPDATE … LIMIT 10` without an `ORDER BY`, can change different rows on each replica. MySQL now logs row changes by default, and its mixed mode switches to rows for any statement it deems unsafe.
+[^statement]: MySQL shows what happens without it. Its binlog can also log SQL statements instead of row changes, which makes it a command log. But a statement that calls `UUID()`, or an `UPDATE … LIMIT 10` without an `ORDER BY`, can change different rows on each replica. MySQL now logs row changes by default, and its mixed mode switches to rows for any statement it deems unsafe. MySQL 8.0.34 [deprecated][mysql-binlog-deprecation] the choice of format, so logging row changes will become the only option.
 
 [^engine-log]: The engine sets the usual choice, not a hard limit. Postgres also offers logical replication, and Aurora MySQL ships physical redo to its storage instead of the binlog.
 
@@ -184,7 +184,7 @@ Most of a design follows from one question: who decides what commits? The *decid
     | Multi-leader, conflicts resolved later | no-decider | cr-sqlite, CouchDB |
     | Leaderless | no-decider | Dynamo, Cassandra, Riak |
 
-    Every design that decides replicates like a single-leader design, because of [rule 1](#how-the-three-choices-fit-together): replicas only replay, so one node, or one ordered log, must feed them.
+    Every design that decides replicates from one agreed order, because of [rule 1](#how-the-three-choices-fit-together): replicas only replay, so something must fix the order before they apply it. Usually that is one leader. Leaderless consensus, such as EPaxos or Accord, fixes it by quorum instead.
 
 **Single-decider.** One node, the writer, keeps the state that checks conflicts, its locks, cached pages, and log, private, over the whole database. Private state is safe only while one node writes. Two writers with private locks could lock the same row and never know it. Two writers with private caches could each update a stale copy of the same page. [Stonebraker][stonebraker-sn] named these three as the problems of shared disk in 1985. With one writer, nothing crosses between nodes to check conflicts, so there is no validation joint: the writer validates inside itself. Read replicas work this way. So does Aurora, which shares its storage but nothing above it: its storage splits each volume into 10 GB segments that no SQL node thinks about. [Aurora](#aurora-the-log-is-the-database) covers the details.
 
@@ -377,6 +377,7 @@ Finally, follow one request: pick a design, and step a read-write or a read-only
 23. [Parallel Commits: An atomic commit protocol for globally distributed transactions][crdb-parallel-commits] — Cockroach Labs, 2019; a commit across ranges in one round of consensus
 24. [cr-sqlite][cr-sqlite] — vlcn.io; SQLite tables that merge across devices, column by column
 25. [Designing Data-Intensive Applications][ddia] — Kleppmann, O’Reilly; single-leader, multi-leader, and leaderless replication
+26. [MySQL 8.0.34 release notes][mysql-binlog-deprecation] — Oracle, 2023; `binlog_format` deprecated, so the binlog will log only row changes
 
 [aurora-ascendant]: https://www.allthingsdistributed.com/2019/03/amazon-aurora-design-cloud-native-relational-database.html "Amazon Aurora ascendant: How we designed a cloud-native relational database"
 [aurora-paper]: https://www.allthingsdistributed.com/files/p1041-verbitski.pdf "Amazon Aurora: Design Considerations for High Throughput Cloud-Native Relational Databases"
@@ -403,5 +404,6 @@ Finally, follow one request: pick a design, and step a read-write or a read-only
 [crdb-parallel-commits]: https://www.cockroachlabs.com/blog/parallel-commits/ "Parallel Commits: An atomic commit protocol for globally distributed transactions"
 [cr-sqlite]: https://vlcn.io/docs/cr-sqlite/intro "cr-sqlite"
 [ddia]: https://dataintensive.net/ "Designing Data-Intensive Applications"
+[mysql-binlog-deprecation]: https://dev.mysql.com/doc/relnotes/mysql/8.0/en/news-8-0-34.html "MySQL 8.0.34 release notes"
 
 ## Footnotes <!-- omit in toc -->
