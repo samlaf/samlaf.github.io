@@ -98,6 +98,15 @@ Each of the first two takes a trick from sequential consistency and widens "my o
 - Closed timestamps in the future: CockroachDB's [global tables][crdb-global]. The leaseholder promises that no write will land below a time slightly in the future. Writes take future timestamps and wait for those times to pass before they return. Followers then serve current reads.
 - Bounded clocks over multiversioned storage: DSQL. Each transaction picks a start time from EC2's precision clock, which [Brooker][dsql-reads] describes as "an accurate clock with strong error bounds." Every read asks storage for data as of that time, on any shard or replica, and sees every transaction that committed before it. No leader or lease is involved, only the clock bound.
 
+Which way fits depends on how writes replicate. A fresh read must overlap the replicas a write reached, or ask someone who knows which writes committed. [Replication in four cells](/programming/replication-in-four-cells.html) sorts replica groups by two questions: does one leader order the writes, and does each write reach a quorum or every replica? Each way fits one kind of group:
+
+| Way | Fits | Why it works |
+| --- | --- | --- |
+| Ask the leader | one leader, writes reach a quorum: Raft ReadIndex | the leader knows the commit index |
+| Ask a quorum | no leader, writes reach a quorum: ABD, Gryff | any read quorum overlaps every write quorum |
+| Be told by every write | writes reach every replica that serves reads: Hermes, quorum leases | every reader holds every write, so one reader is enough |
+| Rely on a promise about time | one leader with a lease, or bounded clocks with no leader: DSQL | the clock stands in for the round to a quorum |
+
 The trade-off doesn't go away. For local reads to be both linearizable and cheap, writes must pay: they reach every reader, or they wait out the clock. Otherwise, reads pay with a message to someone who knows.
 
 ## Does anyone need to know a read happened?

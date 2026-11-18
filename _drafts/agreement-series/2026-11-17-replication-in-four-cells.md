@@ -16,9 +16,24 @@ Alex Miller has a complaint: every discussion of replication is about Raft. In [
 
 I agree with most of his argument. This post redraws his axis as a two-by-two grid. The grid shows why his spectrum has exactly three points, where consensus hides in each design, and how the best recent protocols move between cells: a fast path for the common case, and a fallback that is always correct.
 
-This post looks inside one replica group. [Carving a database at its joints](/programming/carving-a-database-at-its-joints.html) treats each group as one decider, and asks which group settles each conflict. Here the question is how that group keeps working when its machines fail.
+This post looks inside one replica group. [Carving a database at its joints](/programming/carving-a-database-at-its-joints.html) treats each group as one decider, and asks which group settles each conflict. Here the question is how that group keeps working when its machines fail.[^joint]
 
-The first two parts of this series took correctness apart. [Progress conditions](/programming/progress-conditions.html) covered liveness: whether an operation finishes. [Isolation, consistency, and consensus](/programming/isolation-consistency-and-consensus.html) covered safety: what an operation may return, and which operations need consensus at all. A replication protocol needs both at once, and gets them from different places. Quorum intersection keeps every path safe, whatever fails. Masking failures, electing a leader, or using randomness keeps the protocol live. Miller's axis measures the second half: a design that masks a failure keeps answering, and one that detects it stalls until a timeout fires.
+[^joint]: Carving also asks what a group ships: pages, rows, or whole transactions. That choice is mostly separate from the protocol that ships it:
+
+    | Design | Ships | Protocol |
+    | --- | --- | --- |
+    | Postgres | physical log (WAL) | primary-backup, asynchronous or synchronous |
+    | Neon safekeepers | physical log (WAL) | Paxos |
+    | Aurora | physical log (redo) | one writer, four of six copies |
+    | CockroachDB | key-value writes | Raft |
+    | MySQL Group Replication | logical log (binlog) | Paxos |
+    | Calvin | transaction inputs | Paxos |
+
+    The [operation axis](#operation-axis-pay-for-order-only-when-needed) is the one place where the two meet.
+
+The first two parts of this series took correctness apart. [Progress conditions](/programming/progress-conditions.html) covered liveness: whether an operation finishes. [Isolation, consistency, and consensus](/programming/isolation-consistency-and-consensus.html) covered safety: what an operation may return, and which operations need consensus at all. A replication protocol needs both at once, and gets them from different places. Quorum intersection keeps every path safe, whatever fails.[^independent] Masking failures, electing a leader, or using randomness keeps the protocol live. Miller's axis measures the second half: a design that masks a failure keeps answering, and one that detects it stalls until a timeout fires.
+
+[^independent]: Whatever fails within the failure model: at most f of n replicas, each failing on its own. Every f-of-n bound assumes that faults are independent. A bug that runs on every replica, or a config pushed to all of them, fails them together, and replication copies the mistake instead of masking it. [Who fails?](/programming/who-fails.html) covers the defenses those faults need, in time and in space.
 
 - [Miller's spectrum](#millers-spectrum)
 - [Four cells](#four-cells)
@@ -117,12 +132,15 @@ A replica group uses quorums in three roles, but only two rules constrain them, 
 
 A leader change is a kind of read. Paxos's first phase reads the accepted values from Q1, and adds one step a plain read skips: each replica promises to ignore older leaders.[^amnesia] In the terms of Gifford's [weighted voting][gifford] (1979), Q1 and R are read quorums, and Q2 is the write quorum.
 
-Song, van Renesse, Schneider, and Dolev ([The Building Blocks of Consensus][building-blocks], 2008) find the same two roles inside Paxos, Chandra–Toueg, and Ben-Or. Each protocol names one quorum system but uses two. One lets a new round find any value an earlier round may have decided. The other keeps a single round from accepting two values. In Paxos, that second system is the leader alone.
+Song, van Renesse, Schneider, and Dolev ([The Building Blocks of Consensus][building-blocks], 2008) find the same two roles inside Paxos, Chandra–Toueg, and Ben-Or. Each protocol names one quorum system but uses two. One lets a new round find any value an earlier round may have decided. The other keeps a single round from accepting two values. In Paxos, that second system is the leader alone.[^roles]
+
+[^roles]: Paxos names three roles. A *proposer* proposes a value. An *acceptor* accepts it, and promises to ignore older proposers. A *learner* learns which value was chosen. [Carving](/programming/carving-a-database-at-its-joints.html)'s decider is a proposer that validates before it proposes: it checks for conflicts, then proposes commit or abort. The acceptors make that choice stick, and Q1 and Q2 are sets of acceptors. Replicas that apply the outcome, and clients that read it, are learners. Note the two senses of "decide": consensus papers say a value is decided once a quorum of acceptors accepts it, so there the acceptors decide, not the proposer. Gray and Lamport's [Paxos Commit][paxos-commit] (2006) joins the two senses. Each shard proposes its own vote, prepared or aborted, in its own Paxos instance, and the transaction commits if every instance chooses prepared. A failed coordinator no longer blocks the shards, as it does in two-phase commit.
 
 [^amnesia]: Intersection only helps if the shared node remembers. A replica whose disk loses or corrupts its state can answer a new leader as if it never accepted the write, or never made its promise. That is a crash fault that acts like a Byzantine one: the replica tells two leaders different things, at different times. Most crash-tolerant protocols assume the disk never lies. [Protocol-Aware Recovery][par] (Alagappan et al., FAST 2018) shows what breaks when it does.
 
 [Flexible Paxos][flexible-paxos] (Howard, Malkhi, and Spiegelman, 2016) showed that the two must intersect only each other: Q1 + Q2 > N. Majorities for both is one choice among many:
 
+- **Q2 = 1:** then Q1 = N, and a leader change must hear from every replica, the old leader included. Asynchronous replication in Postgres and MySQL is this case, but its failover promotes a survivor without hearing from the dead primary. The two quorums share no node, so the last few commits can be lost. Failover tools such as Patroni must also add the promise by hand: they fence the old primary so it can't accept more writes.
 - **Q2 below a majority:** writes get cheaper, but a leader change needs more than a majority, so elections get fragile.
 - **Q2 = majority:** classic Paxos and Raft.
 - **Q2 = N:** then Q1 = 1, and any single replica can serve reads. This is the right column of the grid. One failed replica blocks every write until membership changes.
@@ -181,14 +199,16 @@ Each hybrid runs a fast path in one cell and falls back to another. Each axis of
 
 Gryff runs reads and writes as a multi-writer ABD register, and read-modify-writes through EPaxos. Its *carstamps* put both kinds in one order, so a write can't slip between a read-modify-write and the value it read. Reads and writes never wait on consensus.
 
-Other designs move operations toward the cheap end of the range:
+Other designs move operations toward the cheap end of the range:[^meaning]
+
+[^meaning]: Every move toward the cheap end needs operations that carry meaning. Two increments commute. Two writes to the same page don't, because page bytes don't say what changed. So this axis exists only where a group ships rows, keys, or transactions, not pages. [Carving](/programming/carving-a-database-at-its-joints.html) gives the same reason why no design merges writes below the access methods.
 
 - **[CURP][curp]** (NSDI 2019) sends commutative operations to witnesses and returns in one round trip. Only conflicting operations wait for the leader to order them.
 - **[EPaxos][epaxos]** and **[Accord][accord]** take one round when an operation conflicts with nothing in flight, and a second round when it does.
 - **[Escrow][escrow]** (O'Neil, 1986) lets increments and decrements commute while no ordering could break the constraint. A balance far above zero can take concurrent debits without agreeing on their order.
 - **Nil-externality** ([Skyros][skyros], SOSP 2021) defers ordering any operation that returns no state, until someone observes its effect.
 
-Miller's quorum talk lands here too: its fictional bill-splitting database becomes feasible only once its transfers use escrow and its log appends are nil-external.
+Miller's quorum talk lands here too: its fictional bill-splitting database becomes feasible only once its transfers use escrow and its log appends are nil-external. [Helland][helland-uncoordinated] (2021) makes the same list into a general rule of design: partition the data, keep it immutable, and prefer operations that commute or merge in any order, because a round trip is the one cost hardware hasn't cut.
 
 ### Leader axis: the leader as a hint
 
@@ -283,6 +303,8 @@ Raft is the top-left cell, with a timeout as its switch. Miller calls its one un
 26. [The Generic Consensus Service][generic-consensus] — Guerraoui, Schiper, IEEE TSE 2001 (FTCS 1996); agreement protocols as clients of one consensus service
 27. [Consensus: the Big Misunderstanding][big-misunderstanding] — Guerraoui, Schiper, FTDCS 1997; why timeouts don't escape FLP
 28. [Protocol-Aware Recovery for Consensus-Based Storage][par] — Alagappan et al., FAST 2018; what breaks when a replica's disk forgets
+29. [Consensus on Transaction Commit][paxos-commit] — Gray, Lamport, TODS 2006; Paxos Commit, two-phase commit with each vote run through Paxos
+30. [I Am So Glad I'm Uncoordinated][helland-uncoordinated] — Helland, 2021; coordination as the one hard problem left, and ways to avoid it
 
 [miller-spectrum]: https://transactional.blog/blog/2024-data-replication-design-spectrum "Data Replication Design Spectrum"
 [miller-raft]: https://transactional.blog/talk/enough-with-all-the-raft "Enough With All The Raft"
@@ -312,5 +334,7 @@ Raft is the top-left cell, with a timeout as its switch. Miller calls its one un
 [building-blocks]: https://www.cs.cornell.edu/home/rvr/papers/icdcn08.pdf "The Building Blocks of Consensus"
 [generic-consensus]: https://gsd.di.uminho.pt/teaching/DC/2009/papers/GS98.pdf "The Generic Consensus Service"
 [big-misunderstanding]: https://doi.org/10.1109/FTDCS.1997.644722 "Consensus: the Big Misunderstanding"
+[paxos-commit]: https://lamport.azurewebsites.net/pubs/paxos-commit.pdf "Consensus on Transaction Commit"
+[helland-uncoordinated]: https://pathelland.substack.com/p/i-am-so-glad-im-uncoordinated "I Am So Glad I'm Uncoordinated"
 
 ## Footnotes <!-- omit in toc -->

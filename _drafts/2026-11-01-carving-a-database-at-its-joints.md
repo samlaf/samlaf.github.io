@@ -46,14 +46,9 @@ The joints are the interfaces that connect components, from SQL statements at th
 
 ## Three choices: replicate, split, validate
 
-Past one machine, the engine runs on many nodes. Here a node is one machine that runs some adjacent layers of the stack: the whole engine, as in a classic shard, or only part of it, as when compute nodes run the top layers over a storage service. A design makes three choices:
+Past one machine, the engine runs on many nodes. Here a node is one machine that runs some adjacent layers of the stack: the whole engine, as in a classic shard, or only part of it, as when compute nodes run the top layers over a storage service. A design makes three choices: it replicates the data, splits it, and validates accesses to it. Replication and splitting each buy something, and each puts a promise to the application at risk. Validation keeps one of those promises:
 
-- **Replicating** *copies* the data onto other nodes.
-  - Benefits: durability, availability, and scalable reads, potentially served closer to users (via geo-replication). But a replica's reads may be stale, unless it first asks the node that decides writes, or waits to catch up.
-- **Splitting** *shards* the data across several nodes.
-  - Benefits: scalable reads and writes, as long as they spread across slices rather than pile onto one, and a database larger than one storage device can hold.
-- **Validating** *checks* conflicting accesses: two writes to the same item, and, under serializability, a read and a later write.
-  - It sets whether sharding scales writes: only when no single node checks every conflict.
+![Two columns. Replicate copies the data. It buys durability, availability, and read scaling, and it puts consistency at risk, because a copy can be stale. Consistency is kept by read routes: ask the node that decides writes, or wait for the copy to catch up. Read routes sit at no joint, so they are outside this post. Split shards the data. It buys write scaling and data size, and a failure stays in one slice. It puts isolation at risk, because a transaction can span slices. Isolation is kept by validation, which checks each item's conflicts in one place, at the validation joint. Where that place sits decides whether splitting still scales writes](/assets/db-cuts/01b-three-choices.svg)
 
 Each choice sits at one of the engine's joints. Sharding splits the data at the **split joint**: the interface where each request is routed to the node that owns its slice of the data. Above it, every node sees the whole database. Below it, each slice has one owner. Writes are replicated at the **replication joint**: the interface where a write leaves the node that decides it, for its replicas. Conflicts are checked at the **validation joint**: the interface where every access the isolation level cares about must pass.
 
@@ -90,15 +85,22 @@ A higher replication joint repeats more work on each replica, but it usually tie
 
 [^engine-log]: The engine sets the usual choice, not a hard limit. Postgres also offers logical replication, and Aurora MySQL ships physical redo to its storage instead of the binlog.
 
-Designs also differ in who must acknowledge a write before it commits:[^ack]
+Replication also raises questions that cut across the copies rather than through the stack: how many copies must hold a write before it commits, and which copy a read reaches. They set durability and consistency, but they don't move any joint, so this post sets them aside.[^four-questions] One result matters here: a replica can lag the node that decides writes. So replicas scale only the reads that can tolerate some lag. A read that must see the latest write either asks that node, or waits until its replica has caught up.
 
-- **Asynchronous:** the primary commits alone. This is the default in Postgres and MySQL. A failover can lose the last few commits.
-- **Semi-synchronous:** the primary waits for at least one replica. Examples are MySQL's semi-sync and a Postgres primary with one synchronous standby.
-- **Quorum:** the primary waits for a majority, or for k of n replicas. CockroachDB waits for a Raft majority, and Aurora for four of six storage copies.
+[^four-questions]: Replication raises four questions, and only the first sits at a joint:
 
-[^ack]: Designs also differ in what a replica acknowledges: that it received the write, flushed it to disk, or applied it. Postgres lets you choose with `synchronous_commit` (`remote_write`, `on`, or `remote_apply`). Only an applied write is visible to a client that reads from the replica.
+    1. **What crosses to the replicas?** Pages, objects, rows, or transactions. That is the replication joint.
+    2. **Who orders the writes, if anyone?** One leader, a quorum, or nobody, when writes merge. In a design that decides, the decider fixes the order, as [rule 1](#how-the-three-choices-fit-together) requires.
+    3. **How many copies must hold a write before it commits?** Out of N copies, primary included, that number is the *write quorum*, which Paxos calls Q2. With enough copies, a failover or a read is sure to find the write:
+        - *Asynchronous (Q2 = 1):* the primary commits alone. This is the default in Postgres and MySQL, and a failover can lose the last few commits.
+        - *Semi-synchronous (Q2 = 2):* the primary waits for one replica, as in MySQL's semi-sync or a Postgres primary with one synchronous standby.
+        - *Quorum (Q2 = a majority, or any k of N):* CockroachDB waits for a Raft majority, and Aurora for four of six storage copies.
+        - *All (Q2 = N):* chain replication commits a write once it reaches the tail of the chain, and Kafka with `acks=all` waits for every replica in a partition's in-sync set. One failed replica blocks every write until a separate service, such as Kafka's controller, removes it.
 
-Unless it acknowledges only applied writes, a replica can lag the primary. So replicas scale only the reads that can tolerate some lag. A read that must see the latest write either asks the node that decides writes, or waits until its replica has caught up.
+        What a replica acknowledges matters too: that it received the write, flushed it to disk, or applied it. Postgres lets you choose with `synchronous_commit` (`remote_write`, `on`, or `remote_apply`). Only an applied write is visible to a client that reads from the replica.
+    4. **Which failures stall the group until someone detects them?** Under Raft, the leader's. When every write must reach every replica, any replica's. The survivors carry on through every other failure.
+
+    Questions 2 to 4 play out inside each replica group, which this post treats as one decider. They set what a group costs, how it fails, and how fresh its reads are, but not where it sits in the stack.
 
 ### Splitting: where data divides
 
@@ -213,15 +215,19 @@ The figure gathers where each design keeps its locks, cache, and log, grouped by
 
 #### Ordering: a time but no place
 
-Ordering picks each transaction's commit version. It needs no joint, so [the grid at the end](#conclusion-the-whole-picture) draws it as a purple strip across every layer, at the moment the version is fixed. What differs between designs is when that moment comes, relative to validation. In [Miller's][miller-decomposing] words: "When validation happens after ordering, it checks to see if the assigned order is valid. When validation happens before ordering, it provides a range of acceptable commit versions, and the ordering step chooses one of them." That gives three cases:
+Ordering picks each transaction's commit version. It needs no joint, so [the grid at the end](#conclusion-the-whole-picture) draws it as a purple strip across every layer. Designs differ only in when it happens, relative to validation:[^miller-order]
 
-- **Validate, then order.** Most designs work this way. Locks already settle the order of any two conflicting transactions, because the second must wait until the first releases its locks. So any version picked while the locks are still held agrees with that order. A Postgres or MySQL primary, or [Aurora's](#aurora-the-log-is-the-database) writer, assigns the commit an LSN, and Oracle RAC assigns it an SCN. CockroachDB and Spanner validate in a way that also bounds the version, and in [CockroachDB](#cockroachdb-every-range-decides-for-itself) the version can even move after validation, which must then run again.
-- **Order, then validate, and abort on a conflict.** [DSQL](#dsql-every-layer-its-own-fleet) picks a commit time first, and its adjudicators then check whether that time is still valid. FoundationDB works the same way: its sequencer hands out the commit version, and its resolvers then check it.
-- **Order, then validate, with nothing to reject.** [Calvin](#calvin-the-log-comes-first) fixes the order before anything runs, so validation can only enforce it. That is why, in Calvin, the order decides.
+- **Validate, then order.** Most designs work this way. Locks already settle the order of conflicting transactions, so any version picked while they are held agrees with it. A Postgres or MySQL primary, or [Aurora's](#aurora-the-log-is-the-database) writer, assigns the commit an LSN. In [CockroachDB](#cockroachdb-every-range-decides-for-itself), validation can move the version, and must then run again.
+- **Order, then validate, and abort on a conflict.** [DSQL](#dsql-every-layer-its-own-fleet) and FoundationDB pick a commit version first, then check whether it is still valid.
+- **Order, then validate, with nothing to reject.** [Calvin](#calvin-the-log-comes-first) fixes the order before anything runs, so the order decides.
+
+[^miller-order]: In [Miller's][miller-decomposing] words: "When validation happens after ordering, it checks to see if the assigned order is valid. When validation happens before ordering, it provides a range of acceptable commit versions, and the ordering step chooses one of them." Spanner bounds its version the way CockroachDB does: its coordinator must pick a commit timestamp after every participant's prepare timestamp. Oracle RAC assigns each commit an SCN, as Postgres assigns an LSN.
 
 Ordering never changes which joint a design picks. It changes what validation does: bound a version picked later, confirm a version picked in advance, or enforce it.
 
 ## How the three choices fit together
+
+> *This section works out the rules that tie the three choices together. To see what the choices mean for an application, skip to [the conclusion](#conclusion-the-whole-picture).*
 
 Whether anyone must decide sets which rules apply. A no-decider design needs neither rule below, because its writes merge in any order. Every other design needs both.
 
@@ -339,8 +345,19 @@ Aurora DSQL keeps Postgres's SQL engine but replaces everything beneath it with 
 Every design in this post comes down to three choices: [where it splits](#splitting-where-data-divides), [where it replicates](#replication-where-data-is-copied), and [where it validates](#validation-where-accesses-meet). To place a design this post doesn't cover, ask three questions:
 
 1. What interface reaches a slice of the data: SQL, keys, records, or pages? That is its split joint.
-2. What does a replica receive: pages, objects, rows, or transactions? That is its replication joint.
+2. What interface reaches a replica: transactions, rows, objects, or pages? That is its replication joint.
 3. Must anyone decide, and if so, where are conflicts checked? That is its validation joint, if it has one. If one node keeps the locks, cache, and log for the whole database, the design has one writer, however many machines it spans.
+
+The answer to who decides predicts most of what an application sees:
+
+| Who decides | Writers | Do writes scale with nodes? | Who sees the shards | What contention costs | Commit across slices |
+| --- | --- | --- | --- | --- | --- |
+| Single-decider | one | no | nobody | waits, inside one node | none needed |
+| Owner-decider | one per slice | yes, if writes spread out | the schema (routed shards), or only the engine (ranges) | waits or aborts, in each slice | 2PC, or parallel commits |
+| Separate-decider | many | yes, as far as the decider scales | nobody | aborts (DSQL, FoundationDB), or waits (Calvin) | hidden from the application: the deciders cover it |
+| No-decider | any | yes | the schema, in Cassandra's partition keys | nothing, but concurrent updates can overwrite each other | none needed |
+
+How much work each replica repeats depends on the replication joint instead. The higher it sits, the more each replica redoes: from rebuilding pages, below the buffer pool, to running every transaction again, above SQL.
 
 The figure below places every design in space and time: where it splits, validates, and replicates, in what sequence, and when the transaction executes. Calvin's grid also marks when it orders, because in Calvin the order decides. Where all three choices fall on one joint, as in CockroachDB and DSQL, only the sequence tells the designs apart. Where two designs share a sequence, as Aurora and Oracle RAC do, only the joints do.
 

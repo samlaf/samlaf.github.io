@@ -1,4 +1,4 @@
-"""Generate figures 02, 03, 04, and 07 through 13 for the "Carving a database at its joints" post.
+"""Generate figures 01b, 02, 03, 04, and 07 through 13 for the "Carving a database at its joints" post.
 
 Run `python3 assets/db-cuts/gen_figs.py`; it writes the SVGs next to itself.
 The other SVGs in this folder are drawn by hand or elsewhere.
@@ -75,6 +75,70 @@ def joints_map():
         svg.text(x0 - 15, y + 12, fam_ex, 10.5, fill=DIM, anchor="end")
         svg.text(x1 + 15, y - 3, log, 12, 600, anchor="start")
         svg.text(x1 + 15, y + 12, log_ex, 10.5, fill=DIM, anchor="start")
+    return svg.render()
+
+
+def three_choices():
+    c = [200, 560]
+    bw = 280
+    bx = [x - bw / 2 for x in c]
+    y_mech, y_buys, y_risk, y_keep = 92, 140, 246, 354
+    svg = Svg(760, 462,
+              "Two columns. Replicate copies the data. It buys durability, availability, and read scaling, and it "
+              "puts consistency at risk, because a copy can be stale. Consistency is kept by read routes: ask the "
+              "node that decides writes, or wait for the copy to catch up. Read routes sit at no joint, so they "
+              "are outside this post. Split shards the data. It buys write scaling and data size, and a failure "
+              "stays in one slice. It puts isolation at risk, because a transaction can span slices. Isolation is "
+              "kept by validation, which checks each item's conflicts in one place. Where that place sits decides "
+              "whether splitting still scales writes.")
+    svg.header("What each choice buys, and what it puts at risk",
+               ["Replication and splitting each buy something, and each puts a promise to the application at risk.",
+                "Validation keeps one of those promises. Read routes keep the other, at no joint."])
+    svg.add('<defs><marker id="ar-dim" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" '
+            f'orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="{DIM}"/></marker></defs>')
+
+    def arrow(d, dashed=False):
+        dash = ' stroke-dasharray="5 3"' if dashed else ""
+        svg.add(f'<path d="{d}" fill="none" stroke="{DIM}" stroke-width="1.5"{dash} marker-end="url(#ar-dim)"/>')
+
+    def titled(x, y, h, title, lines, stroke=FG, dashed=False, title_fill=FG, last_dim=False):
+        dash = ' stroke-dasharray="5 3"' if dashed else ""
+        svg.rect(x, y, bw, h, WHITE, stroke, 6, dash)
+        svg.text(x + bw / 2, y + 21, title, 13.5, 600, title_fill)
+        for i, ln in enumerate(lines):
+            dim = last_dim and i == len(lines) - 1
+            svg.text(x + bw / 2, y + 39 + 15 * i, ln, 11, 400, DIM if dim else FG)
+
+    mechs = [("Replicate", "copies the data", ["Buys durability, availability,", "and read scaling"]),
+             ("Split", "shards the data", ["Buys write scaling and data size;", "a failure stays in one slice"])]
+    for x, (title, sub, buys) in zip(bx, mechs):
+        svg.rect(x, y_buys - 6, bw, 52, STORE, None, 6)
+        svg.rect(x, y_mech, bw, 48, WHITE, FG, 6)
+        svg.text(x + bw / 2, y_mech + 21, title, 13.5, 600)
+        svg.text(x + bw / 2, y_mech + 38, sub, 11, fill=DIM)
+        for i, ln in enumerate(buys):
+            svg.text(x + bw / 2, y_buys + 18 + 15 * i, ln, 11)
+
+    risks = [("Consistency", ["a copy can be stale"]), ("Isolation", ["a transaction can span slices"])]
+    for x, xc, (title, lines) in zip(bx, c, risks):
+        arrow(f"M{xc} {y_buys + 46}V{y_risk - 2}")
+        svg.text(xc + 8, (y_buys + 46 + y_risk) / 2 + 4, "puts at risk", 10.5, fill=DIM, anchor="start")
+        titled(x, y_risk, 52, title, lines)
+        arrow(f"M{xc} {y_keep}V{y_risk + 54}")
+        svg.text(xc + 8, (y_risk + 52 + y_keep) / 2 + 4, "kept by", 10.5, fill=DIM, anchor="start")
+
+    titled(bx[0], y_keep, 82, "Read routes",
+           ["ask the node that decides writes,", "or wait for the copy to catch up", "no joint: outside this post"],
+           stroke=LINE, dashed=True, title_fill=DIM, last_dim=True)
+    titled(bx[1], y_keep, 82, "Validate",
+           ["checks each item's conflicts", "in one place", "at the validation joint"], last_dim=True)
+
+    # Validation feeds back into what splitting buys: write scaling holds only if no one node checks every conflict.
+    right, rail = bx[1] + bw, bx[1] + bw + 28
+    arrow(f"M{right} {y_keep + 41}H{rail}V{y_buys + 20}H{right + 2}", dashed=True)
+    ty = (y_keep + 41 + y_buys + 20) / 2
+    svg.add(f'<text x="{rail + 14}" y="{ty}" text-anchor="middle" font-size="10.5" font-weight="400" '
+            f'fill="{DIM}" transform="rotate(90 {rail + 14} {ty})">sets whether splitting scales writes</text>')
     return svg.render()
 
 
@@ -733,7 +797,7 @@ def calvin():
 
 
 out = sys.argv[1] if len(sys.argv) > 1 else os.path.dirname(os.path.abspath(__file__))
-for name, fig in [("02-two-sequences", two_sequences), ("03-joints-map", joints_map),
+for name, fig in [("01b-three-choices", three_choices), ("02-two-sequences", two_sequences), ("03-joints-map", joints_map),
                   ("04-replication-paths", replication_paths),
                   ("07-decision-tree", decision_tree), ("08-state-placement", state_placement),
                   ("09-cockroachdb", cockroachdb), ("10-aurora", aurora), ("11-dsql", dsql),

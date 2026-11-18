@@ -14,7 +14,11 @@ date:   2026-11-16
 
 Working title. Part 4 keeps "You could have invented SMR" as its heading.
 
-**Thesis:** this post is about safety: which results an operation may return. Part 1 covered liveness. Isolation and consistency are separate axes, and every system answers both. Safety alone is free, so each rung's price is the liveness it gives up. Consistency doesn't need consensus; isolation does. Real-time order costs a quorum round or a clock bound. Atomic read-modify-write is what forces agreement. Once you have consensus, you can build any object, and the construction is state machine replication (SMR).
+**Thesis:** consistency needs overlap. Isolation needs agreement.
+
+Agreement is overlap plus a promise. The overlap (every leader-change quorum meets every write quorum) lets a new leader learn every past decision. The promise (ignore older leaders) stops two leaders from deciding at once. A register needs only the overlap, because two concurrent writes don't have to exclude each other.
+
+This post is about safety: which results an operation may return. Part 1 covered liveness. Isolation and consistency are separate axes, and every system answers both. Safety alone is free, so each rung's price is the liveness it gives up. A read that overlaps every write quorum sees the latest write, so even a linearizable register needs only a quorum. A read-modify-write needs consensus, on one object (compare-and-swap) or on many (any isolation level that prevents lost update). Real-time order costs a quorum round or a clock bound. Atomic read-modify-write is what forces agreement. Once you have consensus, you can build any object, and the construction is state machine replication (SMR).
 
 **Scope:** this post owns all the theory: the two axes, their definitions and anomalies, how named levels pair up, and what coordination each rung needs. What each rung costs a read in latency (Attiya and Welch's bounds) stays in the reads post. Other posts link here instead of re-deriving it:
 
@@ -113,7 +117,7 @@ Snapshot isolation has the same weak, strong, and strong session variants.
 - The chart's colors are Jepsen's availability classes: blue is totally available, orange is sticky available, pink is unavailable. The tiers split pink in two. Linearizable and sequential registers need only a quorum. Every pink isolation level prevents lost update, so it needs consensus.
 - Why tier 2 needs no consensus: message passing with a majority alive has the power of registers. ABD builds a register from messages, and registers can carry messages. See the [shared register constructions](https://en.wikipedia.org/wiki/Shared_register). So tier 2 is exactly what registers can do.
 - CAP vs FLP is about the failure model, not client vs server. CAP allows a partition of any size, so every live node must answer. FLP allows minority crashes. ABD sits between: impossible under CAP, fine under FLP. The progress post defines both liveness terms. See [Brooker, "Availability and availability"](https://brooker.co.za/blog/2018/02/25/availability-liveness.html).
-- Tier 1 = the carving post's no-decider (CALM).
+- Tier 1 is where CALM and invariant confluence live: see [When the application needs less](#when-the-application-needs-less). It is also the carving post's no-decider.
 - Sources: Bailis et al., Highly Available Transactions (VLDB 2014); Jepsen's consistency models map.
 
 ## Part 3: Why isolation needs consensus
@@ -142,6 +146,14 @@ Snapshot isolation has the same weak, strong, and strong session variants.
 
 - Linearizability is a correctness condition. The object type decides whether you need consensus.
 - A linearizable register needs no consensus. A linearizable CAS does.
+- [Bailis][bailis-lin-ser] sorts the two conditions by object count and operation count: linearizability is one operation on one object, serializability is many operations on many objects. But those counts depend on the level you look at. A write to a 100 MiB file is one operation on one file, or thousands of writes to thousands of pages. Bailis says as much: linearizability is strict serializability where each transaction is one operation on one object. The split that decides consensus is a different one: does an operation's answer depend on the order of concurrent operations?
+
+  | | One object | Many objects |
+  | --- | --- | --- |
+  | Blind writes and reads | linearizable register: a quorum, no consensus (ABD) | read atomic: no coordination at all ([RAMP][ramp]) |
+  | Read-modify-write | compare-and-swap: consensus | snapshot isolation, serializable: consensus |
+
+- Atomic writes to many objects need no consensus: RAMP makes a write to many partitions visible all at once, without coordination. What forces consensus is reading, then writing based on what you read. So serializability is CAS generalized to many objects. A transaction is a read-modify-write on the whole database, and a CAS is a transaction of one object.
 - Gryff runs both paths in one object (link the replication post's operation axis).
 - Chain replication: the head orders every update, so it is SMR and can do CAS. The consensus sits in the master. See [Murat, "Is this consensus?"](https://muratbuffalo.blogspot.com/2019/06/is-this-consensus.html).
 
@@ -155,6 +167,14 @@ Snapshot isolation has the same weak, strong, and strong session variants.
   - quorum replication: only gives registers
   - timestamp ordering: one owner per item; replicating the owner needs consensus
 - Strictness (real-time order) is a separate cost: clocks with commit wait, a timestamp oracle, or a leader. Link the reads post. [Abadi 2018](https://dbmsmusings.blogspot.com/2018/09/newsql-database-systems-are-failing-to.html) covers clock-based systems that fail to be strict.
+
+### When the application needs less
+
+- An isolation level stands in for what the application needs. Serializability coordinates on every conflict, whether or not any rule of the application depends on it.
+- CALM ([Hellerstein and Alvaro][calm], CACM 2020): a program has a consistent implementation without coordination exactly when it is monotonic, meaning new input never takes back an earlier output. Adding to a set is monotonic. "This name is free" is not: a later write can make it false.
+- Invariant confluence ([Bailis et al.][iconfluence], VLDB 2015) asks the same question of a database's transactions. They need coordination only if running them on separate copies, then merging, could break one of the application's invariants. "Each ID is unique" needs coordination. "Each order points to an existing customer" doesn't, as long as customers are only added, never deleted. Bailis et al. found that most of TPC-C's invariants need none.
+- Escrow sits between the two. "A balance stays at or above zero" isn't confluent in general: two concurrent debits can overdraw it. But it is while the balance is far from zero. Split the slack among the replicas, and each one debits its share alone. The [replication post's operation axis](/programming/replication-in-four-cells.html#operation-axis-pay-for-order-only-when-needed) covers escrow and its relatives.
+- So the slogan has a footnote of its own: isolation needs agreement, but the application may need less than isolation. Coordination follows the invariants, not the isolation level.
 
 ### CAS is universal, but doesn't compose
 
@@ -203,6 +223,9 @@ Each level strictly contains the one before: linearizability ⊂ set-linearizabi
 [relaxed-queues]: https://arxiv.org/abs/2005.05427 "Relaxed Queues and Stacks from Read/Write Operations"
 [netys-talk]: https://www.youtube.com/watch?v=MbHOu5EHgsE "A Snapshot-Based Introduction to the Linearizability Hierarchy"
 [bailis-lin-ser]: http://www.bailis.org/blog/linearizability-versus-serializability/ "Linearizability versus Serializability"
+[ramp]: https://dl.acm.org/doi/10.1145/2588555.2588562 "Scalable Atomic Visibility with RAMP Transactions"
+[calm]: https://arxiv.org/abs/1901.01930 "Keeping CALM: When Distributed Consistency Is Easy"
+[iconfluence]: https://www.vldb.org/pvldb/vol8/p185-bailis.pdf "Coordination Avoidance in Database Systems"
 [jepsen-serializable]: https://jepsen.io/consistency/models/serializable "Jepsen: Serializability"
 [jepsen-sequential]: https://jepsen.io/consistency/models/sequential "Jepsen: Sequential Consistency"
 [terry-baseball]: https://dl.acm.org/doi/10.1145/2500500 "Replicated Data Consistency Explained Through Baseball"
