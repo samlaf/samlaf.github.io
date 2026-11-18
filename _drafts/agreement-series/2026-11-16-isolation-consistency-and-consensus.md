@@ -92,6 +92,14 @@ Snapshot isolation has the same weak, strong, and strong session variants.
 - The names fight the grid. [etcd][etcd-guarantees] calls its local, possibly stale reads "serializable," which fits one key at any prefix. Abadi's lost-update example shows the other direction. Two linearizable increments can still lose one, because consistency covers single operations, and only isolation makes a read and its write atomic.
 - History: [Cockroach Labs][crdb-iso-cons] add a point about history. A database on one node is linearizable without trying, so for decades serializable quietly meant strict serializable. What is new is serializable without strict.
 
+### Defined from the client's side
+
+- [Vogels][vogels-ec] (2007) splits consistency in two. *Client-side* consistency is what an observer sees: strong, weak, or eventual, plus session guarantees such as read-your-writes, monotonic reads, and monotonic writes. *Server-side* consistency is how updates flow: N replicas, a write quorum W, a read quorum R, and strong consistency when W + R > N.
+- [Crooks, Pu, Alvisi, and Clement][crooks-seeing] (PODC 2017) do the same for isolation. Adya defines each level by a history of low-level reads and writes, which clients never see. Crooks et al. define it by *read states*: the states of the store that a transaction could have read from. Each level becomes a test on those states, and they prove each test equivalent to Adya's definition.
+- The client's view makes write skew obvious. Serializability makes each transaction read from the state just before it commits. Snapshot isolation lets both doctors read the same complete but stale state, so neither sees the other's write.
+- It also strips out implementation details. Several variants of snapshot isolation turn out to be the same level: parallel snapshot isolation equals Adya's PL-2+, and generalized snapshot isolation equals ANSI snapshot isolation. ANSI defines serializable as banning four phenomena, but that equivalence holds only for single-version, lock-based databases. That gap is why Oracle's SERIALIZABLE bans all four and still allows write skew.
+- This post takes the client's side throughout. Part 1 defines every level by what a client can observe. Part 2 asks which server-side mechanism each level costs. This split is between definition and mechanism. It is not the split between CAP and FLP, which is about the failure model (Part 2).
+
 ## Part 2: What each rung costs
 
 - Safety alone is free: a system that never answers never answers wrongly. So the price of a rung is the liveness it gives up, on Part 1's ladder. Each tier keeps less.
@@ -158,7 +166,17 @@ Snapshot isolation has the same weak, strong, and strong session variants.
 ## Part 4: You could have invented SMR
 
 - The universal construction is a log of consensus slots: SMR.
+- Three problems that people mix up. [BFT Broadcast](/blockchain/bft-broadcast.html) covers the first two, and why they are equivalent when fewer than half the nodes fail:
+
+  | Problem | Safety | Liveness | Who takes part |
+  | --- | --- | --- | --- |
+  | Broadcast | every correct node delivers the same message; if the sender is correct, it is the sender's message | every correct node delivers | a fixed set of n nodes, one sender |
+  | Consensus | every correct node decides the same value, and someone proposed it | every correct node decides | a fixed set of n nodes, all propose |
+  | SMR | every correct replica runs the same operations in the same order | every client's operation eventually runs | replicas, plus clients that come and go |
+
+- Consensus decides one value among the nodes. SMR decides a log, slot after slot, and answers clients outside the group. [Decentralized Thoughts](https://decentralizedthoughts.github.io/2019-10-15-consensus-for-state-machine-replication/) states SMR's properties from the client's side and consensus's from the server's side.
 - Atomic broadcast is equivalent to consensus (Chandra and Toueg, 1996).
+- Consensus is the building block for the other agreement problems too. Guerraoui and Schiper's [Generic Consensus Service][generic-consensus] (FTCS 1996; IEEE TSE 2001) builds atomic commitment, group membership, view synchrony, and total order as clients of one consensus service.
 - [Murat on scalable SMR](https://muratbuffalo.blogspot.com/2020/10/scalable-state-machine-replication.html).
 
 ## Epilogue: Beyond linearizability
@@ -193,3 +211,6 @@ Each level strictly contains the one before: linearizability ⊂ set-linearizabi
 [abadi-iso-cons]: https://dbmsmusings.blogspot.com/2019/08/an-explanation-of-difference-between.html "An explanation of the difference between Isolation levels vs. Consistency levels"
 [crdb-iso-cons]: https://www.cockroachlabs.com/blog/db-consistency-isolation-terminology/ "How to talk about consistency and isolation in distributed DBs"
 [etcd-guarantees]: https://etcd.io/docs/v3.5/learning/api_guarantees/ "etcd API guarantees"
+[vogels-ec]: https://www.allthingsdistributed.com/2007/12/eventually_consistent.html "Eventually Consistent"
+[crooks-seeing]: https://www.cs.cornell.edu/lorenzo/papers/Crooks17Seeing.pdf "Seeing is Believing: A Client-Centric Specification of Database Isolation"
+[generic-consensus]: https://gsd.di.uminho.pt/teaching/DC/2009/papers/GS98.pdf "The Generic Consensus Service"

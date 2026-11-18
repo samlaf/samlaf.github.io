@@ -97,7 +97,7 @@ Every cell solves consensus somewhere. The cells differ in where, and how often:
 | **One leader** | Consensus elects the leader, inside the group, once per term. The leader then orders every operation. | An outside service fixes membership and picks the primary. The primary orders every operation. |
 | **No leader** | Either consensus runs per operation (Paxos, EPaxos, Accord), or none runs at all, because timestamps order the writes (ABD). | An outside service fixes membership. Timestamps order the writes (Hermes). |
 
-The right column needs an outside service for a simple reason. Say a group of f + 1 replicas writes to all of them. After one failure, no write can finish until the dead node leaves the group. Agreeing on that change takes consensus, and consensus that tolerates f failures needs 2f + 1 nodes. The survivors are too few, so someone else must decide. Lamport, Malkhi, and Zhou formalize this as [Vertical Paxos][vertical-paxos]: a data path that writes to every replica, steered by a configuration master.
+The right column needs an outside service for a simple reason. Say a group of f + 1 replicas writes to all of them. After one failure, no write can finish until the dead node leaves the group. Agreeing on that change takes consensus, and consensus that tolerates f failures needs 2f + 1 nodes. The survivors are too few, so someone else must decide. Lamport, Malkhi, and Zhou formalize this as [Vertical Paxos][vertical-paxos]: a data path that writes to every replica, steered by a configuration master. Guerraoui and Schiper's [Generic Consensus Service][generic-consensus] (1996) argued for this shape in general: one consensus service, with group membership, atomic commitment, and total order built as its clients.
 
 [Cheap Paxos][cheap-paxos] (Lamport and Massa, 2004) sits between the columns. It runs f + 1 main replicas plus f auxiliary nodes that join only to reconfigure. That is reconfiguration with the membership service moved inside the group.
 
@@ -115,7 +115,11 @@ A replica group uses quorums in three roles, but only two rules constrain them, 
 | Leader change (Q1) | every write quorum | the new leader must learn any write the old one might have committed, and block the old one from finishing more |
 | Read (R) | every write quorum | the read must see the latest committed write |
 
-A leader change is a kind of read. Paxos's first phase reads the accepted values from Q1, and adds one step a plain read skips: each replica promises to ignore older leaders. In the terms of Gifford's [weighted voting][gifford] (1979), Q1 and R are read quorums, and Q2 is the write quorum.
+A leader change is a kind of read. Paxos's first phase reads the accepted values from Q1, and adds one step a plain read skips: each replica promises to ignore older leaders.[^amnesia] In the terms of Gifford's [weighted voting][gifford] (1979), Q1 and R are read quorums, and Q2 is the write quorum.
+
+Song, van Renesse, Schneider, and Dolev ([The Building Blocks of Consensus][building-blocks], 2008) find the same two roles inside Paxos, Chandra–Toueg, and Ben-Or. Each protocol names one quorum system but uses two. One lets a new round find any value an earlier round may have decided. The other keeps a single round from accepting two values. In Paxos, that second system is the leader alone.
+
+[^amnesia]: Intersection only helps if the shared node remembers. A replica whose disk loses or corrupts its state can answer a new leader as if it never accepted the write, or never made its promise. That is a crash fault that acts like a Byzantine one: the replica tells two leaders different things, at different times. Most crash-tolerant protocols assume the disk never lies. [Protocol-Aware Recovery][par] (Alagappan et al., FAST 2018) shows what breaks when it does.
 
 [Flexible Paxos][flexible-paxos] (Howard, Malkhi, and Spiegelman, 2016) showed that the two must intersect only each other: Q1 + Q2 > N. Majorities for both is one choice among many:
 
@@ -198,7 +202,9 @@ Byzantine protocols have the same pattern. [Ditto][ditto] (Gelashvili et al., 20
 
 ### Quorum axis: a bigger quorum for fewer rounds
 
-A protocol can decide in fewer rounds if more replicas answer. [Fast Paxos][fast-paxos] decides in one round with about three quarters of the replicas, and falls back to two rounds with a majority. Solana's [Alpenglow][alpenglow] does the same with stake. Its fast path finalizes a block after one round of votes from 80% of stake. Its fallback takes two rounds at 60% each. Any 80% quorum and any 60% quorum overlap, because 80 + 60 > 100, so the two paths can never finalize conflicting blocks. Both run at once, and finality comes from whichever finishes first.
+A protocol can decide in fewer rounds if more replicas answer. [Fast Paxos][fast-paxos] decides in one round with about three quarters of the replicas, and falls back to two rounds with a majority.[^one-step] Solana's [Alpenglow][alpenglow] does the same with stake. Its fast path finalizes a block after one round of votes from 80% of stake. Its fallback takes two rounds at 60% each. Any 80% quorum and any 60% quorum overlap, because 80 + 60 > 100, so the two paths can never finalize conflicting blocks. Both run at once, and finality comes from whichever finishes first.
+
+[^one-step]: In 1997, Guerraoui and Schiper conjectured that no consensus protocol decides in one communication step, even when nothing fails. Their argument: a node that receives the leader's value can't know whether the others received it too ([Consensus: the Big Misunderstanding][big-misunderstanding]). The way out skips the leader. Every node broadcasts its own value, and a node decides when enough of them match. Brasileiro et al. ("Consensus in One Communication Step," 2001) do this when every node proposes the same value, at the price of tolerating fewer than n/3 crashes.
 
 The price follows a known rule. To decide in one round while e of n replicas fail, you need extra replicas:
 
@@ -230,7 +236,7 @@ The limits are not all the same kind. FLP and Herlihy's result are impossibility
 
 The switch from fast path to fallback is where hybrids break, and Miller's axis applies to the switch itself. There are three ways to switch:
 
-- **On a timeout.** Raft's election, a PBFT view change, Zyzzyva's client. This is detection, so it inherits reconfiguration's problems: too short a timeout causes false switches, and too long a timeout stalls.
+- **On a timeout.** Raft's election, a PBFT view change, Zyzzyva's client. This is detection, so it inherits reconfiguration's problems: too short a timeout causes false switches, and too long a timeout stalls. [Guerraoui and Schiper][big-misunderstanding] made the same point in 1997, about a sequencer with a 30-second timeout. Its crash means 30 seconds of blackout, and a shorter timeout means more false suspicions. Once false suspicions are common, the network is effectively asynchronous, and FLP applies.
 - **By aborting and handing off.** [Abstract][abstract] (Aublin et al., "The Next 700 BFT Protocols," 2015) builds protocols from instances that can abort and hand their state to the next.
 - **By running both at once.** Alpenglow counts each vote toward both paths. QuePaxa comes close with hedging. No one has to detect a failure, so this masks it.
 
@@ -273,6 +279,10 @@ Raft is the top-left cell, with a timeout as its switch. Miller calls its one un
 22. [Revisiting Optimal Resilience of Fast Byzantine Consensus][kuznetsov] — Kuznetsov, Tonkikh, Zhang, PODC 2021; 5f − 1 suffices
 23. [Zyzzyva: Speculative Byzantine Fault Tolerance][zyzzyva] — Kotla et al., SOSP 2007
 24. [The Next 700 BFT Protocols][abstract] — Aublin et al., TOCS 2015; Abstract, composable protocol instances
+25. [The Building Blocks of Consensus][building-blocks] — Song, van Renesse, Schneider, Dolev, ICDCN 2008; Paxos, Chandra–Toueg, and Ben-Or from one skeleton, each with two quorum systems
+26. [The Generic Consensus Service][generic-consensus] — Guerraoui, Schiper, IEEE TSE 2001 (FTCS 1996); agreement protocols as clients of one consensus service
+27. [Consensus: the Big Misunderstanding][big-misunderstanding] — Guerraoui, Schiper, FTDCS 1997; why timeouts don't escape FLP
+28. [Protocol-Aware Recovery for Consensus-Based Storage][par] — Alagappan et al., FAST 2018; what breaks when a replica's disk forgets
 
 [miller-spectrum]: https://transactional.blog/blog/2024-data-replication-design-spectrum "Data Replication Design Spectrum"
 [miller-raft]: https://transactional.blog/talk/enough-with-all-the-raft "Enough With All The Raft"
@@ -280,6 +290,7 @@ Raft is the top-left cell, with a timeout as its switch. Miller calls its one un
 [vertical-paxos]: https://lamport.azurewebsites.net/pubs/vertical-paxos.pdf "Vertical Paxos and Primary-Backup Replication"
 [cheap-paxos]: https://lamport.azurewebsites.net/pubs/web-dsn-submission.pdf "Cheap Paxos"
 [gifford]: https://doi.org/10.1145/800215.806583 "Weighted Voting for Replicated Data"
+[par]: https://www.usenix.org/conference/fast18/presentation/alagappan "Protocol-Aware Recovery for Consensus-Based Storage"
 [flexible-paxos]: https://arxiv.org/abs/1608.06696 "Flexible Paxos: Quorum Intersection Revisited"
 [fast-paxos]: https://www.microsoft.com/en-us/research/publication/fast-paxos/ "Fast Paxos"
 [gryff]: https://www.usenix.org/conference/nsdi20/presentation/burke "Gryff: Unifying Consensus and Shared Registers"
@@ -298,5 +309,8 @@ Raft is the top-left cell, with a timeout as its switch. Miller calls its one un
 [kuznetsov]: https://arxiv.org/abs/2102.12825 "Revisiting Optimal Resilience of Fast Byzantine Consensus"
 [zyzzyva]: https://doi.org/10.1145/1294261.1294267 "Zyzzyva: Speculative Byzantine Fault Tolerance"
 [abstract]: https://doi.org/10.1145/2658994 "The Next 700 BFT Protocols"
+[building-blocks]: https://www.cs.cornell.edu/home/rvr/papers/icdcn08.pdf "The Building Blocks of Consensus"
+[generic-consensus]: https://gsd.di.uminho.pt/teaching/DC/2009/papers/GS98.pdf "The Generic Consensus Service"
+[big-misunderstanding]: https://doi.org/10.1109/FTDCS.1997.644722 "Consensus: the Big Misunderstanding"
 
 ## Footnotes <!-- omit in toc -->

@@ -69,6 +69,9 @@ Examples:
 - In message passing, the same idea is called resilience: the number of crashes a protocol tolerates. Wait-freedom does make sense there, given a failure bound. ABD's reads and writes are wait-free as long as a majority is alive.
 - Where termination fits: Paxos and Raft terminate only under partial synchrony. In a fully asynchronous network, Paxos is merely obstruction-free (FLP).
 - CAP's availability is wait-freedom for every live node under any partition. FLP's termination allows only minority crashes. The theory post uses this distinction; define it here. See [Brooker, "Availability and availability"](https://brooker.co.za/blog/2018/02/25/availability-liveness.html).
+- **Timing models are scheduler powers.** In message passing, the scheduler delivers messages. Synchronous: every message arrives within a known bound Δ. Asynchronous: the scheduler may delay any message for any finite time. Partially synchronous ([Dwork, Lynch, and Stockmeyer, 1988](https://groups.csail.mit.edu/tds/papers/Lynch/jacm88.pdf)): the bound holds only after an unknown global stabilization time (GST). So asynchrony is section 1's adversarial scheduler, and partial synchrony is a scheduler that turns fair at a moment no one can see. Parts 2 and 3 use all three terms; define them here.
+- **Links.** All three models assume reliable links: a message between correct nodes arrives, exactly once. Cachin, Guerraoui, and Rodrigues build this from *fair-loss* links, which may drop, duplicate, or reorder. Retransmitting forever gives *stubborn* links, and dropping duplicates gives *perfect* links. TCP does both, while the connection lasts. A MAC on each message, as in TLS, makes them *authenticated* perfect links. [From IPC to RPC](/programming/ipc-to-rpc.html) covers why exactly-once processing still needs deduplication at the ends.
+- Perfect links still can't coordinate an action. Two generals shows it for lossy links. Halpern and Moses (1990) show it for reliable links with no delay bound: common knowledge needs timing.
 
 ## 4. Wait-free for whom?
 
@@ -89,9 +92,13 @@ Examples:
   > As an aside, we note that there is no "obstruction-free hierarchy" comparable to the "wait-free consensus hierarchy": One can solve obstruction-free consensus using only read/write registers by derandomizing randomized wait-free consensus algorithms such as the one in [4].
 
 - Paxos is exactly obstruction-free consensus: a proposer running alone decides, and dueling proposers livelock. Miller's "Paxos livelocks under contention" is this.
-- Two ways to get more:
-  - **A leader.** Chandra, Hadzilacos, and Toueg (1996): Ω, an eventual leader, is the weakest failure detector that solves consensus. Raft's timed elections implement Ω. Obstruction-free code plus a contention manager is the shared-memory version of the same idea.
+- FLP forbids a deterministic protocol that always terminates in an asynchronous network with one crash. There are four ways out, and each gives something up:
+  - **A leader.** Chandra, Hadzilacos, and Toueg (1996): Ω, an eventual leader, is the weakest failure detector that solves consensus. Raft's timed elections implement Ω. Partial synchrony is how real systems build it: after GST, a timeout that keeps growing stops suspecting correct nodes. Guerraoui and Schiper ([Consensus: the Big Misunderstanding](https://doi.org/10.1109/FTDCS.1997.644722), 1997) read the failure detector the same way: not a device to build, but a specification for your timeouts, whose "forever" only has to last "until the problem (e.g., consensus) is solved." Obstruction-free code plus a contention manager is the shared-memory version of the same idea.
   - **Randomness.** Ben-Or (1983); QuePaxa terminates with probability 1 and uses the leader only as a hint.
+  - **A weaker object.** ABD builds a register, not consensus, so it is wait-free while a majority is alive. Part 2 covers why a register needs no agreement.
+  - **Weaker termination.** Bracha's reliable broadcast must terminate only if the sender is correct, or once any correct node delivers. [BFT Broadcast](/blockchain/bft-broadcast.html) covers this ladder.
+- The first two keep consensus and add power. The last two keep the model and solve less.
+- The first two exits are closer than they look. Song, van Renesse, Schneider, and Dolev ([The Building Blocks of Consensus](https://www.cs.cornell.edu/home/rvr/papers/icdcn08.pdf), ICDCN 2008) build Paxos, Chandra–Toueg, and Ben-Or from one skeleton. The protocols differ mainly in who picks each round's proposal: a leader, or every node, at random.
 - Hand off to the 2×2 post's leader axis.
 
 ## 6. Readers that never wait
@@ -105,6 +112,7 @@ Examples:
 
 - Verify the Herlihy–Shavit table, especially clash-free.
 - Verify Chandra–Hadzilacos–Toueg's statement of Ω, and whether the Hadzilacos paper below is it.
+- Verify the Halpern–Moses claim in section 3: common knowledge is unattainable with guaranteed delivery but no delay bound.
 - Wait-free in practice: helping-based queues are rare because they are complex. Is wait-freedom mostly academic?
 - Memory reclamation: the old notes listed epoch-based reclamation as lock-free. Check it: a stalled thread can block every epoch from advancing, so it may only be blocking, unlike hazard pointers.
 
@@ -113,6 +121,8 @@ Examples:
 - Herlihy and Shavit, ["On the Nature of Progress"](https://lrita.github.io/images/posts/datastructure/on-the-nature-of-progress.pdf), OPODIS 2011
 - Herlihy, Luchangco, Moir, ["Obstruction-Free Synchronization: Double-Ended Queues as an Example"](https://cs.brown.edu/people/mph/HerlihyLM03/main.pdf), ICDCS 2003
 - Chandra, Hadzilacos, Toueg, "The Weakest Failure Detector for Solving Consensus," JACM 1996
+- Guerraoui, Schiper, [Consensus: the Big Misunderstanding](https://doi.org/10.1109/FTDCS.1997.644722), FTDCS 1997
+- Song, van Renesse, Schneider, Dolev, [The Building Blocks of Consensus](https://www.cs.cornell.edu/home/rvr/papers/icdcn08.pdf), ICDCN 2008
 - Hunt et al., [ZooKeeper](https://www.usenix.org/legacy/event/atc10/tech/full_papers/Hunt.pdf), USENIX ATC 2010
 - [Brooker, "Availability and availability"](https://brooker.co.za/blog/2018/02/25/availability-liveness.html), 2018
 - Unsorted from the old drafts:

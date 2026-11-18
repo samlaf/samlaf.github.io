@@ -1,7 +1,7 @@
 {
   "type": "excalidraw",
   "version": 2,
-  "source": "https://excalidraw.com",
+  "source": "https://marketplace.visualstudio.com/items?itemName=pomdtr.excalidraw-editor",
   "elements": [
     {
       "id": "OoXcX77FhwI_Efw_2r-bE",
@@ -253,7 +253,8 @@
         "fixedPoint": [
           0.46989607199396194,
           0.5301039280060382
-        ]
+        ],
+        "focus": 0
       },
       "endBinding": {
         "elementId": "9mwEWxYcPCP7A8A7YwwBY",
@@ -261,12 +262,14 @@
         "fixedPoint": [
           0.4588827980106338,
           0.45888279801063453
-        ]
+        ],
+        "focus": 0
       },
       "startArrowhead": "arrow",
       "endArrowhead": "arrow",
       "elbowed": false,
-      "created": 1794525119235
+      "created": 1794525119235,
+      "lastCommittedPoint": null
     },
     {
       "id": "YJQsjc8QmvvpQq6uG9eJ0",
@@ -502,7 +505,8 @@
         "fixedPoint": [
           0.5461441213653616,
           0.4538558786346397
-        ]
+        ],
+        "focus": 0
       },
       "endBinding": {
         "elementId": "RQIYtokYTM0AWGI6-RK8i",
@@ -510,12 +514,14 @@
         "fixedPoint": [
           0.15086948528993158,
           0.28595222087984007
-        ]
+        ],
+        "focus": 0
       },
       "startArrowhead": null,
       "endArrowhead": "arrow",
       "elbowed": false,
-      "created": 1794525119236
+      "created": 1794525119236,
+      "lastCommittedPoint": null
     },
     {
       "id": "EUI7Alz51ZULQxqrXgH3C",
@@ -560,7 +566,8 @@
         "fixedPoint": [
           0.5003612006501715,
           0.500361200650171
-        ]
+        ],
+        "focus": 0
       },
       "endBinding": {
         "elementId": "RQIYtokYTM0AWGI6-RK8i",
@@ -568,12 +575,14 @@
         "fixedPoint": [
           0.13999009918930655,
           0.7469858550061732
-        ]
+        ],
+        "focus": 0
       },
       "startArrowhead": null,
       "endArrowhead": "arrow",
       "elbowed": false,
-      "created": 1794525119236
+      "created": 1794525119236,
+      "lastCommittedPoint": null
     },
     {
       "id": "uAHVmZvbWoqOFVl5zC-VI",
@@ -862,7 +871,8 @@
         "fixedPoint": [
           0.4981488170489439,
           0.4981488170489435
-        ]
+        ],
+        "focus": 0
       },
       "endBinding": {
         "elementId": "WfaD_h47na9l8YZeoKLOm",
@@ -870,12 +880,14 @@
         "fixedPoint": [
           0.8234234791756916,
           0.2922332416867609
-        ]
+        ],
+        "focus": 0
       },
       "startArrowhead": null,
       "endArrowhead": "arrow",
       "elbowed": false,
-      "created": 1794525119236
+      "created": 1794525119236,
+      "lastCommittedPoint": null
     },
     {
       "id": "PoNlY1yoPK51anpnE4qYR",
@@ -960,7 +972,8 @@
         "fixedPoint": [
           0.4372200978530922,
           0.4372200978530929
-        ]
+        ],
+        "focus": 0
       },
       "endBinding": {
         "elementId": "WfaD_h47na9l8YZeoKLOm",
@@ -968,12 +981,14 @@
         "fixedPoint": [
           0.8146481836747324,
           0.7296840417298497
-        ]
+        ],
+        "focus": 0
       },
       "startArrowhead": null,
       "endArrowhead": "arrow",
       "elbowed": false,
-      "created": 1794525119236
+      "created": 1794525119236,
+      "lastCommittedPoint": null
     },
     {
       "id": "xFOPbGZ5sPOif7P_HNWXE",
@@ -1134,7 +1149,8 @@
         "fixedPoint": [
           0.45406017461669945,
           0.4540601746166994
-        ]
+        ],
+        "focus": 0
       },
       "endBinding": {
         "elementId": "nNCfwedlgmXwsDtrLNzgh",
@@ -1142,12 +1158,14 @@
         "fixedPoint": [
           0.5284488890727453,
           0.4715511109272547
-        ]
+        ],
+        "focus": 0
       },
       "startArrowhead": null,
       "endArrowhead": "arrow",
       "elbowed": false,
-      "created": 1794525119236
+      "created": 1794525119236,
+      "lastCommittedPoint": null
     },
     {
       "id": "CxMCDAtqpOMICVjRDcsZI",
@@ -1712,7 +1730,8 @@
       "startArrowhead": "arrow",
       "endArrowhead": "arrow",
       "elbowed": false,
-      "created": 1794525119236
+      "created": 1794525119236,
+      "lastCommittedPoint": null
     },
     {
       "id": "arOvWNTVMjpSOZeKV7RRP",
@@ -1808,7 +1827,8 @@
         "fixedPoint": [
           0.8735708564911374,
           0.900305879985094
-        ]
+        ],
+        "focus": 0
       },
       "endBinding": {
         "elementId": "SNHpBi78CmTRlZgokwmQX",
@@ -1816,12 +1836,14 @@
         "fixedPoint": [
           0.09507632939617142,
           0.09507632939616963
-        ]
+        ],
+        "focus": 0
       },
       "startArrowhead": null,
       "endArrowhead": "triangle",
       "elbowed": false,
-      "created": 1794525119236
+      "created": 1794525119236,
+      "lastCommittedPoint": null
     },
     {
       "id": "oXd0UrRnTMZMar9ZqWNDE",
@@ -1917,7 +1939,8 @@
         "fixedPoint": [
           0.16610424259830717,
           0.16610424259830664
-        ]
+        ],
+        "focus": 0
       },
       "endBinding": {
         "elementId": "wjp2dmOUhAjLfekg6i9gv",
@@ -1925,12 +1948,14 @@
         "fixedPoint": [
           0.8270501248037451,
           0.943360841666507
-        ]
+        ],
+        "focus": 0
       },
       "startArrowhead": null,
       "endArrowhead": "triangle",
       "elbowed": false,
-      "created": 1794525119236
+      "created": 1794525119236,
+      "lastCommittedPoint": null
     },
     {
       "id": "oEsCeI6h5Nqjo_tGIj-LV",
@@ -2018,12 +2043,14 @@
         "fixedPoint": [
           0.39484859033024733,
           0.39484859033024805
-        ]
+        ],
+        "focus": 0
       },
       "startArrowhead": null,
       "endArrowhead": "arrow",
       "elbowed": false,
-      "created": 1794525119236
+      "created": 1794525119236,
+      "lastCommittedPoint": null
     },
     {
       "id": "NuG75pItxo2bnCyo2WbW7",
@@ -2109,7 +2136,8 @@
       "startArrowhead": null,
       "endArrowhead": "arrow",
       "elbowed": false,
-      "created": 1794525119236
+      "created": 1794525119236,
+      "lastCommittedPoint": null
     },
     {
       "id": "UGlVIQxdLmCNO3lq0NKK2",
@@ -2372,7 +2400,8 @@
         "fixedPoint": [
           0.9964284788710879,
           0.5350419446462762
-        ]
+        ],
+        "focus": 0
       },
       "endBinding": {
         "elementId": "z54RiiiE5cc0shWxHe42I",
@@ -2380,12 +2409,14 @@
         "fixedPoint": [
           0.42637763517516025,
           0.5736223648248413
-        ]
+        ],
+        "focus": 0
       },
       "startArrowhead": null,
       "endArrowhead": null,
       "elbowed": false,
-      "created": 1794525119236
+      "created": 1794525119236,
+      "lastCommittedPoint": null
     },
     {
       "id": "T_30aq53CUR6p3fg6czJN",
@@ -2432,7 +2463,8 @@
         "fixedPoint": [
           0.48826556409938765,
           0.511734435900613
-        ]
+        ],
+        "focus": 0
       },
       "endBinding": {
         "elementId": "_YFjasEZywqNnb-wMmiRG",
@@ -2440,12 +2472,14 @@
         "fixedPoint": [
           0.48826556972262625,
           0.4882655697226286
-        ]
+        ],
+        "focus": 0
       },
       "startArrowhead": null,
       "endArrowhead": null,
       "elbowed": false,
-      "created": 1794525119236
+      "created": 1794525119236,
+      "lastCommittedPoint": null
     },
     {
       "id": "gXU9MB3cDs6PhiFotTM8E",
@@ -2492,7 +2526,8 @@
         "fixedPoint": [
           0.9909284161085954,
           0.47133231851816154
-        ]
+        ],
+        "focus": 0
       },
       "endBinding": {
         "elementId": "_YFjasEZywqNnb-wMmiRG",
@@ -2500,12 +2535,14 @@
         "fixedPoint": [
           0.46858993834651075,
           0.5314100616534909
-        ]
+        ],
+        "focus": 0
       },
       "startArrowhead": null,
       "endArrowhead": null,
       "elbowed": false,
-      "created": 1794525119236
+      "created": 1794525119236,
+      "lastCommittedPoint": null
     },
     {
       "id": "EdXSXreiapH70QazVCJhq",
@@ -2552,7 +2589,8 @@
         "fixedPoint": [
           0.4959798379477349,
           0.5040201620522611
-        ]
+        ],
+        "focus": 0
       },
       "endBinding": {
         "elementId": "_KlkRQs-6437oTOJOZ8of",
@@ -2560,12 +2598,14 @@
         "fixedPoint": [
           0.4905314078016845,
           0.4905314078016879
-        ]
+        ],
+        "focus": 0
       },
       "startArrowhead": null,
       "endArrowhead": null,
       "elbowed": false,
-      "created": 1794525119236
+      "created": 1794525119236,
+      "lastCommittedPoint": null
     },
     {
       "id": "nco6pGWdpczkRJTfEaTdS",
@@ -2612,7 +2652,8 @@
         "fixedPoint": [
           0.5224675412750364,
           0.5224675412750381
-        ]
+        ],
+        "focus": 0
       },
       "endBinding": {
         "elementId": "_YFjasEZywqNnb-wMmiRG",
@@ -2620,12 +2661,14 @@
         "fixedPoint": [
           0.35244213251314466,
           0.6475578674868533
-        ]
+        ],
+        "focus": 0
       },
       "startArrowhead": null,
       "endArrowhead": null,
       "elbowed": false,
-      "created": 1794525119236
+      "created": 1794525119236,
+      "lastCommittedPoint": null
     },
     {
       "id": "-8jig5NuhNIojiMGdrnPX",
@@ -2672,7 +2715,8 @@
         "fixedPoint": [
           0.5721976372252819,
           0.42780236277471645
-        ]
+        ],
+        "focus": 0
       },
       "endBinding": {
         "elementId": "z54RiiiE5cc0shWxHe42I",
@@ -2680,12 +2724,14 @@
         "fixedPoint": [
           0.39488097982906406,
           0.394880979829061
-        ]
+        ],
+        "focus": 0
       },
       "startArrowhead": null,
       "endArrowhead": null,
       "elbowed": false,
-      "created": 1794525119236
+      "created": 1794525119236,
+      "lastCommittedPoint": null
     },
     {
       "id": "xgCY2FHMr3Zz3faRkM5NY",
@@ -2731,7 +2777,8 @@
       "startArrowhead": null,
       "endArrowhead": null,
       "polygon": false,
-      "created": 1794525119236
+      "created": 1794525119236,
+      "lastCommittedPoint": null
     },
     {
       "id": "2Xhyt7FWA4NfQcR_2LyvO",
@@ -3048,7 +3095,8 @@
       "startArrowhead": null,
       "endArrowhead": null,
       "polygon": false,
-      "created": 1794525119236
+      "created": 1794525119236,
+      "lastCommittedPoint": null
     },
     {
       "id": "sAalYlnmNnt7jCJlKKSY3",
@@ -3665,13 +3713,15 @@
         "fixedPoint": [
           0.37071745764864394,
           0.6292825423513477
-        ]
+        ],
+        "focus": 0
       },
       "endBinding": null,
       "startArrowhead": null,
       "endArrowhead": "arrow",
       "elbowed": false,
-      "created": 1794525119237
+      "created": 1794525119237,
+      "lastCommittedPoint": null
     },
     {
       "id": "lh3Z-oHZpE9QKF2qSni9T",
@@ -3762,7 +3812,8 @@
       "startArrowhead": null,
       "endArrowhead": "arrow",
       "elbowed": false,
-      "created": 1794525119237
+      "created": 1794525119237,
+      "lastCommittedPoint": null
     },
     {
       "id": "Fw0X2y-e0xcbsGoSdNCYi",
@@ -3853,7 +3904,8 @@
       "startArrowhead": null,
       "endArrowhead": "arrow",
       "elbowed": false,
-      "created": 1794525119237
+      "created": 1794525119237,
+      "lastCommittedPoint": null
     },
     {
       "id": "J873s0UGVGGBb1MXcXWBu",
@@ -3939,7 +3991,8 @@
       "startArrowhead": null,
       "endArrowhead": "arrow",
       "elbowed": false,
-      "created": 1794525119237
+      "created": 1794525119237,
+      "lastCommittedPoint": null
     },
     {
       "id": "66mrU8jjXuLQE9aE7-WFg",
@@ -4076,12 +4129,14 @@
         "fixedPoint": [
           0.17024410475629986,
           0.6932782376749475
-        ]
+        ],
+        "focus": 0
       },
       "startArrowhead": null,
       "endArrowhead": "arrow",
       "elbowed": false,
-      "created": 1794525119237
+      "created": 1794525119237,
+      "lastCommittedPoint": null
     },
     {
       "id": "czguvoJUjpmCksUVCaMED",
@@ -4129,12 +4184,14 @@
         "fixedPoint": [
           0.17465247675526926,
           0.9004147546344551
-        ]
+        ],
+        "focus": 0
       },
       "startArrowhead": null,
       "endArrowhead": "arrow",
       "elbowed": false,
-      "created": 1794525119237
+      "created": 1794525119237,
+      "lastCommittedPoint": null
     },
     {
       "id": "aGKiKpVU-lJz1N0LWRtWS",
@@ -4163,13 +4220,13 @@
       "updated": 1794525119239,
       "link": null,
       "locked": false,
-      "text": "Note that CAP and FLP have different liveness requirements!!\nCAP: wait-freedom\nFLP: eventual progress\nI think this is just the client- vs server-side perspectives?",
+      "text": "Note that CAP and FLP have different liveness requirements!!\nCAP: wait-freedom, for every live node, under any partition\nFLP: eventual progress, with only a minority crashed\nSo they differ in failure model, not client vs server side.",
       "fontSize": 16,
       "fontFamily": 5,
       "textAlign": "left",
       "verticalAlign": "top",
       "containerId": null,
-      "originalText": "Note that CAP and FLP have different liveness requirements!!\nCAP: wait-freedom\nFLP: eventual progress\nI think this is just the client- vs server-side perspectives?",
+      "originalText": "Note that CAP and FLP have different liveness requirements!!\nCAP: wait-freedom, for every live node, under any partition\nFLP: eventual progress, with only a minority crashed\nSo they differ in failure model, not client vs server side.",
       "autoResize": true,
       "lineHeight": 1.25,
       "created": 1794525119237,
@@ -4260,7 +4317,8 @@
       "startArrowhead": null,
       "endArrowhead": "arrow",
       "elbowed": false,
-      "created": 1794525119237
+      "created": 1794525119237,
+      "lastCommittedPoint": null
     },
     {
       "id": "zGCNH1u19SGBUNL6hG6p0",
@@ -4905,12 +4963,14 @@
         "fixedPoint": [
           0.6491125668943932,
           0.6491125668943925
-        ]
+        ],
+        "focus": 0
       },
       "startArrowhead": null,
       "endArrowhead": "arrow",
       "elbowed": false,
-      "created": 1794525119237
+      "created": 1794525119237,
+      "lastCommittedPoint": null
     },
     {
       "id": "wvKoRJwztK1-oEAgF9T8_",
@@ -4956,12 +5016,14 @@
         "fixedPoint": [
           0,
           0.5001
-        ]
+        ],
+        "focus": 0
       },
       "startArrowhead": null,
       "endArrowhead": "arrow",
       "elbowed": false,
-      "created": 1794525119237
+      "created": 1794525119237,
+      "lastCommittedPoint": null
     },
     {
       "id": "CDevthLXZG0pLZhEgHhvM",
@@ -6714,7 +6776,8 @@
       "strokeOptions": {
         "variability": "variable",
         "streamline": 0.5
-      }
+      },
+      "lastCommittedPoint": null
     },
     {
       "id": "PBwHtR9YHjBEiRcMFcZfC",
@@ -6761,7 +6824,8 @@
         "fixedPoint": [
           0.6848059161906479,
           0.21273068395915146
-        ]
+        ],
+        "focus": 0
       },
       "endBinding": {
         "elementId": "AGerTFx5RNJhFrXdMYXzC",
@@ -6769,12 +6833,14 @@
         "fixedPoint": [
           0.1725619027969761,
           0.5336085329299958
-        ]
+        ],
+        "focus": 0
       },
       "startArrowhead": null,
       "endArrowhead": "arrow",
       "elbowed": false,
-      "created": 1794525119237
+      "created": 1794525119237,
+      "lastCommittedPoint": null
     },
     {
       "id": "FsNDiRHe1WOQqcJpEsVGC",
@@ -6923,13 +6989,13 @@
       "updated": 1794525119239,
       "link": null,
       "locked": false,
-      "text": "Note that CAP is a bit of \nan odd bird because it's safety \nis that of SMR, not agreement.",
+      "text": "CAP is an odd bird: its safety\nis a linearizable register,\nwhich needs no consensus (ABD).",
       "fontSize": 16,
       "fontFamily": 5,
       "textAlign": "left",
       "verticalAlign": "top",
       "containerId": null,
-      "originalText": "Note that CAP is a bit of \nan odd bird because it's safety \nis that of SMR, not agreement.",
+      "originalText": "CAP is an odd bird: its safety\nis a linearizable register,\nwhich needs no consensus (ABD).",
       "autoResize": true,
       "lineHeight": 1.25,
       "created": 1794525119237,
@@ -7835,7 +7901,8 @@
         "fixedPoint": [
           0.6226415094339626,
           0.3773584905660373
-        ]
+        ],
+        "focus": 0
       },
       "endBinding": {
         "elementId": "FksQe5QufSOpANEZEczlf",
@@ -7843,7 +7910,8 @@
         "fixedPoint": [
           0.36363636363636315,
           0.3636363636363635
-        ]
+        ],
+        "focus": 0
       },
       "startArrowhead": null,
       "endArrowhead": "arrow",
@@ -7895,7 +7963,8 @@
         "fixedPoint": [
           0.5207667731629393,
           0.47923322683706077
-        ]
+        ],
+        "focus": 0
       },
       "endBinding": {
         "elementId": "RTZMV_7ARhfjy4taCQE3Y",
@@ -7903,7 +7972,8 @@
         "fixedPoint": [
           0.24242424242424276,
           0.7575757575757578
-        ]
+        ],
+        "focus": 0
       },
       "startArrowhead": null,
       "endArrowhead": "arrow",
@@ -7956,7 +8026,8 @@
         "fixedPoint": [
           -0.05500000000000057,
           0.5001
-        ]
+        ],
+        "focus": 0
       },
       "startArrowhead": null,
       "endArrowhead": "arrow",
@@ -8008,7 +8079,8 @@
         "fixedPoint": [
           1,
           0.3375
-        ]
+        ],
+        "focus": 0
       },
       "endBinding": {
         "elementId": "VGXCCMSKLWDRtP7keG3XO",
@@ -8016,7 +8088,8 @@
         "fixedPoint": [
           0,
           0.5001
-        ]
+        ],
+        "focus": 0
       },
       "startArrowhead": null,
       "endArrowhead": "arrow",
@@ -8072,7 +8145,8 @@
         "fixedPoint": [
           1.0526842606939966,
           0.8910731637097584
-        ]
+        ],
+        "focus": 0
       },
       "endBinding": {
         "elementId": "PZ1UPACtYX9uQnwynxs2V",
@@ -8080,7 +8154,8 @@
         "fixedPoint": [
           -0.05,
           0.517748408065799
-        ]
+        ],
+        "focus": 0
       },
       "startArrowhead": null,
       "endArrowhead": "arrow",
@@ -8180,7 +8255,8 @@
         "fixedPoint": [
           0.8371995946650476,
           0.16280040533495282
-        ]
+        ],
+        "focus": 0
       },
       "startArrowhead": null,
       "endArrowhead": null,
@@ -8837,7 +8913,8 @@
         "fixedPoint": [
           0,
           0.5001
-        ]
+        ],
+        "focus": 0
       },
       "startArrowhead": null,
       "endArrowhead": "arrow",
@@ -9247,7 +9324,8 @@
         "fixedPoint": [
           0.08717792324225854,
           0.08717792324225755
-        ]
+        ],
+        "focus": 0
       },
       "startArrowhead": null,
       "endArrowhead": null,
@@ -9299,7 +9377,8 @@
         "fixedPoint": [
           0.4376637713748063,
           0.9158045048642436
-        ]
+        ],
+        "focus": 0
       },
       "endBinding": null,
       "startArrowhead": null,
@@ -9353,7 +9432,8 @@
         "fixedPoint": [
           0.3568304463132155,
           0.3568304463132158
-        ]
+        ],
+        "focus": 0
       },
       "startArrowhead": null,
       "endArrowhead": null,
@@ -9806,7 +9886,8 @@
         "fixedPoint": [
           1,
           0.5001
-        ]
+        ],
+        "focus": 0
       },
       "endBinding": {
         "elementId": "2GVyDL1g7OsvMzLYGAY2F",
@@ -9814,7 +9895,8 @@
         "fixedPoint": [
           0,
           0.5001
-        ]
+        ],
+        "focus": 0
       },
       "startArrowhead": null,
       "endArrowhead": "arrow",
@@ -9902,14 +9984,50 @@
       "created": 1794525119237,
       "labelPosition": null,
       "baseFontSize": null
+    },
+    {
+      "id": "KgEIuAEpUwcG9W5jnBKlJ",
+      "type": "text",
+      "x": 748.6587997799165,
+      "y": -1910.402356440421,
+      "width": 887.5594482421875,
+      "height": 50,
+      "angle": 0,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "transparent",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "groupIds": [],
+      "frameId": null,
+      "index": "b2S",
+      "roundness": null,
+      "seed": 1732790779,
+      "version": 185,
+      "versionNonce": 163523835,
+      "isDeleted": false,
+      "boundElements": null,
+      "updated": 1794981593624,
+      "link": null,
+      "locked": false,
+      "text": "TODO (idea): could potentially use this to create a \"carve a blockchain node at its joints\"\n                  similar to the database one we have... not sure how interesting though.",
+      "fontSize": 20,
+      "fontFamily": 5,
+      "textAlign": "left",
+      "verticalAlign": "top",
+      "containerId": null,
+      "originalText": "TODO (idea): could potentially use this to create a \"carve a blockchain node at its joints\"\n                  similar to the database one we have... not sure how interesting though.",
+      "autoResize": true,
+      "lineHeight": 1.25
     }
   ],
   "appState": {
     "gridSize": 20,
     "gridStep": 5,
     "gridModeEnabled": false,
-    "viewBackgroundColor": "#ffffff",
-    "lockedMultiSelections": {}
+    "viewBackgroundColor": "#ffffff"
   },
   "files": {
     "6757cd5b7eda812e589fc717dd365e13b7bb6b5c715088ccf6f34e133ef1c348c5a5457d57f512f64a5071bb74797992": {
