@@ -62,6 +62,8 @@ His follow-up talk, [Enough With All The Raft][miller-raft], makes two points I 
 
 **Availability is a latency target.** A request is unavailable when it takes longer than its deadline. If failover finishes inside the deadline, nothing went down. In his later talk, [Please Implement A Quorum Database][miller-quorum], he puts it more bluntly: "availability is just a latency SLO."
 
+This is a different property from CAP's availability. CAP asks only that every request eventually gets an answer, however late. That is liveness: no finite wait refutes it. A deadline makes it safety: one slow request refutes it. Raft and leaderless Paxos tie on CAP's version, because both answer once an election or a retry finishes. They differ on the deadline version. Raft misses any deadline shorter than its election timeout, and a quorum that masks the failure doesn't. That is why CAP can't rank designs that all choose consistency, and Miller's axis can. [Brooker][brooker-availability] draws the same line between the two meanings of availability.
+
 He ends with two rules:
 
 > Use Quorums or Raft if you can't have any other supporting service to help with group membership.
@@ -336,5 +338,6 @@ Raft is the top-left cell, with a timeout as its switch. Miller calls its one un
 [big-misunderstanding]: https://doi.org/10.1109/FTDCS.1997.644722 "Consensus: the Big Misunderstanding"
 [paxos-commit]: https://lamport.azurewebsites.net/pubs/paxos-commit.pdf "Consensus on Transaction Commit"
 [helland-uncoordinated]: https://pathelland.substack.com/p/i-am-so-glad-im-uncoordinated "I Am So Glad I'm Uncoordinated"
+[brooker-availability]: https://brooker.co.za/blog/2018/02/25/availability-liveness.html "Availability and availability"
 
 ## Footnotes <!-- omit in toc -->

@@ -115,6 +115,7 @@ Snapshot isolation has the same weak, strong, and strong session variants.
 | Consensus | a majority plus partial synchrony or randomness | terminates under partial synchrony, or with probability 1 using randomness; in a fully asynchronous network, obstruction-free at best (FLP) | cursor stability, repeatable read, snapshot isolation, serializable, strict serializable; any read-modify-write object |
 
 - The chart's colors are Jepsen's availability classes: blue is totally available, orange is sticky available, pink is unavailable. The tiers split pink in two. Linearizable and sequential registers need only a quorum. Every pink isolation level prevents lost update, so it needs consensus.
+- Tier 1 has a ceiling. Mahajan, Alvisi, and Dahlin ([Consistency, Availability, and Convergence][cac], 2011) proved that no level stronger than real-time causal is possible when every node must answer and replicas must converge. So causal tops tier 1. Sequential needs no consensus, but it does need a quorum.
 - Why tier 2 needs no consensus: message passing with a majority alive has the power of registers. ABD builds a register from messages, and registers can carry messages. See the [shared register constructions](https://en.wikipedia.org/wiki/Shared_register). So tier 2 is exactly what registers can do.
 - CAP vs FLP is about the failure model, not client vs server. CAP allows a partition of any size, so every live node must answer. FLP allows minority crashes. ABD sits between: impossible under CAP, fine under FLP. The progress post defines both liveness terms. See [Brooker, "Availability and availability"](https://brooker.co.za/blog/2018/02/25/availability-liveness.html).
 - Tier 1 is where CALM and invariant confluence live: see [When the application needs less](#when-the-application-needs-less). It is also the carving post's no-decider.
@@ -217,6 +218,7 @@ Each level strictly contains the one before: linearizability ⊂ set-linearizabi
 - Verify the escape clause in part 3: which progress condition makes "serializable read-modify-write solves consensus" precise.
 - Check Abadi's exact definitions of strong write and strong partition serializable before quoting the table.
 - Check that cursor stability prevents lost update in Berenson et al.'s sense, as part 2 claims.
+- Check the CAC paper's exact conditions for the tier 1 ceiling: whether it assumes clients stay with one server.
 
 [cacm-hierarchy]: https://cacm.acm.org/research/a-linearizability-based-hierarchy-for-concurrent-specifications/ "A Linearizability-based Hierarchy for Concurrent Specifications"
 [jacm-interval]: https://dl.acm.org/doi/10.1145/3266457 "Unifying Concurrent Objects and Distributed Tasks: Interval-Linearizability"
@@ -237,3 +239,4 @@ Each level strictly contains the one before: linearizability ⊂ set-linearizabi
 [vogels-ec]: https://www.allthingsdistributed.com/2007/12/eventually_consistent.html "Eventually Consistent"
 [crooks-seeing]: https://www.cs.cornell.edu/lorenzo/papers/Crooks17Seeing.pdf "Seeing is Believing: A Client-Centric Specification of Database Isolation"
 [generic-consensus]: https://gsd.di.uminho.pt/teaching/DC/2009/papers/GS98.pdf "The Generic Consensus Service"
+[cac]: https://www.cs.utexas.edu/~dahlin/papers/cac-tr.pdf "Consistency, Availability, and Convergence"
