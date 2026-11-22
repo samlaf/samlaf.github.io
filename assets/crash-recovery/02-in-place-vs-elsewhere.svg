@@ -1,0 +1,96 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="470" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" viewBox="0 0 760 470" role="img" aria-label="A crash halfway through a commit that changes pages A and C. Written in place, the disk mixes new and old pages and the log must repair it. Written elsewhere, the meta page still points at the old tree, so nothing needs repair." font-size="13">
+<defs>
+  <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1f1e1d"/></marker>
+  <marker id="arrp" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2f6fb3"/></marker>
+</defs>
+<rect width="100%" height="100%" fill="#ffffff"/>
+<text x="19" y="30" font-size="15" font-weight="600" fill="#1f1e1d">A crash halfway through a commit</text>
+<text x="19" y="50" font-size="11.5" fill="#6b6a66">A transaction changes leaves A and C. The crash hits after A' reaches disk, before C' does.</text>
+
+<!-- Left panel: in place -->
+<rect x="15" y="70" width="355" height="340" rx="6" fill="#ffffff" stroke="#d9d7d0"/>
+<text x="192.5" y="96" text-anchor="middle" font-size="13" font-weight="600" fill="#1f1e1d">Write in place</text>
+<text x="192.5" y="112" text-anchor="middle" font-size="11" fill="#6b6a66">a page goes back to its own block</text>
+
+<line x1="192.5" y1="164" x2="70" y2="220" stroke="#8a877f"/>
+<line x1="192.5" y1="164" x2="150" y2="220" stroke="#8a877f"/>
+<line x1="192.5" y1="164" x2="235" y2="220" stroke="#8a877f"/>
+<line x1="192.5" y1="164" x2="315" y2="220" stroke="#8a877f"/>
+<rect x="170" y="140" width="45" height="24" rx="4" fill="#f1f0ec" stroke="#b8b5ae"/>
+<text x="192.5" y="156" text-anchor="middle" font-size="11.5" fill="#1f1e1d">R</text>
+
+<rect x="48" y="220" width="44" height="24" rx="4" fill="#e3eef9" stroke="#2f6fb3"/>
+<text x="70" y="236" text-anchor="middle" font-size="11.5" fill="#1d4f86">A'</text>
+<rect x="128" y="220" width="44" height="24" rx="4" fill="#f1f0ec" stroke="#b8b5ae"/>
+<text x="150" y="236" text-anchor="middle" font-size="11.5" fill="#1f1e1d">B</text>
+<rect x="213" y="220" width="44" height="24" rx="4" fill="#f1f0ec" stroke="#b8b5ae"/>
+<text x="235" y="236" text-anchor="middle" font-size="11.5" fill="#1f1e1d">C</text>
+<rect x="293" y="220" width="44" height="24" rx="4" fill="#f1f0ec" stroke="#b8b5ae"/>
+<text x="315" y="236" text-anchor="middle" font-size="11.5" fill="#1f1e1d">D</text>
+<rect x="213" y="262" width="44" height="24" rx="4" fill="#ffffff" stroke="#2f6fb3" stroke-dasharray="4 3"/>
+<text x="235" y="278" text-anchor="middle" font-size="11.5" fill="#1d4f86">C'</text>
+<text x="265" y="278" font-size="10.5" fill="#6b6a66">lost with RAM</text>
+
+<rect x="40" y="306" width="305" height="26" rx="4" fill="#fdf3e1" stroke="#c98a1c"/>
+<text x="192.5" y="323" text-anchor="middle" font-size="11.5" fill="#7a4f05">log: A → A', C → C'</text>
+
+<text x="30" y="360" font-size="11.5" font-weight="600" fill="#1f1e1d">After the crash:</text>
+<text x="30" y="376" font-size="11.5" fill="#1f1e1d">disk mixes a new A' with an old C.</text>
+<text x="30" y="392" font-size="11.5" fill="#1f1e1d">Only the log says how to finish or undo it.</text>
+
+<!-- Right panel: elsewhere -->
+<rect x="385" y="70" width="360" height="340" rx="6" fill="#ffffff" stroke="#d9d7d0"/>
+<text x="565" y="96" text-anchor="middle" font-size="13" font-weight="600" fill="#1f1e1d">Write elsewhere</text>
+<text x="565" y="112" text-anchor="middle" font-size="11" fill="#6b6a66">new pages go to free blocks; a root switch commits</text>
+
+<rect x="535" y="126" width="60" height="22" rx="4" fill="#1f1e1d"/>
+<text x="565" y="141" text-anchor="middle" font-size="11.5" font-weight="600" fill="#ffffff">meta</text>
+<line x1="545" y1="148" x2="490" y2="176" stroke="#1f1e1d" stroke-width="1.5" marker-end="url(#arr)"/>
+<line x1="585" y1="148" x2="640" y2="176" stroke="#2f6fb3" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#arrp)"/>
+<text x="625" y="140" font-size="10.5" fill="#1d4f86">flips at commit</text>
+
+<!-- old tree -->
+<line x1="480" y1="202" x2="425" y2="250" stroke="#8a877f"/>
+<line x1="480" y1="202" x2="485" y2="250" stroke="#8a877f"/>
+<line x1="480" y1="202" x2="545" y2="250" stroke="#8a877f"/>
+<line x1="480" y1="202" x2="605" y2="250" stroke="#8a877f"/>
+<!-- new tree shares B and D -->
+<line x1="655" y1="202" x2="665" y2="250" stroke="#2f6fb3" stroke-dasharray="4 3"/>
+<line x1="655" y1="202" x2="485" y2="250" stroke="#2f6fb3" stroke-dasharray="4 3"/>
+<line x1="655" y1="202" x2="715" y2="250" stroke="#2f6fb3" stroke-dasharray="4 3"/>
+<line x1="655" y1="202" x2="605" y2="250" stroke="#2f6fb3" stroke-dasharray="4 3"/>
+
+<rect x="458" y="178" width="44" height="24" rx="4" fill="#f1f0ec" stroke="#b8b5ae"/>
+<text x="480" y="194" text-anchor="middle" font-size="11.5" fill="#1f1e1d">R</text>
+<rect x="633" y="178" width="44" height="24" rx="4" fill="#e3eef9" stroke="#2f6fb3"/>
+<text x="655" y="194" text-anchor="middle" font-size="11.5" fill="#1d4f86">R'</text>
+
+<rect x="403" y="250" width="44" height="24" rx="4" fill="#f1f0ec" stroke="#b8b5ae"/>
+<text x="425" y="266" text-anchor="middle" font-size="11.5" fill="#1f1e1d">A</text>
+<rect x="463" y="250" width="44" height="24" rx="4" fill="#f1f0ec" stroke="#b8b5ae"/>
+<text x="485" y="266" text-anchor="middle" font-size="11.5" fill="#1f1e1d">B</text>
+<rect x="523" y="250" width="44" height="24" rx="4" fill="#f1f0ec" stroke="#b8b5ae"/>
+<text x="545" y="266" text-anchor="middle" font-size="11.5" fill="#1f1e1d">C</text>
+<rect x="583" y="250" width="44" height="24" rx="4" fill="#f1f0ec" stroke="#b8b5ae"/>
+<text x="605" y="266" text-anchor="middle" font-size="11.5" fill="#1f1e1d">D</text>
+<rect x="643" y="250" width="44" height="24" rx="4" fill="#e3eef9" stroke="#2f6fb3"/>
+<text x="665" y="266" text-anchor="middle" font-size="11.5" fill="#1d4f86">A'</text>
+<rect x="693" y="250" width="44" height="24" rx="4" fill="#ffffff" stroke="#2f6fb3" stroke-dasharray="4 3"/>
+<text x="715" y="266" text-anchor="middle" font-size="11.5" fill="#1d4f86">C'</text>
+<text x="737" y="292" text-anchor="end" font-size="10.5" fill="#6b6a66">new pages, in free blocks</text>
+
+<text x="400" y="344" font-size="11.5" font-weight="600" fill="#1f1e1d">After the crash:</text>
+<text x="400" y="360" font-size="11.5" fill="#1f1e1d">meta still points at R, and the old tree is whole.</text>
+<text x="400" y="376" font-size="11.5" fill="#1f1e1d">A' and R' are free space that nothing reaches.</text>
+<text x="400" y="392" font-size="11.5" fill="#1f1e1d">There is nothing to repair, so there is no log.</text>
+
+<!-- legend -->
+<rect x="19" y="432" width="12" height="12" rx="2" fill="#e3eef9" stroke="#2f6fb3"/>
+<text x="37" y="442" font-size="11.5" fill="#6b6a66">new page, on disk</text>
+<rect x="170" y="432" width="12" height="12" rx="2" fill="#ffffff" stroke="#2f6fb3" stroke-dasharray="3 2"/>
+<text x="188" y="442" font-size="11.5" fill="#6b6a66">new page, still in RAM</text>
+<rect x="345" y="432" width="12" height="12" rx="2" fill="#f1f0ec" stroke="#b8b5ae"/>
+<text x="363" y="442" font-size="11.5" fill="#6b6a66">old page, on disk</text>
+<line x1="495" y1="438" x2="520" y2="438" stroke="#2f6fb3" stroke-dasharray="4 3"/>
+<text x="527" y="442" font-size="11.5" fill="#6b6a66">pointer only the new tree has</text>
+</svg>
