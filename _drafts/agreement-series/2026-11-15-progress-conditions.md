@@ -60,8 +60,37 @@ Examples:
 
 ![image](/assets/agreement-series/x-free-venn-diagram.png)
 
-- Database aside: OCC with backward validation is close to lock-free, because a transaction aborts only when another committed. Snapshot isolation's first-committer-wins behaves the same way. (This ignores the commit machinery itself.)
+- Database aside: OCC with backward validation is close to lock-free, because a transaction aborts only when another committed. Snapshot isolation's first-committer-wins behaves the same way. (This ignores the commit machinery itself.) It is lock-free, not wait-free: a long transaction can lose validation forever to a stream of short ones.
 - Weaker liveness notions, for contrast: termination (consensus protocols), guaranteed eventual entry to a critical section, fair access under contention.
+
+### From deadlock-free to starvation-free
+
+- The two blocking cells differ in one thing: whether a waiter's priority improves while it waits. A test-and-set spinlock is deadlock-free. Someone always gets the lock, but an unlucky thread can lose every race. A ticket lock is starvation-free. A thread's ticket never changes, so every thread ahead of it eventually leaves, and its turn comes. Both still need the scheduler to run each holder until it releases, which is why they sit in the blocking column.
+- Two-phase locking adds a new problem. A transaction holds many locks at once, so two transactions can each wait for the other. Plain 2PL isn't even deadlock-free. Databases fix this in two ways: prevent cycles, or detect and break them.
+- **Prevention: wait-die and wound-wait** (Rosenkrantz, Stearns, and Lewis, 1978). Each transaction gets a timestamp when it starts. Older means higher priority. On a conflict, the timestamps decide who waits and who aborts. Waiting goes only one way by age, and ages are strictly ordered, so no waits-for cycle can form.
+
+  | T1 is older, T2 is younger | Wait-die | Wound-wait |
+  | --- | --- | --- |
+  | T1 wants a lock T2 holds | T1 **waits** | T1 **wounds** T2: T2 aborts and releases the lock |
+  | T2 wants a lock T1 holds | T2 **dies**: it aborts itself | T2 **waits** |
+
+  The names describe what the requester does: it waits or dies, or it wounds or waits.[^wound]
+
+- These are two choices, so there are four schemes. Choose the wait direction, then choose who aborts in the other case:
+
+  | | Requester aborts (dies) | Holder aborts (is wounded) |
+  | --- | --- | --- |
+  | **Old waits for young** | wait-die: a young requester dies | an old holder is wounded |
+  | **Young waits for old** | an old requester dies | wound-wait: a young holder is wounded |
+
+- All four are deadlock-free, because waiting goes one way. Only the two classic ones are starvation-free. Their rule is: **always abort the younger transaction.** A restarted transaction keeps its original timestamp, so it only gets older compared with new arrivals. Eventually it is the oldest transaction in the system, and nothing can abort it. The reversed schemes abort the older one. If it keeps its timestamp, it stays old and keeps losing. If it takes a new one, it starts over. Either way, nothing guarantees it finishes.
+- So starvation-freedom collapses the two choices into one. Pick the wait direction, and "abort the younger" fixes the rest.
+- The timestamp is a ticket. The ticket lock and wound-wait share one principle: priority must improve with time spent waiting. Age is the natural choice, because it only grows. Give priority to the young instead, and a steady stream of newcomers can beat an old transaction forever.
+- The two schemes waste work differently. Wait-die aborts young requesters early and often, but they have done little work. Wound-wait aborts less often, but it can kill a transaction that has done a lot.
+- **Detection.** PostgreSQL, MySQL/InnoDB, SQL Server, and Oracle let transactions wait freely. They build a waits-for graph, and when they find a cycle, they abort one transaction in it. Breaking every cycle makes them deadlock-free. They are starvation-free only if the victim choice is fair: a transaction picked as the victim every time starves. The textbook fix counts past rollbacks in the victim's cost, which is age again in another form.
+- **The trade-off.** Prevention aborts transactions even when no deadlock would form, but it needs no global view. Detection aborts far fewer, because real deadlocks are rare, but it needs the waits-for graph. That is easy on one machine and hard across many. So Spanner uses wound-wait, and CockroachDB combines priorities (transactions "push" each other) with distributed deadlock detection.
+
+[^wound]: "Wound" is deliberate. A wounded transaction should abort, but if it has already finished its work and is committing, it survives. A wound isn't always fatal.
 
 ## 3. A crash is a thread that never runs again
 
@@ -130,6 +159,7 @@ Examples:
 - Verify Chandra–Hadzilacos–Toueg's statement of Ω, and whether the Hadzilacos paper below is it.
 - Verify the Halpern–Moses claim in section 3: common knowledge is unattainable with guaranteed delivery but no delay bound.
 - Wait-free in practice: helping-based queues are rare because they are complex. Is wait-freedom mostly academic?
+- Verify the database claims in section 2: Spanner uses wound-wait, CockroachDB combines push priorities with distributed deadlock detection, and Rosenkrantz–Stearns–Lewis let a committing wounded transaction survive. Check how PostgreSQL and InnoDB pick a deadlock victim, and whether any of them guards against starvation.
 - Memory reclamation: the old notes listed epoch-based reclamation as lock-free. Check it: a stalled thread can block every epoch from advancing, so it may only be blocking, unlike hazard pointers.
 
 ## References
@@ -139,6 +169,8 @@ Examples:
 - Chandra, Hadzilacos, Toueg, "The Weakest Failure Detector for Solving Consensus," JACM 1996
 - Guerraoui, Schiper, [Consensus: the Big Misunderstanding](https://doi.org/10.1109/FTDCS.1997.644722), FTDCS 1997
 - Song, van Renesse, Schneider, Dolev, [The Building Blocks of Consensus](https://www.cs.cornell.edu/home/rvr/papers/icdcn08.pdf), ICDCN 2008
+- Rosenkrantz, Stearns, Lewis, "System Level Concurrency Control for Distributed Database Systems," ACM TODS 1978
+- Corbett et al., "Spanner: Google's Globally-Distributed Database," OSDI 2012
 - Hunt et al., [ZooKeeper](https://www.usenix.org/legacy/event/atc10/tech/full_papers/Hunt.pdf), USENIX ATC 2010
 - [Brooker, "Availability and availability"](https://brooker.co.za/blog/2018/02/25/availability-liveness.html), 2018
 - Unsorted from the old drafts:
