@@ -78,9 +78,29 @@ What each rung costs a read in latency (Attiya and Welch's sequencer, and their 
 
 Write skew, moved from the reads post: the classic example is two doctors on call, where at least one must stay on call. Transactions T1 and T2 each read both rows, see two doctors on call, and each takes their own doctor off. T1 read the row T2 writes, and T2 read the row T1 writes. If no one notices those reads, both commit, and nobody is on call. Snapshot isolation ([Berenson et al. 1995][berenson-critique]) allows it: each transaction reads a snapshot as of its start, and a commit aborts only if a concurrent transaction wrote one of the same keys. The doctors write different rows, so both commit.
 
+### One grid instead of the Jepsen chart
+
+Put the two ladders at right angles. The rows are the consistency ladder: which ordering constraint the order respects. The columns measure how much of one total order you get at all. For transactions, the columns are the isolation ladder.
+
+![A grid of consistency models. Rows: real time, session order, no constraint. Columns: one total order, writes ordered with reads floating, one order per object, one order per observer, no agreed order. Real time row: linearizable and strict serializable; regular register and strong SI; the per-object cell collapses into one total order; real-time causal. Session order row: sequential and strong session serializable; x86-TSO as a loose analogy and strong session SI; coherence; causal, PRAM, and PSI; the session guarantees. No constraint row: serializable and repeatable read; snapshot isolation; cursor stability, roughly; eventual consistency, monotonic atomic view, read committed, and read uncommitted.](/assets/agreement-series/consistency-grid.svg)
+
+How to read it:
+
+- **Rows are the ladder above.** Real time, your own order, any prefix. "Any prefix" is the row with no constraint.
+- **The columns give up one total order in different ways.** Each column to the right keeps less of it. The *scope* shrinks to one order per object. *Agreement* splits into one order per observer, held together only by causality or program order. Last, the order disappears, and at most a transaction's writes become visible all at once (monotonic atomic view, [RAMP][ramp]).
+- **The left side is "single operation," not "single object."** Sequential consistency spans many objects; each operation touches one. That's why linearizability's locality is a real result. With real time, the per-object orders tie together, so the per-object cell collapses into one total order. Without real time, they can disagree, so coherence is a separate, weaker model than sequential.
+- **"Writes ordered, reads float" covers two cases.** In snapshot isolation, writes are ordered by commit, and reads float back to the snapshot at the start. That gap is what lets write skew through (Adya's G2, cycles of read-write edges). In a regular register ([Lamport 1986][lamport-ipc]), writes are ordered and respect real time, but each read may return the last finished write or any write it overlaps. So two reads in a row can see the new value, then the old one. ABD without the write-back gives a regular register. Real time does not force one order of reads. x86-TSO sits in the session row of this column, as a loose analogy.[^tso]
+- **Serializable and sequential sit in different rows.** Plain serializability ignores session order: a client's second transaction can be serialized before its first, so a client can miss its own write. The transactional counterpart of sequential is strong session serializable.
+- **Single-operation models get session order almost for free.** Causality includes program order by definition. So every single-operation model sits in the top two rows, except eventual consistency, which promises only convergence. Only transactional models drop session order altogether. That's why plain serializable feels oddly weak next to sequential.
+- **Up and left is stronger, with exceptions.** Repeatable read sits left of snapshot isolation, but the two are incomparable: repeatable read allows phantoms, and snapshot isolation allows write skew. So the grid has no arrows.
+- **The grid shows what clients observe, not what it costs.** Part 2 shows that cost needs a third parameter: the kind of operation.
+- Sources: [Viotti and Vukolić][viotti-vukolic] (ACM Computing Surveys 2016) for the single-operation side. [Crooks et al.][crooks-seeing] for isolation from the client's side. Adya's thesis (1999) for the dependency cycles. Daudjee and Salem's lazy replication work (VLDB 2006) for strong SI and strong session SI. [CAC][cac] for real-time causal.
+
+[^tso]: x86-TSO keeps program order, except that a later read may pass an earlier write through the store buffer. The store-buffering litmus test has the shape of write skew: each thread writes one variable and then reads the other's, and both read 0. The analogy is loose, because TSO has no transactions.
+
 ### Named levels are pairs
 
-Abadi's table of serializable variants differ only in consistency. In his words: "The only difference between these so called isolation levels are their consistency guarantees."
+Each named level is one cell of the grid: a row from the consistency ladder, and a column from how much order it keeps. Abadi's serializable variants all sit in the first column and differ only in row. In his words: "The only difference between these so called isolation levels are their consistency guarantees."
 
 | Name | Isolation | Consistency |
 | --- | --- | --- |
@@ -90,9 +110,11 @@ Abadi's table of serializable variants differ only in consistency. In his words:
 | strong partition serializable | serializable | linearizable within a partition (CockroachDB) |
 | strict serializable | serializable | linearizable |
 
-Snapshot isolation has the same weak, strong, and strong session variants.
+Strong write and strong partition serializable mix rows: they use one row for some transactions and another for the rest. Snapshot isolation has the same weak, strong, and strong session variants, one per row of the second column.
 
-- The Jepsen chart is the usual picture: isolation on the left, consistency on the right. Cockroach Labs point out that it names only one combination, strict serializable, though every system has both levels.
+- The [Jepsen chart][jepsen-map] is the usual picture. It comes from Bailis et al.'s [Highly Available Transactions][hat] (VLDB 2014): a Hasse diagram of "implies," with availability as colors. Height there is mostly graph depth. Sequential sits low because a long chain sits under it (monotonic reads, PRAM, causal). In the grid, position carries meaning. Cockroach Labs point out that the chart names only one combination, strict serializable, though every system has both levels. In the grid, every cell is a combination. The Hasse diagram is still the right tool to check whether one model implies another:
+
+  ![Implication diagram of consistency models in four bands: total order plus real time, total order plus session order, total order only, and no single agreed total order. Arrows point to the stronger model. Single operations on the left: linearizable above sequential, which is above causal; PRAM and writes-follow-reads point to causal, and monotonic reads, monotonic writes, and read-your-writes point to PRAM. Transactions on the right: strict serializable above strong session serializable above serializable. Linearizable points to strict serializable, and sequential to strong session serializable. Repeatable read and snapshot isolation point to serializable. Monotonic atomic view points to both; cursor stability points to repeatable read; read committed points to monotonic atomic view and cursor stability; read uncommitted points to read committed. Colors mark availability under partition.](/assets/agreement-series/consistency-hasse.svg)
 - The names fight the grid. [etcd][etcd-guarantees] calls its local, possibly stale reads "serializable," which fits one key at any prefix. Abadi's lost-update example shows the other direction. Two linearizable increments can still lose one, because consistency covers single operations, and only isolation makes a read and its write atomic.
 - History: [Cockroach Labs][crdb-iso-cons] add a point about history. A database on one node is linearizable without trying, so for decades serializable quietly meant strict serializable. What is new is serializable without strict.
 
@@ -115,6 +137,12 @@ Snapshot isolation has the same weak, strong, and strong session variants.
 | Consensus | a majority plus partial synchrony or randomness | terminates under partial synchrony, or with probability 1 using randomness; in a fully asynchronous network, obstruction-free at best (FLP) | cursor stability, repeatable read, snapshot isolation, serializable, strict serializable; any read-modify-write object |
 
 - The chart's colors are Jepsen's availability classes: blue is totally available, orange is sticky available, pink is unavailable. The tiers split pink in two. Linearizable and sequential registers need only a quorum. Every pink isolation level prevents lost update, so it needs consensus.
+- Cost doesn't follow [the grid](#one-grid-instead-of-the-jepsen-chart). Color it by tier, and the colors cut across rows and columns:
+  - A linearizable register and a linearizable compare-and-swap share a cell. The register needs a quorum, and the compare-and-swap needs consensus.
+  - Cursor stability and read committed sit one column apart. Only cursor stability prevents lost update, so only it needs consensus.
+  - Rows don't cost the same in every column. Real time on top of a total order costs a quorum round, but real-time causal stays totally available.
+
+  What predicts the tier is a third parameter: the kind of operation, blind writes and reads, or read-modify-write. Every model is a model of some object type, and the Jepsen chart assumes read/write registers. [Part 3's table](#linearizable--consensus) shows this axis: one or many objects, blind or read-modify-write.
 - Tier 1 has a ceiling. Mahajan, Alvisi, and Dahlin ([Consistency, Availability, and Convergence][cac], 2011) proved that no level stronger than real-time causal is possible when every node must answer and replicas must converge. So causal tops tier 1. Sequential needs no consensus, but it does need a quorum.
 - Why tier 2 needs no consensus: message passing with a majority alive has the power of registers. ABD builds a register from messages, and registers can carry messages. See the [shared register constructions](https://en.wikipedia.org/wiki/Shared_register). So tier 2 is exactly what registers can do.
 - CAP vs FLP is about the failure model, not client vs server. CAP allows a partition of any size, so every live node must answer. FLP allows minority crashes. ABD sits between: impossible under CAP, fine under FLP. The progress post defines both liveness terms. See [Brooker, "Availability and availability"](https://brooker.co.za/blog/2018/02/25/availability-liveness.html).
@@ -169,6 +197,30 @@ Snapshot isolation has the same weak, strong, and strong session variants.
   - timestamp ordering: one owner per item; replicating the owner needs consensus
 - Strictness (real-time order) is a separate cost: clocks with commit wait, a timestamp oracle, or a leader. Link the reads post. [Abadi 2018](https://dbmsmusings.blogspot.com/2018/09/newsql-database-systems-are-failing-to.html) covers clock-based systems that fail to be strict.
 
+### Conflicts are pairs that don't commute
+
+- Two operations conflict only if they touch the same object and their order changes the result. "Readers xor writer" is this rule for the simplest pair of operations:
+
+  | | Read | Write |
+  | --- | --- | --- |
+  | **Read** | commute | conflict |
+  | **Write** | conflict | conflict |
+
+- The size of "the same object" is a choice. A database locks a row, a page, a table, or a predicate, which is how it stops phantoms. Intention locks (IS, IX, SIX) let one lock table work at several sizes at once. So "many writers at once" usually means writers to different keys.[^rust]
+- Versions avoid the read-write conflict; they don't break the rule. MVCC hands a reader an older version, so the reader and the writer no longer touch the same object. RCU and LMDB do the same (link the progress post's readers that never wait). Two writes to one key still exclude each other. Two-phase locking makes the second writer wait, and snapshot isolation's first-committer-wins aborts it. They differ only in when they enforce it.
+- Weihl ([Commutativity-Based Concurrency Control for Abstract Data Types][weihl-commute], 1988) widens the table to any data type. Two operations may run concurrently if they commute:
+  - Increments commute with each other, but not with reads. So an increment lock is compatible with other increment locks.
+  - Inserts into a set commute.
+  - Commutativity can depend on the result. Two withdrawals commute if both succeed with money to spare. They don't if one might be refused for lack of funds. A lock table that sees only "write versus write" misses this. Escrow puts the idea to work: see the [replication post's operation axis](/programming/replication-in-four-cells.html#operation-axis-pay-for-order-only-when-needed).
+- Weihl also showed that recovery limits the table. A conflict relation that is correct with intentions lists (deferred update, applied at commit) may be wrong with undo logs (update in place), and the reverse. Neither set of constraints contains the other. So how a system undoes an abort changes how much concurrency it may allow. Link the recovery post for the two methods.
+- Adya's dependency graph makes each isolation level a choice of which non-commuting pairs may race. Its edges are write-write (ww), write-read (wr), and read-write anti-dependencies (rw):
+  - Serializable forbids every cycle.
+  - Snapshot isolation checks write-write conflicts and lets some cycles of rw edges through. Write skew is a cycle of two rw edges: each doctor read the row the other wrote.
+  - Read committed forbids only cycles of ww edges, and reads of data that is uncommitted or later aborted.
+- So the third parameter from Part 2, the kind of operation, is a conflict relation. Part 3's table asks the same question at a coarser grain: does an operation's answer depend on the order of concurrent operations? If every pair commutes, replicas can apply operations in any order and still converge, which is what CRDTs do, with no coordination. If some answer depends on the order, someone must fix that order.
+
+[^rust]: Rust's borrow checker enforces the same table at compile time, for each *place*. A function can mutably borrow two fields of one struct at once, or split a slice with `split_at_mut`, because those are separate places. An `RwLock<T>` makes the whole `T` one object, checked at run time.
+
 ### When the application needs less
 
 - An isolation level stands in for what the application needs. Serializability coordinates on every conflict, whether or not any rule of the application depends on it.
@@ -219,6 +271,10 @@ Each level strictly contains the one before: linearizability ⊂ set-linearizabi
 - Check Abadi's exact definitions of strong write and strong partition serializable before quoting the table.
 - Check that cursor stability prevents lost update in Berenson et al.'s sense, as part 2 claims.
 - Check the CAC paper's exact conditions for the tier 1 ceiling: whether it assumes clients stay with one server.
+- Check the grid's placement of cursor stability (one order per object, roughly) and of PSI (one order per observer, with session order).
+- Find a stable link for Daudjee and Salem, "Lazy Database Replication with Snapshot Isolation" (VLDB 2006), and for Adya's thesis.
+- Weihl's recovery pairing: check whether *forward* commutativity goes with intentions lists and *backward* commutativity with undo logs, before naming them. Sources: the IEEE ToC paper and "The Impact of Recovery on Concurrency Control" (MIT/LCS). The DTIC copies sit behind a bot wall.
+- Check Adya's exact rule for snapshot isolation (G-SI) before saying which rw cycles it allows.
 
 [cacm-hierarchy]: https://cacm.acm.org/research/a-linearizability-based-hierarchy-for-concurrent-specifications/ "A Linearizability-based Hierarchy for Concurrent Specifications"
 [jacm-interval]: https://dl.acm.org/doi/10.1145/3266457 "Unifying Concurrent Objects and Distributed Tasks: Interval-Linearizability"
@@ -240,3 +296,8 @@ Each level strictly contains the one before: linearizability ⊂ set-linearizabi
 [crooks-seeing]: https://www.cs.cornell.edu/lorenzo/papers/Crooks17Seeing.pdf "Seeing is Believing: A Client-Centric Specification of Database Isolation"
 [generic-consensus]: https://gsd.di.uminho.pt/teaching/DC/2009/papers/GS98.pdf "The Generic Consensus Service"
 [cac]: https://www.cs.utexas.edu/~dahlin/papers/cac-tr.pdf "Consistency, Availability, and Convergence"
+[viotti-vukolic]: https://dl.acm.org/doi/10.1145/2926965 "Consistency in Non-Transactional Distributed Storage Systems"
+[lamport-ipc]: https://doi.org/10.1007/BF01786227 "On Interprocess Communication, Part I: Basic Formalism"
+[jepsen-map]: https://jepsen.io/consistency "Jepsen: Consistency Models"
+[hat]: https://www.vldb.org/pvldb/vol7/p181-bailis.pdf "Highly Available Transactions: Virtues and Limitations"
+[weihl-commute]: https://doi.org/10.1109/12.9728 "Commutativity-Based Concurrency Control for Abstract Data Types"

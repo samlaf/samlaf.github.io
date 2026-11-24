@@ -107,6 +107,22 @@ Examples:
 - RCU in the Linux kernel, persistent data structures, and MVCC snapshots all use this pattern. So does LMDB's root swap in the caches post.
 - Persistent data structures aren't a subset of lock-free structures. They are the technique that makes lock-free updates easy.
 - Link the reads post: snapshot reads go brrrr for the same reason.
+- RCU and LMDB are the same pattern. LMDB adds persistence:
+
+  | | RCU | LMDB |
+  | --- | --- | --- |
+  | Readers | read the current pointer, no locks | read the root from the meta page, no locks |
+  | Writer | copies the node, edits the copy, swaps the pointer | copies every page on the path from leaf to root, writes a new root |
+  | Publish point | one atomic pointer store | one of two meta pages, then fsync |
+  | Writers | usually serialized by a lock | one at a time, under a global mutex |
+  | Freeing old versions | after a grace period, once no reader that started before can still see them | once no reader's transaction is old enough to need the page, tracked in a reader table |
+  | Failure mode | a long read-side section delays freeing, so memory grows | a long read transaction pins old pages, so the file grows |
+
+- Only the readers are wait-free. With one CAS on the root, writers would be lock-free. RCU and LMDB serialize writers with a lock instead, so their writers are blocking.
+- The waiting moves from readers to reclamation. An old version can be freed only once every reader that might see it has finished. One stalled reader therefore blocks freeing, and memory or the file grows without bound. Kernel RCU infers quiescent states, for example "every CPU has context-switched since then," so it needs no bookkeeping per reader. LMDB's reader table is closer to epoch-based reclamation: each reader records the version it started from. This is the same question as the open question on epoch-based reclamation below.
+- The copy size differs. RCU copies the node it changes, often just one. A copy-on-write B+tree must copy the whole path to the root, because each parent stores its children's addresses. So an LMDB write costs pages in proportion to the tree's depth.
+- Durability comes almost free in LMDB: the root flip is the commit, so it needs no log. Link the recovery post's shadow paging section.
+- The same pattern shows up in copy-on-write file systems (btrfs, ZFS), Clojure's persistent maps, and Rust's `arc-swap` and `im` crates.
 
 ## Open questions
 

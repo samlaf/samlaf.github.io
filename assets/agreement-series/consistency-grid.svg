@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="668" viewBox="0 0 1200 668" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" role="img" aria-label="A grid of consistency models. Rows: real time, session order, no constraint. Columns: one total order, writes ordered with reads floating, one order per object, one order per observer, no agreed order.">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<text x="20" y="32" font-size="17" font-weight="600" fill="#1f1e1d" text-anchor="start">Consistency models on two axes</text>
+<text x="20" y="54" font-size="12" font-weight="400" fill="#6b6a66" text-anchor="start">Rows: which ordering constraint the order respects. Columns: how much of one total order you get.</text>
+<text x="20" y="71" font-size="12" font-weight="400" fill="#6b6a66" text-anchor="start">Up and left is stronger, with exceptions: repeatable read and snapshot isolation are incomparable.</text>
+<text x="258.0" y="108" font-size="13" font-weight="600" fill="#1f1e1d" text-anchor="middle">One total order</text>
+<text x="258.0" y="125" font-size="11" font-weight="400" fill="#6b6a66" text-anchor="middle">every operation at one point</text>
+<text x="464.0" y="108" font-size="13" font-weight="600" fill="#1f1e1d" text-anchor="middle">Writes ordered, reads float</text>
+<text x="464.0" y="125" font-size="11" font-weight="400" fill="#6b6a66" text-anchor="middle">reads placed apart from writes</text>
+<text x="670.0" y="108" font-size="13" font-weight="600" fill="#1f1e1d" text-anchor="middle">One order per object</text>
+<text x="670.0" y="125" font-size="11" font-weight="400" fill="#6b6a66" text-anchor="middle">objects need not agree</text>
+<text x="876.0" y="108" font-size="13" font-weight="600" fill="#1f1e1d" text-anchor="middle">One order per observer</text>
+<text x="876.0" y="125" font-size="11" font-weight="400" fill="#6b6a66" text-anchor="middle">tied by causality or program order</text>
+<text x="1082.0" y="108" font-size="13" font-weight="600" fill="#1f1e1d" text-anchor="middle">No agreed order</text>
+<text x="1082.0" y="125" font-size="11" font-weight="400" fill="#6b6a66" text-anchor="middle">at most atomic visibility</text>
+<rect x="20" y="138" width="1160" height="108" rx="8" fill="#f7f6f3" stroke="#e6e4df"/>
+<text x="34" y="168" font-size="13" font-weight="600" fill="#1f1e1d" text-anchor="start">Real time</text>
+<text x="34" y="185" font-size="11" font-weight="400" fill="#6b6a66" text-anchor="start">real-time order</text>
+<rect x="160" y="152" width="196" height="36" rx="6" fill="#ece9f8" stroke="#7b4fc9" stroke-width="1.2"/>
+<text x="258.0" y="174.5" font-size="12.5" font-weight="600" fill="#4a2f8a" text-anchor="middle">Linearizable</text>
+<rect x="160" y="196" width="196" height="36" rx="6" fill="#e3eef9" stroke="#2f6fd6" stroke-width="1.2"/>
+<text x="258.0" y="218.5" font-size="12.5" font-weight="600" fill="#1d4f86" text-anchor="middle">Strict serializable</text>
+<rect x="366" y="152" width="196" height="36" rx="6" fill="#ece9f8" stroke="#7b4fc9" stroke-width="1.2" stroke-dasharray="5 3"/>
+<text x="464.0" y="174.5" font-size="12.5" font-weight="600" fill="#4a2f8a" text-anchor="middle">Regular register</text>
+<rect x="366" y="196" width="196" height="36" rx="6" fill="#e3eef9" stroke="#2f6fd6" stroke-width="1.2" stroke-dasharray="5 3"/>
+<text x="464.0" y="218.5" font-size="12.5" font-weight="600" fill="#1d4f86" text-anchor="middle">Strong SI</text>
+<text x="670.0" y="172" font-size="11" font-weight="400" fill="#6b6a66" text-anchor="middle" font-style="italic">collapses into one total order:</text>
+<text x="670.0" y="187" font-size="11" font-weight="400" fill="#6b6a66" text-anchor="middle" font-style="italic">linearizability is local</text>
+<rect x="778" y="152" width="196" height="36" rx="6" fill="#ece9f8" stroke="#7b4fc9" stroke-width="1.2" stroke-dasharray="5 3"/>
+<text x="876.0" y="174.5" font-size="12.5" font-weight="600" fill="#4a2f8a" text-anchor="middle">Real-time causal</text>
+<text x="1082.0" y="196.0" font-size="14" font-weight="400" fill="#b8b5ae" text-anchor="middle">—</text>
+<rect x="20" y="256" width="1160" height="152" rx="8" fill="#f7f6f3" stroke="#e6e4df"/>
+<text x="34" y="286" font-size="13" font-weight="600" fill="#1f1e1d" text-anchor="start">Session order</text>
+<text x="34" y="303" font-size="11" font-weight="400" fill="#6b6a66" text-anchor="start">each client's order</text>
+<rect x="160" y="270" width="196" height="36" rx="6" fill="#ece9f8" stroke="#7b4fc9" stroke-width="1.2"/>
+<text x="258.0" y="292.5" font-size="12.5" font-weight="600" fill="#4a2f8a" text-anchor="middle">Sequential</text>
+<rect x="160" y="314" width="196" height="36" rx="6" fill="#e3eef9" stroke="#2f6fd6" stroke-width="1.2"/>
+<text x="258.0" y="336.5" font-size="12.5" font-weight="600" fill="#1d4f86" text-anchor="middle">Strong session serializable</text>
+<rect x="366" y="270" width="196" height="36" rx="6" fill="#ece9f8" stroke="#7b4fc9" stroke-width="1.2" stroke-dasharray="5 3"/>
+<text x="464.0" y="286.0" font-size="12.5" font-weight="600" fill="#4a2f8a" text-anchor="middle">x86-TSO</text>
+<text x="464.0" y="300.0" font-size="10.5" font-weight="400" fill="#4a2f8a" text-anchor="middle">loose analogy</text>
+<rect x="366" y="314" width="196" height="36" rx="6" fill="#e3eef9" stroke="#2f6fd6" stroke-width="1.2" stroke-dasharray="5 3"/>
+<text x="464.0" y="336.5" font-size="12.5" font-weight="600" fill="#1d4f86" text-anchor="middle">Strong session SI</text>
+<rect x="572" y="270" width="196" height="36" rx="6" fill="#ece9f8" stroke="#7b4fc9" stroke-width="1.2" stroke-dasharray="5 3"/>
+<text x="670.0" y="292.5" font-size="12.5" font-weight="600" fill="#4a2f8a" text-anchor="middle">Coherence</text>
+<rect x="778" y="270" width="196" height="36" rx="6" fill="#ece9f8" stroke="#7b4fc9" stroke-width="1.2"/>
+<text x="876.0" y="292.5" font-size="12.5" font-weight="600" fill="#4a2f8a" text-anchor="middle">Causal</text>
+<rect x="778" y="314" width="196" height="36" rx="6" fill="#ece9f8" stroke="#7b4fc9" stroke-width="1.2"/>
+<text x="876.0" y="336.5" font-size="12.5" font-weight="600" fill="#4a2f8a" text-anchor="middle">PRAM</text>
+<rect x="778" y="358" width="196" height="36" rx="6" fill="#e3eef9" stroke="#2f6fd6" stroke-width="1.2" stroke-dasharray="5 3"/>
+<text x="876.0" y="380.5" font-size="12.5" font-weight="600" fill="#1d4f86" text-anchor="middle">PSI, transactional causal</text>
+<rect x="984" y="270" width="196" height="36" rx="6" fill="#ece9f8" stroke="#7b4fc9" stroke-width="1.2"/>
+<text x="1082.0" y="292.5" font-size="12.5" font-weight="600" fill="#4a2f8a" text-anchor="middle">MR · MW</text>
+<rect x="984" y="314" width="196" height="36" rx="6" fill="#ece9f8" stroke="#7b4fc9" stroke-width="1.2"/>
+<text x="1082.0" y="336.5" font-size="12.5" font-weight="600" fill="#4a2f8a" text-anchor="middle">RYW · WFR</text>
+<rect x="20" y="418" width="1160" height="196" rx="8" fill="#f7f6f3" stroke="#e6e4df"/>
+<text x="34" y="448" font-size="13" font-weight="600" fill="#1f1e1d" text-anchor="start">No constraint</text>
+<text x="34" y="465" font-size="11" font-weight="400" fill="#6b6a66" text-anchor="start">any prefix</text>
+<rect x="160" y="432" width="196" height="36" rx="6" fill="#e3eef9" stroke="#2f6fd6" stroke-width="1.2"/>
+<text x="258.0" y="454.5" font-size="12.5" font-weight="600" fill="#1d4f86" text-anchor="middle">Serializable</text>
+<rect x="160" y="476" width="196" height="36" rx="6" fill="#e3eef9" stroke="#2f6fd6" stroke-width="1.2"/>
+<text x="258.0" y="492.0" font-size="12.5" font-weight="600" fill="#1d4f86" text-anchor="middle">Repeatable read</text>
+<text x="258.0" y="506.0" font-size="10.5" font-weight="400" fill="#1d4f86" text-anchor="middle">items, not predicates</text>
+<rect x="366" y="432" width="196" height="36" rx="6" fill="#e3eef9" stroke="#2f6fd6" stroke-width="1.2"/>
+<text x="464.0" y="454.5" font-size="12.5" font-weight="600" fill="#1d4f86" text-anchor="middle">Snapshot isolation</text>
+<rect x="572" y="432" width="196" height="36" rx="6" fill="#e3eef9" stroke="#2f6fd6" stroke-width="1.2"/>
+<text x="670.0" y="448.0" font-size="12.5" font-weight="600" fill="#1d4f86" text-anchor="middle">Cursor stability</text>
+<text x="670.0" y="462.0" font-size="10.5" font-weight="400" fill="#1d4f86" text-anchor="middle">roughly</text>
+<text x="876.0" y="520.0" font-size="14" font-weight="400" fill="#b8b5ae" text-anchor="middle">—</text>
+<rect x="984" y="432" width="196" height="36" rx="6" fill="#ece9f8" stroke="#7b4fc9" stroke-width="1.2" stroke-dasharray="5 3"/>
+<text x="1082.0" y="448.0" font-size="12.5" font-weight="600" fill="#4a2f8a" text-anchor="middle">Eventual</text>
+<text x="1082.0" y="462.0" font-size="10.5" font-weight="400" fill="#4a2f8a" text-anchor="middle">convergence only</text>
+<rect x="984" y="476" width="196" height="36" rx="6" fill="#e3eef9" stroke="#2f6fd6" stroke-width="1.2"/>
+<text x="1082.0" y="498.5" font-size="12.5" font-weight="600" fill="#1d4f86" text-anchor="middle">Monotonic atomic view</text>
+<rect x="984" y="520" width="196" height="36" rx="6" fill="#e3eef9" stroke="#2f6fd6" stroke-width="1.2"/>
+<text x="1082.0" y="542.5" font-size="12.5" font-weight="600" fill="#1d4f86" text-anchor="middle">Read committed</text>
+<rect x="984" y="564" width="196" height="36" rx="6" fill="#e3eef9" stroke="#2f6fd6" stroke-width="1.2"/>
+<text x="1082.0" y="586.5" font-size="12.5" font-weight="600" fill="#1d4f86" text-anchor="middle">Read uncommitted</text>
+<rect x="20" y="634" width="22" height="14" rx="3" fill="#ece9f8" stroke="#7b4fc9" stroke-width="1.2"/>
+<text x="50" y="645.5" font-size="12" font-weight="400" fill="#6b6a66" text-anchor="start">Single operation</text>
+<rect x="196" y="634" width="22" height="14" rx="3" fill="#e3eef9" stroke="#2f6fd6" stroke-width="1.2"/>
+<text x="226" y="645.5" font-size="12" font-weight="400" fill="#6b6a66" text-anchor="start">Transaction</text>
+<rect x="337" y="634" width="22" height="14" rx="3" fill="#ffffff" stroke="#6b6a66" stroke-width="1.2" stroke-dasharray="5 3"/>
+<text x="367" y="645.5" font-size="12" font-weight="400" fill="#6b6a66" text-anchor="start">Not in the Hasse diagram</text>
+</svg>

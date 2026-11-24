@@ -12,7 +12,7 @@ Picture a replicated system as one log of writes. Each replica applies some pref
 
 If every read and write goes through one place, such as one shared memory or one leader, you get the strongest answer for free. But every operation pays a trip to that place. Weaker rules get cheaper only once you add caches or local replicas and serve reads from them.
 
-The second question, isolation, matters only inside read-write transactions. A read whose value feeds a write must be visible to whoever checks conflicts, or a later write could change the value before the transaction commits. Snapshot isolation answers "no one needs to know," which makes its reads cheap. Serializability answers "someone does," and there are three ways to tell them.
+The second question, isolation, matters most inside read-write transactions. A read whose value feeds a write must be visible to whoever checks conflicts, or a later write could change the value before the transaction commits. Snapshot isolation answers "no one needs to know," which makes its reads cheap. Serializability answers "someone does," and its protocols differ in who learns, and when. Even a read-only transaction can't always stay silent.
 
 - [How fresh must a read be?](#how-fresh-must-a-read-be)
   - [Any prefix](#any-prefix)
@@ -22,6 +22,7 @@ The second question, isolation, matters only inside read-write transactions. A r
 - [Does anyone need to know a read happened?](#does-anyone-need-to-know-a-read-happened)
   - [Snapshot isolation: no](#snapshot-isolation-no)
   - [Serializable: yes](#serializable-yes)
+  - [Read-only transactions: only at a safe snapshot](#read-only-transactions-only-at-a-safe-snapshot)
 - [Both axes at once](#both-axes-at-once)
 
 ## How fresh must a read be?
@@ -111,7 +112,7 @@ The trade-off doesn't go away. For local reads to be both linearizable and cheap
 
 ## Does anyone need to know a read happened?
 
-A read-only transaction at a fixed snapshot needs no one to know about it. The snapshot is already fixed, and no later write can change what it saw. A read inside a read-write transaction is different, because its value feeds the transaction's writes.
+A read inside a read-write transaction matters most, because its value feeds the transaction's writes. Read-only transactions come at the end of this section, because they have a catch of their own.
 
 The classic example is two doctors on call, where at least one must stay on call. Transactions T1 and T2 each read both rows, see two doctors on call, and each takes their own doctor off. T1 read the row T2 writes, and T2 read the row T1 writes. If no one notices those reads, both commit, and nobody is on call. That anomaly is called write skew.
 
@@ -127,12 +128,22 @@ DSQL takes this route on purpose. Its adjudicators see only each transaction's w
 
 Under serializability, someone must learn about reads. Every multiversion (MVCC) design keeps old versions so that reads don't block writes. What sets the protocols apart is who learns about reads, and when:
 
-| How reads become known | Protocol | When it's checked | Examples |
-| --- | --- | --- | --- |
-| Read locks | MV2PL | as the read happens | Spanner's read-write transactions, YugabyteDB under serializable |
-| Read timestamps at the data owner | MVTO | when a later write arrives | CockroachDB's timestamp cache, TiKV's `max_ts` |
-| The reader sends its read set at commit | MVOCC | at commit | FoundationDB's resolvers |
-| Read markers, plus edges between concurrent transactions | SSI | at commit | Postgres SERIALIZABLE (SIREAD locks) |
+| How reads become known | Protocol | When the order is fixed | When reads are checked | Examples |
+| --- | --- | --- | --- | --- |
+| Read locks | MV2PL | gradually, as each transaction reaches its lock point | as the read happens | Spanner's read-write transactions, YugabyteDB under serializable |
+| Read timestamps at the data owner | MVTO | up front, at the start timestamp | when a later write arrives | CockroachDB's timestamp cache, TiKV's `max_ts` |
+| The reader sends its read set at commit | MVOCC | at commit | at commit | FoundationDB's resolvers |
+| Read markers, plus edges between concurrent transactions | SSI | never written down: SSI only ensures that some order exists | at commit | Postgres SERIALIZABLE (SIREAD locks) |
+| Read sets declared before the transaction runs | deterministic | before execution, by the log position | never: locks follow the log order, so conflicts wait | [Calvin][calvin] |
+
+Serializability always needs a serial order. The protocols differ in when they fix it, and that decides where a read must leave its mark:
+
+- **MV2PL** lets the order emerge from conflicts as they happen. A transaction's place is set when it holds every lock it will need, its lock point. So a read holds its lock until then.
+- **MVTO** fixes the order first, from each transaction's start timestamp, and then enforces it. A write that arrives later must not land beneath a read at a higher timestamp. So each read leaves a trace at the data, for later writes to find.
+- **MVOCC** and **SSI** fix nothing until commit. So the read set only has to reach the checker by then.
+- **Calvin** fixes the order before anything runs. Nothing is left to check, so no read is ever rejected.
+
+A timestamp is one way to fix the order early and give it a name. It isn't the only way to get an order. Spanner's read-write transactions use two-phase locking, and pick a commit timestamp while they still hold their locks. That timestamp names an order the locks have already fixed.
 
 The doctors meet each protocol differently:
 
@@ -141,7 +152,16 @@ The doctors meet each protocol differently:
 - **MVOCC:** at commit, each transaction checks whether anything in its read set was written since it read it. The first to commit passes. The second finds the first one's write and aborts.
 - **SSI** ([Cahill, Röhm, Fekete 2008][cahill-ssi]): each transaction runs under snapshot isolation, but reads leave markers. T1 read what T2 wrote, and T2 read what T1 wrote, so the read-write edges run both ways. One transaction aborts at commit. The check is conservative, so it sometimes aborts transactions that were safe.
 
-This is also why CockroachDB's follower reads are safe. A follower can't update the leaseholder's timestamp cache. But it serves only reads at or below the closed timestamp, where no write can land anyway, so nobody needs to learn about them.
+### Read-only transactions: only at a safe snapshot
+
+A read-only transaction writes nothing, so it seems no one needs to know what it read. Not quite. Its snapshot must be a state that some serial order actually passes through. [Fekete, O'Neil, and O'Neil][fekete-readonly] (2004) showed that snapshot isolation doesn't guarantee this. Two read-write transactions can commit in a history that is serializable on its own. Add a read-only transaction that sees the wrong snapshot, and no serial order explains all three.
+
+A reader at timestamp *t* is safe once no write can still commit below *t*. There are two ways to make sure, and they echo the ways of the freshness section:
+
+- **The reader tells the writers.** It leaves a trace. Under MVTO, even a read-only transaction records its timestamp in CockroachDB's timestamp cache, so a later write below it gets pushed. Under SSI, it takes SIREAD locks like any other transaction, and it can be aborted.
+- **The writers promise the reader.** The system guarantees that no write will commit below *t*. Then the reader leaves no trace and never aborts. CockroachDB's follower reads work this way. A follower can't update the leaseholder's timestamp cache, but it serves only reads at or below the closed timestamp, where no write can land anyway. Postgres offers the same deal with `SERIALIZABLE READ ONLY DEFERRABLE`. The transaction waits for a *safe snapshot*, one that no concurrent read-write transaction can make dangerous, and then runs with no SIREAD locks ([Ports and Grittner][ports-grittner]).
+
+Either way, someone pays. The trace costs the reader a write to shared state at the data. The promise costs a wait: for the closed timestamp to pass, or for a safe snapshot to appear.
 
 ## Both axes at once
 
@@ -162,7 +182,7 @@ CockroachDB sits between the two columns, and runs one mechanism for each questi
 
 Both live at the leaseholder, which makes them easy to blur. And CockroachDB stops short of strict serializability. Two transactions on disjoint keys can commit in an order that contradicts real time, which [Cockroach Labs][crdb-atomic-clocks] calls "causal reverse." In their words: "While Spanner provides linearizability, CockroachDB only goes as far as to claim serializability." Abadi calls this level strong partition serializable: linearizable for transactions that touch the same keys, and weaker across keys.
 
-So MVTO gives you one order, and strict serializability needs timestamps that respect real time. One timestamp server, like TiDB's, hands out timestamps in real-time order. So do clocks with bounded error plus a commit wait, as in Spanner.
+So a serializable protocol gives you one order, and strict serializability needs that order to respect real time. Two-phase locking gets there without timestamps, as noted above. When timestamps fix the order, they must respect real time. One timestamp server, like TiDB's, hands out timestamps in real-time order. So do clocks with bounded error plus a commit wait, as in Spanner.
 
 ## References <!-- omit in toc -->
 
@@ -188,6 +208,9 @@ So MVTO gives you one order, and strict serializability needs timestamps that re
 20. [Living Without Atomic Clocks][crdb-atomic-clocks] — Cockroach Labs; how CockroachDB orders transactions without TrueTime, and "causal reverse"
 21. [An explanation of the difference between Isolation levels vs. Consistency levels][abadi-iso-cons] — Abadi, 2019; isolation covers concurrent transactions, consistency covers what later operations see, and most named levels bundle both
 22. [Linearizable, Wait-free Reads of Replicated State Machines][michael-waitfree-reads] — Michael, 2020; ABD-style reads on Multi-Paxos that never wait for the log
+23. [Calvin: Fast Distributed Transactions for Partitioned Database Systems][calvin] — Thomson et al., SIGMOD 2012; a sequencer fixes the order before execution
+24. [A Read-Only Transaction Anomaly Under Snapshot Isolation][fekete-readonly] — Fekete, O'Neil, O'Neil, SIGMOD Record 2004; a read-only transaction that sees a state no serial order passes through
+25. [Serializable Snapshot Isolation in PostgreSQL][ports-grittner] — Ports, Grittner, VLDB 2012; SSI in Postgres, including safe snapshots for deferrable read-only transactions
 
 [bailis-lin-ser]: http://www.bailis.org/blog/linearizability-versus-serializability/ "Linearizability versus Serializability"
 [terry-baseball]: https://dl.acm.org/doi/10.1145/2500500 "Replicated Data Consistency Explained Through Baseball"
@@ -211,3 +234,6 @@ So MVTO gives you one order, and strict serializability needs timestamps that re
 [crdb-atomic-clocks]: https://www.cockroachlabs.com/blog/living-without-atomic-clocks/ "Living Without Atomic Clocks"
 [abadi-iso-cons]: https://dbmsmusings.blogspot.com/2019/08/an-explanation-of-difference-between.html "An explanation of the difference between Isolation levels vs. Consistency levels"
 [michael-waitfree-reads]: https://ellismichael.com/blog/2020/04/13/linearizable-waitfree-reads/ "Linearizable, Wait-free Reads of Replicated State Machines"
+[calvin]: https://dl.acm.org/doi/10.1145/2213836.2213838 "Calvin: Fast Distributed Transactions for Partitioned Database Systems"
+[fekete-readonly]: https://dl.acm.org/doi/10.1145/1031570.1031573 "A Read-Only Transaction Anomaly Under Snapshot Isolation"
+[ports-grittner]: https://vldb.org/pvldb/vol5/p1850_danrkports_vldb2012.pdf "Serializable Snapshot Isolation in PostgreSQL"
